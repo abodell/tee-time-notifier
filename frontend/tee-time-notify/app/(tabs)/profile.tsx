@@ -133,17 +133,17 @@ export default function ProfileScreen() {
                 style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}
               >
                 {tier?.description ||
-                  "Basic access with limited tee‑time alerts per day"}
+                  "Basic access with limited tee-time alerts per day"}
               </Text>
             </View>
           </View>
 
           <View style={styles.planDetails}>
             <Text style={styles.detailText}>
-              {`Track up to ${tier?.max_alerts ?? 3} tee‑time alerts simultaneously.`}
+              {`Track up to ${tier?.max_alerts ?? 3} tee-time alerts simultaneously.`}
             </Text>
             <Text style={styles.detailText}>
-              {`We’ll check new availabilities every ${
+              {`We'll check new availabilities every ${
                 tier?.scan_interval_seconds
                   ? tier.scan_interval_seconds / 60
                   : 10
@@ -166,7 +166,7 @@ export default function ProfileScreen() {
             style={{ marginTop: 16, borderRadius: 10 }}
             contentStyle={{ height: 48 }}
             labelStyle={{ fontWeight: "600" }}
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/upgrade")}
           >
             {tier?.price_cents === 0 ? "Explore Upgrade Options" : "Manage Plan"}
           </Button>
