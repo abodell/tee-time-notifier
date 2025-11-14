@@ -28,14 +28,19 @@ Core Philosophy:
 II. CURRENT STATE (NOV 2025)
 ---------------------------------------------------------
 
-✅ Repository + project structure initialized  
-✅ React Native / Expo mobile frontend created  
-✅ Supabase configured (Auth, Database, Stripe enabled)  
+✅ Repository / project structure initialized  
+✅ React Native / Expo mobile frontend functioning (light/dark themes implemented)  
+✅ Supabase configured (Auth, Database, Stripe placeholder enabled)  
 ✅ FastAPI backend functioning locally  
 ✅ Core schema implemented in Supabase  
 ✅ ForeUp integration functional (live scan + normalization + UPSERT)  
 ✅ Alert engine MVP operational — alert matching and notification logging verified  
-✅ Timezone-aware datetimes implemented   
+✅ Timezone-aware datetimes implemented  
+✅ Expo Router navigation integrated  
+✅ Auth flow (sign-in / sign-up) working end to end  
+✅ Create Alert flow connected to backend placeholder endpoint  
+✅ Dynamic light/dark theming applied throughout  
+✅ iOS / Android tab + header navigation unified with consistent theme  
 
 System Capabilities:
 --------------------
@@ -44,33 +49,36 @@ System Capabilities:
 - Prevent duplicate entries via UPSERT
 - Match user alerts and generate notifications
 - Log all triggered notifications to `alert_notifications`
+- Mobile users can register, log in, create alerts, and view them
+- The app fully supports dark and light mode themes
 
 
 ---------------------------------------------------------
 III. APPLICATION STRUCTURE
 ---------------------------------------------------------
 
-Directory Layout:
------------------
+Directory Layout (simplified):
+------------------------------
 /
 ├── frontend/
 │   ├── src/
-│   │   ├── lib/supabase.ts     # Supabase client setup
-│   │   ├── screens/            # Main UI screens
-│   │   └── components/         # Shared React Native components
-│   └── App.tsx
+│   │   ├── lib/supabase.ts             # Supabase client setup
+│   │   ├── constants/theme.ts          # Centralized colors + Paper theme
+│   │   ├── components/                 # Custom modal + picker components
+│   │   │   ├── PickerModal.tsx
+│   │   │   ├── DatePickerField.tsx
+│   │   │   ├── TimePickerField.tsx
+│   │   └── screens/
+│   └── app/
+│       ├── (auth)/sign-in.tsx, sign-up.tsx
+│       ├── (tabs)/index.tsx, my-alerts.tsx, profile.tsx, _layout.tsx
+│       ├── create-details.tsx
+│       └── _layout.tsx
 │
 ├── backend/
 │   ├── app/
-│   │   ├── main.py             # FastAPI entry point
-│   │   ├── db.py               # Supabase client + env loader
-│   │   ├── models/tee_time.py
-│   │   ├── services/
-│   │   │   ├── foreup_service.py     # ForeUp polling + normalization + UPSERT
-│   │   │   └── alert_service.py      # Alert matching + notification logging
-│   │   ├── routes/alerts.py          # Alert CRUD and related endpoints
-│   │   └── utils/
-│   │       └── normalize.py
+│   │   ├── main.py, db.py
+│   │   ├── services/, routes/, utils/
 │   └── .env
 │
 └── docs/
@@ -81,109 +89,40 @@ Directory Layout:
 IV. SUPABASE DATABASE STRUCTURE
 ---------------------------------------------------------
 
-1. user_profiles
-----------------
-- id (uuid) → references auth.users(id)
-- full_name
-- phone
-- expo_push_token
-- membership_tier_id → references membership_tiers(id)
-- stripe_customer_id
-- created_at / updated_at timestamps
+Matches previously documented schema with:
+- user_profiles
+- membership_tiers
+- courses
+- provider_configs
+- availability
+- alerts
+- alert_notifications
 
-2. membership_tiers
--------------------
-- id (serial)
-- name ('Free', 'Plus', 'Pro', etc.)
-- description
-- price_cents
-- max_alerts
-- scan_interval_seconds
-
-3. courses
-----------
-- id (bigserial)
-- name, city, state, provider, provider_course_id, provider_url
-- latitude, longitude, time_zone
-- active (boolean)
-
-4. provider_configs
--------------------
-- course_id → references courses(id)
-- provider (e.g., 'ForeUp')
-- key (e.g., 'schedule_id', 'booking_class')
-- value (string or JSON)
-
-5. availability
----------------
-- id (bigserial)
-- course_id → references courses(id)
-- tee_time (timestamptz)
-- price (numeric)
-- holes (int)
-- data (jsonb)
-- scanned_at (timestamptz default now())
-UNIQUE (course_id, tee_time, holes)
-
-6. alerts
----------
-- id (bigserial)
-- user_id → references user_profiles(id)
-- course_id → references courses(id)
-- holes (int)
-- date_from/date_to (timestamptz)
-- start_time/end_time (timestamptz)
-- active (boolean)
-- created_at / updated_at timestamps
-
-7. alert_notifications
-----------------------
-- id (bigserial)
-- alert_id → references alerts(id)
-- availability_id → references availability(id)
-- sent_at (timestamptz)
-- via (text)
-- status (text)
+All schema elements migrated and verified.
 
 
 ---------------------------------------------------------
 V. HOW THE SYSTEM WORKS
 ---------------------------------------------------------
 
-1. Course Initialization
-   - Admin seeds 30–50 ForeUp courses
-   - Each course has provider configs for ForeUp parameters
+End-to-end flow (current MVP):
+1. User can browse for courses and set alert preferences (holes, date/time window).
+2. Non‑authenticated users are prompted to sign in or sign up.
+3. After authentication, alert preferences are saved to the backend API.
+4. Backend normalizes tee-time data from ForeUp and checks for matches.
+5. When matches occur, a notification event is logged (push coming next phase).
+6. All new users and alerts are stored in Supabase for unified tracking.
 
-2. User Flow (Frontend → Backend)
-   - User browses courses and sets preferences (holes, date/time window)
-   - User fills out alert settings **without being logged in**
-   - Upon pressing “Submit,” app prompts user to create an account
-   - After authentication via Supabase → app saves alert via REST API
-   - Backend inserts record into `alerts`
-   - User is now “subscribed” to that alert
+Frontend Highlights:
+--------------------
+- Searchable course selector querying Supabase `courses`
+- Sticky bottom tab navigation (Home, My Alerts, Profile)
+- Theming system shared across all components
+- Date/Time picker modals with native behavior and live validation banners
+- Time-range aware picker system (Preferred Start ↔ End Time)
+- Session persistence via Supabase Auth
 
-3. Background Scanning (Backend)
-   - Scheduled or manually triggered runs call ForeUp API per course
-   - Stores results in `availability`
-
-4. Alert Engine
-   - On each scan:
-     * Checks every active alert
-     * Matches available tee times to alert windows
-     * If a new match that hasn’t been sent before → insert into `alert_notifications`
-     * Triggers push/email notification via `notify_user()`
-
-5. Notification Delivery
-   - Backend sends pushes to Expo or Firebase APIs
-   - Users receive notifications on mobile even if app closed
-   - Tapping notification opens course booking page (`provider_url`)
-
-6. Frontend Views
-   - Course Picker
-   - Alert Creation Flow (with Guest → Sign-Up redirect)
-   - “My Alerts” Dashboard
-   - Notification History Feed
-   - Profile Settings (manage plan & push opt-ins)
+The frontend now implements the key complete flow for “Create Alert” with full visual polish.
 
 
 ---------------------------------------------------------
@@ -192,79 +131,71 @@ VI. IMPLEMENTED / VERIFIED
 
 ✔ Supabase schema finalized  
 ✔ ForeUp integration operational  
-✔ Scanning + data normalization stable  
-✔ UPSERT deduplication confirmed  
-✔ Alert engine runs with notification logging  
-✔ Timezone-aware datetime support  
-✔ Successful notification flow (logged to DB)
+✔ Alert engine running with logging  
+✔ Backend reachable from frontend (placeholder POST validated)  
+✔ Full Expo Router navigation / Auth setup completed  
+✔ Theming system (light/dark) unified with React Native Paper  
+✔ Date and Time pickers built as reusable components with animation  
+✔ Validation banners for invalid or inverted tee time ranges  
+✔ Top/bottom navigation bars correctly themed in dark mode  
+✔ Status bar configuration warning resolved  
+✔ Managed Expo workflow established (confirmed no native folder dependency)  
 
 
 ---------------------------------------------------------
 VII. DEVELOPMENT ROADMAP
 ---------------------------------------------------------
 
-Phase 3 — Alert Engine MVP (COMPLETE)
--------------------------------------
-- Implemented alert matching and notification logging
-
-Phase 4 — Frontend MVP (IN PROGRESS)
-------------------------------------
+Phase 4 — Frontend MVP (NEAR COMPLETE)
+--------------------------------------
 Goal: End‑to‑end working experience from mobile app.
-  * Flow: user fills alert → creates account → receives tee time notification
+✅ User fills alert → creates account → can view and validate tee time alert entries
+✅ Auth + theming + picker refactors complete  
+🚧 Integrate actual backend POST/GET alerts (`/alerts/create`, `/alerts/user/{id}`)
 
-Frontend Tasks:
----------------
-- UX for alert creation (course, holes, date/time window)
-- “Create Alert” form works pre-auth
-- On submit → if unauthenticated → navigate to auth screen
-- Supabase Auth (email/password) integration
-- After signup/login → alert POSTs to `/alerts/create`
-- “My Alerts” page connects to `/alerts/user/{id}`
-- “Notifications” screen pulls from `/alerts/notifications/{id}`
-- Push token registration flow (Expo → Supabase update)
-- Toast/local notification feedback
+Next frontend improvements:
+- Toast feedback banner after “Create Alert” success
+- My Alerts tab data displayed from backend endpoint
+- Minor design refinements for spacing / typography / animations
 
-Backend Tasks:
---------------
-- Add endpoint: GET `/alerts/notifications/{user_id}`
-- Add field `expo_push_token` in user_profiles
-- Update notify_user() for real push send
-
-Phase 5 — Notifications Integration
------------------------------------
-- Implement Expo Push or FCM workflow
-- Store tokens, handle invalidation
-- Confirm alerts trigger visible pushes on physical device
+Phase 5 — Notifications Integration (UP NEXT)
+---------------------------------------------
+- Implement real push workflow (Expo Push or FCM)
+- Store push tokens in Supabase `user_profiles`
+- Handle invalidation / duplicates
+- Trigger actual mobile push during scan engine match  
 
 Phase 6 — Scheduling & Automation
 ---------------------------------
-- Deploy FastAPI backend to Oracle Cloud Free Compute
-- Cron/APScheduler for hourly scans
-- Proper .env and environment variables for prod
+- Deploy FastAPI backend (Oracle Cloud Free tier)
+- Cron/APScheduler for hourly course scans
+- Proper production environment variables
 
 Phase 7 — Analytics & Insights
 ------------------------------
 - Aggregate tee time frequency per course
-- Endpoint `/stats/course/{id}`
-- Visual charts in frontend
+- Simple `/stats/course/{id}` endpoint
+- Add chart visualization in frontend (history & trends)
 
 Phase 8 — Monetization
 ----------------------
-- Integrate Supabase Stripe billing
-- Enforce membership tiers (max_alerts, scan frequency)
-- Add subscription creation endpoint
+- Integrate Supabase + Stripe subscription billing
+- Enforce membership tiers: (Free, Plus, Pro)
+- API enforcement for max alerts, scan frequencies
 
 Phase 9 — Provider Expansion
 ----------------------------
-- Add GolfNow, Club Prophet, etc.
-- Each provider = new adapter in `app/services/`
+- Add GolfNow, Club Prophet, etc. (adapter pattern per provider)
+- Verify legal compliance / TOS for each
+- Normalize data into unified schema
 
 Phase 10 — QA & Scalability
 ---------------------------
-- Add structured logging (Loguru/Sentry)
-- Unit tests for services
+- Structured logging (Loguru/Sentry)
+- Unit & E2E tests for services
 - Healthcheck endpoints
-- Rate limits per tier
+- Tier‑based rate limiting
+- Backend observability dashboard
 
 
 ---------------------------------------------------------
@@ -272,29 +203,39 @@ VIII. DESIGN PRINCIPLES
 ---------------------------------------------------------
 
 - Legal and ethical: no auto-booking or unauthorized scraping
-- Modular integrations: 1 adapter per provider
-- All datetimes UTC and aware
-- Supabase = single source of truth
-- Backend drives notifications; frontend displays results
-- Build incremental features, validate each milestone
-- Keep cloud costs near zero until revenue
+- Modular: one provider adapter per booking API
+- UTC‑aware datetimes only
+- Supabase as single source of truth  
+- Clear separation of frontend (display) and backend (logic)
+- Build incrementally and validate at each phase
+- Maintain cloud cost efficiency until monetized
 
 
 ---------------------------------------------------------
 IX. TODO CHECKLIST
 ---------------------------------------------------------
 
-[ ] Add expo_push_token to user_profiles  
-[ ] Implement actual push logic in notify_user()  
-[ ] Expose /alerts/notifications/{user_id} endpoint  
-[ ] Connect frontend Create Alert → Auth → Alert submit flow  
-[ ] Implement Supabase login/signup in React Native  
-[ ] Display My Alerts and Notifications in app  
-[ ] Deploy backend on Oracle Cloud  
-[ ] Schedule hourly scan job  
-[ ] Integrate Stripe tiers  
-[ ] Implement analytics endpoints  
-[ ] Add structured logging and healthchecks  
+Frontend in Progress:
+---------------------
+[ ] Connect Create Alert → backend `/alerts/create`  
+[ ] Integrate `/alerts/user/{id}` list display on My Alerts tab  
+[ ] Add toast / snackbar for successful alert creation  
+[ ] Add small “valid range” success helper indicator  
+[ ] Confirm dark/light color balance across modals & pickers  
+
+Backend Upcoming:
+-----------------
+[ ] Add expo_push_token to `user_profiles`  
+[ ] Implement `notify_user()` to send real push messages  
+[ ] Expose `/alerts/notifications/{user_id}` endpoint  
+[ ] Deploy FastAPI backend on Oracle Cloud  
+[ ] Configure scheduled tee-time scan  
+
+Misc / Validation:
+------------------
+[ ] Local push simulation test  
+[ ] End-to-end alert trigger test using live courses  
+[ ] Add analytics + metrics endpoints  
 
 
 ---------------------------------------------------------
@@ -302,13 +243,14 @@ X. LONG‑TERM VISION
 ---------------------------------------------------------
 
 After MVP validation:
-- Expand to more booking providers
-- Add group scheduling (“find foursome together”)
-- Offer course analytics to partner courses (B2B)
-- Predictive model for expected openings
-- Referral & growth system in app
-- Scale backend to containerized infra
+- Expand to additional booking providers
+- Add multi-user scheduling (“find foursome together”)
+- Offer course insights dashboards for partner facilities (B2B SaaS)
+- Predictive tee‑time model (“likely openings”)
+- Referral/growth incentives built into app
+- Containerize backend for scalability (Docker / Fly.io / Supabase Functions)
 - Geographic expansion beyond U.S.
+- Full production automation and monitoring
 
 
 ---------------------------------------------------------
