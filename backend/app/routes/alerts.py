@@ -19,7 +19,7 @@ def get_user_alerts(user_id: str):
     """ Return all active alerts for a user. """
     alerts = (
         supabase.table("alerts")
-        .select("*")
+        .select("*, courses!alerts_course_id_fkey(name, city, state)")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .execute()
