@@ -1,0 +1,316 @@
+TEE TIME SNIPE — FULL PROJECT PLAN AND TECHNICAL ROADMAP
+=========================================================
+
+Last Updated: November 2025
+Author: [Your Name]
+Purpose: Shared context + detailed task roadmap for the Tee Time Snipe app MVP and beyond.
+
+
+---------------------------------------------------------
+I. PROJECT OVERVIEW
+---------------------------------------------------------
+
+Goal:
+-----
+Tee Time Snipe helps golfers catch open tee times that fit their schedule before others do. 
+It monitors supported booking platforms (starting with ForeUp) and immediately notifies the user 
+when a matching tee time opens up.
+
+Core Philosophy:
+----------------
+- Respect provider Terms of Service (no auto-booking)
+- Focus on timely alerts, simple user experience, and accurate notifications
+- Validate demand before scaling infrastructure
+- Build leanly on Always-Free and developer-friendly cloud tools
+
+
+---------------------------------------------------------
+II. CURRENT STATE (NOV 2025)
+---------------------------------------------------------
+
+✅ Repository + project structure initialized  
+✅ React Native / Expo mobile frontend created  
+✅ Supabase configured (Auth, Database, Stripe enabled)  
+✅ FastAPI backend functioning locally  
+✅ Core schema implemented in Supabase  
+✅ ForeUp integration functional (live scan + normalization + UPSERT)  
+✅ Alert engine MVP operational — alert matching and notification logging verified  
+✅ Timezone-aware datetimes implemented   
+
+System Capabilities:
+--------------------
+- Query live tee times from ForeUp booking API
+- Normalize and store availability records
+- Prevent duplicate entries via UPSERT
+- Match user alerts and generate notifications
+- Log all triggered notifications to `alert_notifications`
+
+
+---------------------------------------------------------
+III. APPLICATION STRUCTURE
+---------------------------------------------------------
+
+Directory Layout:
+-----------------
+/
+├── frontend/
+│   ├── src/
+│   │   ├── lib/supabase.ts     # Supabase client setup
+│   │   ├── screens/            # Main UI screens
+│   │   └── components/         # Shared React Native components
+│   └── App.tsx
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py             # FastAPI entry point
+│   │   ├── db.py               # Supabase client + env loader
+│   │   ├── models/tee_time.py
+│   │   ├── services/
+│   │   │   ├── foreup_service.py     # ForeUp polling + normalization + UPSERT
+│   │   │   └── alert_service.py      # Alert matching + notification logging
+│   │   ├── routes/alerts.py          # Alert CRUD and related endpoints
+│   │   └── utils/
+│   │       └── normalize.py
+│   └── .env
+│
+└── docs/
+    └── TEE_TIME_SNIPE_PROJECT_PLAN.txt
+
+
+---------------------------------------------------------
+IV. SUPABASE DATABASE STRUCTURE
+---------------------------------------------------------
+
+1. user_profiles
+----------------
+- id (uuid) → references auth.users(id)
+- full_name
+- phone
+- expo_push_token
+- membership_tier_id → references membership_tiers(id)
+- stripe_customer_id
+- created_at / updated_at timestamps
+
+2. membership_tiers
+-------------------
+- id (serial)
+- name ('Free', 'Plus', 'Pro', etc.)
+- description
+- price_cents
+- max_alerts
+- scan_interval_seconds
+
+3. courses
+----------
+- id (bigserial)
+- name, city, state, provider, provider_course_id, provider_url
+- latitude, longitude, time_zone
+- active (boolean)
+
+4. provider_configs
+-------------------
+- course_id → references courses(id)
+- provider (e.g., 'ForeUp')
+- key (e.g., 'schedule_id', 'booking_class')
+- value (string or JSON)
+
+5. availability
+---------------
+- id (bigserial)
+- course_id → references courses(id)
+- tee_time (timestamptz)
+- price (numeric)
+- holes (int)
+- data (jsonb)
+- scanned_at (timestamptz default now())
+UNIQUE (course_id, tee_time, holes)
+
+6. alerts
+---------
+- id (bigserial)
+- user_id → references user_profiles(id)
+- course_id → references courses(id)
+- holes (int)
+- date_from/date_to (timestamptz)
+- start_time/end_time (timestamptz)
+- active (boolean)
+- created_at / updated_at timestamps
+
+7. alert_notifications
+----------------------
+- id (bigserial)
+- alert_id → references alerts(id)
+- availability_id → references availability(id)
+- sent_at (timestamptz)
+- via (text)
+- status (text)
+
+
+---------------------------------------------------------
+V. HOW THE SYSTEM WORKS
+---------------------------------------------------------
+
+1. Course Initialization
+   - Admin seeds 30–50 ForeUp courses
+   - Each course has provider configs for ForeUp parameters
+
+2. User Flow (Frontend → Backend)
+   - User browses courses and sets preferences (holes, date/time window)
+   - User fills out alert settings **without being logged in**
+   - Upon pressing “Submit,” app prompts user to create an account
+   - After authentication via Supabase → app saves alert via REST API
+   - Backend inserts record into `alerts`
+   - User is now “subscribed” to that alert
+
+3. Background Scanning (Backend)
+   - Scheduled or manually triggered runs call ForeUp API per course
+   - Stores results in `availability`
+
+4. Alert Engine
+   - On each scan:
+     * Checks every active alert
+     * Matches available tee times to alert windows
+     * If a new match that hasn’t been sent before → insert into `alert_notifications`
+     * Triggers push/email notification via `notify_user()`
+
+5. Notification Delivery
+   - Backend sends pushes to Expo or Firebase APIs
+   - Users receive notifications on mobile even if app closed
+   - Tapping notification opens course booking page (`provider_url`)
+
+6. Frontend Views
+   - Course Picker
+   - Alert Creation Flow (with Guest → Sign-Up redirect)
+   - “My Alerts” Dashboard
+   - Notification History Feed
+   - Profile Settings (manage plan & push opt-ins)
+
+
+---------------------------------------------------------
+VI. IMPLEMENTED / VERIFIED
+---------------------------------------------------------
+
+✔ Supabase schema finalized  
+✔ ForeUp integration operational  
+✔ Scanning + data normalization stable  
+✔ UPSERT deduplication confirmed  
+✔ Alert engine runs with notification logging  
+✔ Timezone-aware datetime support  
+✔ Successful notification flow (logged to DB)
+
+
+---------------------------------------------------------
+VII. DEVELOPMENT ROADMAP
+---------------------------------------------------------
+
+Phase 3 — Alert Engine MVP (COMPLETE)
+-------------------------------------
+- Implemented alert matching and notification logging
+
+Phase 4 — Frontend MVP (IN PROGRESS)
+------------------------------------
+Goal: End‑to‑end working experience from mobile app.
+  * Flow: user fills alert → creates account → receives tee time notification
+
+Frontend Tasks:
+---------------
+- UX for alert creation (course, holes, date/time window)
+- “Create Alert” form works pre-auth
+- On submit → if unauthenticated → navigate to auth screen
+- Supabase Auth (email/password) integration
+- After signup/login → alert POSTs to `/alerts/create`
+- “My Alerts” page connects to `/alerts/user/{id}`
+- “Notifications” screen pulls from `/alerts/notifications/{id}`
+- Push token registration flow (Expo → Supabase update)
+- Toast/local notification feedback
+
+Backend Tasks:
+--------------
+- Add endpoint: GET `/alerts/notifications/{user_id}`
+- Add field `expo_push_token` in user_profiles
+- Update notify_user() for real push send
+
+Phase 5 — Notifications Integration
+-----------------------------------
+- Implement Expo Push or FCM workflow
+- Store tokens, handle invalidation
+- Confirm alerts trigger visible pushes on physical device
+
+Phase 6 — Scheduling & Automation
+---------------------------------
+- Deploy FastAPI backend to Oracle Cloud Free Compute
+- Cron/APScheduler for hourly scans
+- Proper .env and environment variables for prod
+
+Phase 7 — Analytics & Insights
+------------------------------
+- Aggregate tee time frequency per course
+- Endpoint `/stats/course/{id}`
+- Visual charts in frontend
+
+Phase 8 — Monetization
+----------------------
+- Integrate Supabase Stripe billing
+- Enforce membership tiers (max_alerts, scan frequency)
+- Add subscription creation endpoint
+
+Phase 9 — Provider Expansion
+----------------------------
+- Add GolfNow, Club Prophet, etc.
+- Each provider = new adapter in `app/services/`
+
+Phase 10 — QA & Scalability
+---------------------------
+- Add structured logging (Loguru/Sentry)
+- Unit tests for services
+- Healthcheck endpoints
+- Rate limits per tier
+
+
+---------------------------------------------------------
+VIII. DESIGN PRINCIPLES
+---------------------------------------------------------
+
+- Legal and ethical: no auto-booking or unauthorized scraping
+- Modular integrations: 1 adapter per provider
+- All datetimes UTC and aware
+- Supabase = single source of truth
+- Backend drives notifications; frontend displays results
+- Build incremental features, validate each milestone
+- Keep cloud costs near zero until revenue
+
+
+---------------------------------------------------------
+IX. TODO CHECKLIST
+---------------------------------------------------------
+
+[ ] Add expo_push_token to user_profiles  
+[ ] Implement actual push logic in notify_user()  
+[ ] Expose /alerts/notifications/{user_id} endpoint  
+[ ] Connect frontend Create Alert → Auth → Alert submit flow  
+[ ] Implement Supabase login/signup in React Native  
+[ ] Display My Alerts and Notifications in app  
+[ ] Deploy backend on Oracle Cloud  
+[ ] Schedule hourly scan job  
+[ ] Integrate Stripe tiers  
+[ ] Implement analytics endpoints  
+[ ] Add structured logging and healthchecks  
+
+
+---------------------------------------------------------
+X. LONG‑TERM VISION
+---------------------------------------------------------
+
+After MVP validation:
+- Expand to more booking providers
+- Add group scheduling (“find foursome together”)
+- Offer course analytics to partner courses (B2B)
+- Predictive model for expected openings
+- Referral & growth system in app
+- Scale backend to containerized infra
+- Geographic expansion beyond U.S.
+
+
+---------------------------------------------------------
+END OF DOCUMENT
+---------------------------------------------------------
