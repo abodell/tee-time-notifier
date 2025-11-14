@@ -10,7 +10,8 @@ interface Props {
   value: Date | null;
   onChange: (d: Date) => void;
   selectedDate?: Date | null;
-  startTime?: Date | null; // for end-time validation
+  startTime?: Date | null;
+  onValidityChange?: (isValid: boolean) => void;
 }
 
 export default function TimePickerField({
@@ -19,30 +20,30 @@ export default function TimePickerField({
   onChange,
   selectedDate,
   startTime,
+  onValidityChange,
 }: Props) {
   const theme = useTheme();
   const isDark = theme.dark;
   const [visible, setVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tempValue, setTempValue] = useState<Date>(value || new Date());
 
   const now = new Date();
   const isToday =
     !!selectedDate && dayjs(selectedDate).isSame(dayjs(now), "day");
 
-  // live validate whenever value changes
+  // validate value on each change
   useEffect(() => {
-    if (!value) {
-      setError(null);
-      return;
+    let newError: string | null = null;
+    if (!value) newError = null;
+    else if (isToday && dayjs(value).isBefore(dayjs(now))) {
+      newError = "That time has already passed today.";
+    } else if (startTime && dayjs(value).isBefore(dayjs(startTime))) {
+      newError = "End time must be after the start time.";
     }
 
-    if (isToday && dayjs(value).isBefore(dayjs(now))) {
-      setError("That time has already passed today.");
-    } else if (startTime && dayjs(value).isBefore(dayjs(startTime))) {
-      setError("End time must be after the start time.");
-    } else {
-      setError(null);
-    }
+    setError(newError);
+    onValidityChange?.(!newError && !!value);
   }, [isToday, now, value, startTime]);
 
   return (
@@ -67,7 +68,15 @@ export default function TimePickerField({
         </HelperText>
       )}
 
-      <PickerModal visible={visible} onClose={() => setVisible(false)} title={label}>
+      <PickerModal
+        visible={visible}
+        onClose={() => setVisible(false)}
+        onConfirm={() => {
+          onChange(tempValue);
+          setVisible(false);
+        }}
+        title={label}
+      >
         <View
           style={{
             backgroundColor: isDark ? theme.colors.surface : "#fff",
@@ -76,16 +85,13 @@ export default function TimePickerField({
           }}
         >
           <DateTimePicker
-            value={value || new Date()}
+            value={tempValue}
             mode="time"
             display="spinner"
             is24Hour={false}
             themeVariant={isDark ? "dark" : "light"}
-            style={{
-              backgroundColor: isDark ? theme.colors.surface : "#fff",
-            }}
             onChange={(_, selected) => {
-              if (selected) onChange(selected);
+              if (selected) setTempValue(selected);
             }}
           />
         </View>

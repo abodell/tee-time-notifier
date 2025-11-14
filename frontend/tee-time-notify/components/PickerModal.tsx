@@ -6,12 +6,24 @@ import { Button, Text, useTheme } from "react-native-paper";
 interface Props {
   visible: boolean;
   title: string;
-  onClose: () => void;
+  onConfirm?: () => void;
+  onClose?: () => void;
   children: React.ReactNode;
 }
 
-export default function PickerModal({ visible, onClose, title, children }: Props) {
+export default function PickerModal({
+  visible,
+  title,
+  onConfirm,
+  onClose,
+  children,
+}: Props) {
   const theme = useTheme();
+
+  const handleDone = () => {
+    if (onConfirm) onConfirm();
+    if (onClose) onClose();
+  };
 
   return (
     <Modal
@@ -50,7 +62,7 @@ export default function PickerModal({ visible, onClose, title, children }: Props
         <Button
           mode="contained"
           buttonColor={theme.colors.primary}
-          onPress={onClose}
+          onPress={handleDone}
           style={styles.doneBtn}
         >
           Done

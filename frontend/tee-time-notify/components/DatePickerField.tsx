@@ -17,6 +17,7 @@ export default function DatePickerField({
   const [visible, setVisible] = useState(false);
   const theme = useTheme();
   const isDark = theme.dark;
+  const [tempValue, setTempValue] = useState<Date>(value || new Date());
 
   return (
     <>
@@ -36,6 +37,10 @@ export default function DatePickerField({
       <PickerModal
         visible={visible}
         onClose={() => setVisible(false)}
+        onConfirm={() => {
+          onChange(tempValue);
+          setVisible(false);
+        }}
         title="Select Date"
       >
         <View
@@ -45,19 +50,16 @@ export default function DatePickerField({
             paddingVertical: 4,
           }}
         >
-        <DateTimePicker
-            value={value || new Date()}
+          <DateTimePicker
+            value={tempValue}
             mode="date"
             display={Platform.OS === "ios" ? "inline" : "default"}
             themeVariant={isDark ? "dark" : "light"}
-            minimumDate={new Date()} // cannot pick anything before now
-            style={{
-              backgroundColor: isDark ? theme.colors.surface : "#fff",
-            }}
+            minimumDate={new Date()}
             onChange={(_, d) => {
-              if (d) onChange(d);
+              if (d) setTempValue(d);
             }}
-        />
+          />
         </View>
       </PickerModal>
     </>
