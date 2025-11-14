@@ -6,9 +6,12 @@ import {
   PaperLightTheme,
   PaperDarkTheme,
 } from "../constants/theme";
-import { View, ActivityIndicator, SafeAreaView, useColorScheme } from "react-native";
+import { ActivityIndicator, useColorScheme } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Session } from "@supabase/supabase-js";
 import { StatusBar } from "expo-status-bar";
+import Toast from "react-native-toast-message";
+import "react-native-reanimated";
 
 export default function RootLayout() {
   const systemScheme = useColorScheme();
@@ -49,16 +52,12 @@ export default function RootLayout() {
 
   return (
     <PaperProvider theme={theme}>
-      {/* Expo-managed status bar control */}
       <StatusBar style={systemScheme === "dark" ? "light" : "dark"} />
 
       <Stack
         screenOptions={{
           headerShown: false,
-          // Use Paper theme background for content
-          contentStyle: {
-            backgroundColor: theme.colors.background,
-          },
+          contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
         {session ? (
@@ -67,6 +66,68 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
         )}
       </Stack>
+
+      {/* ✅ Global Toast Manager */}
+      <Toast
+        config={{
+          success: ({ text1 }) => (
+            <SafeAreaView
+              style={{
+                width: "100%",
+                alignItems: "center",
+              }}
+            >
+              <ActivityIndicator />{/* This could be removed if not needed */}
+              <ToastContainer
+                text={text1 || ""}
+                background={theme.colors.primary}
+                color={theme.colors.onPrimary}
+              />
+            </SafeAreaView>
+          ),
+        }}
+      />
     </PaperProvider>
+  );
+}
+
+/**
+ * Lightweight styled toast component for global config.
+ */
+import { View, Text } from "react-native";
+
+function ToastContainer({
+  text,
+  background,
+  color,
+}: {
+  text: string;
+  background: string;
+  color: string;
+}) {
+  return (
+    <View
+      style={{
+        backgroundColor: background,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+        marginTop: 10,
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+      }}
+    >
+      <Text
+        style={{
+          color,
+          fontWeight: "600",
+          textAlign: "center",
+        }}
+      >
+        {text}
+      </Text>
+    </View>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  SafeAreaView,
   StyleSheet,
   View,
   ScrollView,
@@ -14,7 +13,9 @@ import {
   useTheme,
   Divider,
 } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { supabase } from "@/lib/supabase";
 import DatePickerField from "../components/DatePickerField";
 import TimePickerField from "../components/TimePickerField";
 
@@ -31,7 +32,14 @@ export default function CreateDetailsScreen() {
   const [startValid, setStartValid] = useState(false);
   const [endValid, setEndValid] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      router.push("/(auth)/sign-in");
+      return;
+    }
+
+    // Placeholder – save alert logic
     router.back();
   };
 
@@ -60,7 +68,6 @@ export default function CreateDetailsScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
           />
-
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text
               variant="headlineSmall"
@@ -69,7 +76,6 @@ export default function CreateDetailsScreen() {
               {name}
             </Text>
           </View>
-
           <IconButton icon="arrow-left" size={26} disabled style={{ opacity: 0 }} />
         </View>
 
@@ -83,7 +89,6 @@ export default function CreateDetailsScreen() {
         <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
           Number of Holes
         </Text>
-
         <SegmentedButtons
           value={holes}
           onValueChange={setHoles}
@@ -127,10 +132,7 @@ export default function CreateDetailsScreen() {
             mode="contained"
             disabled={buttonDisabled}
             contentStyle={styles.buttonContent}
-            style={[
-              styles.ctaButton,
-              buttonDisabled && { opacity: 0.6 },
-            ]}
+            style={[styles.ctaButton, buttonDisabled && { opacity: 0.6 }]}
             labelStyle={{ fontSize: 16, fontWeight: "600" }}
             onPress={handleSubmit}
           >
