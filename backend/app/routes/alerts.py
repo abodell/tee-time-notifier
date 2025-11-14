@@ -11,6 +11,7 @@ def create_alert(alert: dict):
         result = supabase.table("alerts").insert(alert).execute()
         return {"status": "success", "alert": result.data[0]}
     except Exception as e:
+        print(e)
         raise HTTPException(status_code = 400, detail = str(e))
 
 @router.get("/user/{user_id}")
@@ -23,8 +24,7 @@ def get_user_alerts(user_id: str):
         .order("created_at", desc=True)
         .execute()
     )
-
-    return alerts or []
+    return alerts.data or []
 
 @router.delete("/{alert_id}")
 def delete_alert(alert_id: int):

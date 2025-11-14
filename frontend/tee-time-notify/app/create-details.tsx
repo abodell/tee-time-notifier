@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { createAlert } from "@/lib/api";
+import Toast from "react-native-toast-message";
 import {
   StyleSheet,
   View,
@@ -25,7 +27,7 @@ export default function CreateDetailsScreen() {
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
-  const [holes, setHoles] = useState("18");
+  const [holes, setHoles] = useState<string>("18");
   const [date, setDate] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
@@ -39,8 +41,34 @@ export default function CreateDetailsScreen() {
       return;
     }
 
-    // Placeholder – save alert logic
-    router.back();
+    try {
+      const alertPayload = {
+        user_id: data.session.user.id,
+        holes: parseInt(holes),
+        course_id: 1,
+        date_from: date?.toISOString(),
+        date_to: date?.toISOString(),
+        start_time: startTime?.toISOString(),
+        end_time: endTime?.toISOString()
+      }
+
+      await createAlert(alertPayload)
+
+      Toast.show({
+        type: "success",
+        text1: "Alert created successfully!",
+        position: "top",
+        visibilityTime: 2500,
+      })
+      router.back();
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Failed to create alert",
+        text2: err.message,
+        position: "top"
+      })
+    }
   };
 
   const buttonDisabled =

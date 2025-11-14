@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import date
 from typing import Union
 
@@ -8,6 +9,14 @@ from app.routes import alerts as alert_routes
 
 app = FastAPI(title = "Tee Time Notify API", version = "0.1.0")
 app.include_router(alert_routes.router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # you can restrict later
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
