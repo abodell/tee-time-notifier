@@ -38,11 +38,16 @@ II. CURRENT STATE (NOV 2025)
 ✅ Timezone-aware datetimes implemented  
 ✅ Expo Router navigation integrated  
 ✅ Auth flow (sign-in / sign-up) working end to end  
-✅ Successful login now redirects user back to the Create Details screen with persisted form data  
+✅ Successful login redirects user back to Create Details with persisted form data  
 ✅ Toast messages (global notifications) implemented using `react-native-toast-message`  
-✅ Create Alert flow connected to backend placeholder endpoint  
-✅ Dynamic light/dark theming applied throughout  
-✅ iOS / Android tab + header navigation unified with consistent theme  
+✅ Create Alert flow fully connected to backend `/alerts/create` endpoint  
+✅ Alerts now insert successfully into Supabase DB  
+✅ “My Alerts” tab connected live to `/alerts/user/{id}` endpoint  
+✅ Authentication persistence enabled via AsyncStorage (auto-refresh + stay signed in)  
+✅ FastAPI → Supabase pipeline verified with ngrok  
+✅ Dynamic light/dark theming updated throughout  
+✅ iOS / Android navigation unified with consistent theming  
+✅ Backend CORS and routing working for mobile requests via ngrok  
 
 System Capabilities:
 --------------------
@@ -51,10 +56,11 @@ System Capabilities:
 - Prevent duplicate entries via UPSERT
 - Match user alerts and generate notifications
 - Log all triggered notifications to `alert_notifications`
-- Mobile users can register, log in, create alerts, and view them
+- Authenticated mobile users can register, log in, create alerts, and view them
 - The app fully supports dark and light mode themes
-- Authentication flow now fully persists user state and redirects seamlessly
-- Toasts provide immediate user feedback (login confirmation, future alert success, etc.)
+- Authentication persists across app restarts
+- Toasts provide immediate user feedback (login, creation, deletion, etc.)
+- Frontend ↔ Backend integration functional over ngrok tunnel
 
 
 ---------------------------------------------------------
@@ -66,16 +72,17 @@ Directory Layout (simplified):
 /
 ├── frontend/
 │   ├── src/
-│   │   ├── lib/supabase.ts             # Supabase client setup
+│   │   ├── lib/supabase.ts             # Supabase client setup w/ AsyncStorage persistence
+│   │   ├── lib/api.ts                  # API helpers for alerts CRUD
 │   │   ├── constants/theme.ts          # Centralized colors + Paper theme
-│   │   ├── components/                 # Custom modal + picker components
+│   │   ├── components/                 # Custom modal + picker components + reusable elements
 │   │   │   ├── PickerModal.tsx
 │   │   │   ├── DatePickerField.tsx
 │   │   │   ├── TimePickerField.tsx
-│   │   │   ├── FadeSlideTransition.tsx # Shared fade/slide animation for modals & toasts
+│   │   │   ├── FadeSlideTransition.tsx
 │   │   └── screens/
 │   └── app/
-│       ├── (auth)/sign-in.tsx, sign-up.tsx
+│       ├── (auth)/sign-in.tsx, sign-up.tsx, _layout.tsx
 │       ├── (tabs)/index.tsx, my-alerts.tsx, profile.tsx, _layout.tsx
 │       ├── create-details.tsx
 │       └── _layout.tsx
@@ -83,7 +90,8 @@ Directory Layout (simplified):
 ├── backend/
 │   ├── app/
 │   │   ├── main.py, db.py
-│   │   ├── services/, routes/, utils/
+│   │   ├── routes/alerts.py            # Connected endpoints for alert CRUD
+│   │   ├── services/, utils/
 │   └── .env
 │
 └── docs/
@@ -103,6 +111,10 @@ Matches previously documented schema with:
 - alerts
 - alert_notifications
 
+Alerts Table Additions Verified:
+- Working `/alerts/create`, `/alerts/user/{user_id}`, and `/alerts/{id}` delete flow  
+- Proper relationships enforced via FK to `courses` and `user_profiles`
+
 All schema elements migrated and verified.
 
 
@@ -111,157 +123,165 @@ V. HOW THE SYSTEM WORKS
 ---------------------------------------------------------
 
 End-to-end flow (current MVP):
-1. User can browse for courses and set alert preferences (holes, date/time window).
-2. Non‑authenticated users are prompted to sign in or sign up.
-3. After authentication, alert preferences are saved to the backend API.
-4. On successful login, the user is redirected back to Create Details with previous input state preserved.
-5. Toast notifications confirm success or display errors instantly.
-6. Backend normalizes tee-time data from ForeUp and checks for matches.
-7. When matches occur, a notification event is logged (push flow coming next phase).
-8. All new users and alerts are stored in Supabase for unified tracking.
+1. User can browse for courses and set alert preferences (holes, date/time window).  
+2. Non‑authenticated users are prompted to sign in or sign up.  
+3. After authentication, alert preferences are saved to the backend FastAPI API.  
+4. On successful login, the user is redirected back to Create Details with previous input state preserved.  
+5. Alert creation sends payload to `/alerts/create` → Supabase insert confirmed.  
+6. Toast notifications confirm success or display errors instantly.  
+7. “My Alerts” page renders all stored alerts from `/alerts/user/{user_id}`.  
+8. Users can delete alerts with an immediate update to the UI and DB.  
+9. Authentication is persistent and auto-renews via AsyncStorage.  
+10. Backend normalizes tee-time data (ForeUp currently live; others coming).  
+11. When matches occur, a notification event is logged (push flow to be implemented).  
 
 Frontend Highlights:
 --------------------
-- Searchable course selector querying Supabase `courses`
-- Sticky bottom tab navigation (Home, My Alerts, Profile)
-- Theming system shared across all components
-- Date/Time picker modals with native behavior and live validation banners
-- Time-range aware picker system (Preferred Start ↔ End Time)
-- Session persistence via Supabase Auth
-- Seamless Auth → Redirect → Form persistence flow
-- Global toast provider for consistent notifications
+- Searchable course selector (to be enriched next with live course names)  
+- Sticky bottom tab navigation (Home, My Alerts, Profile)  
+- Fully themed light/dark Paper integration  
+- Date/Time pickers with live validation banners  
+- Time‑range aware picker system (Preferred Start ↔ End Time)  
+- Supabase Auth persistence and silent token refresh  
+- Global toasts for all feedback (login, alert creation, deletion)  
+- Managed Expo workflow (works on iOS + Android with no native dependencies)  
 
 
 ---------------------------------------------------------
 VI. IMPLEMENTED / VERIFIED
 ---------------------------------------------------------
 
-✔ Supabase schema finalized  
-✔ ForeUp integration operational  
-✔ Alert engine running with logging  
-✔ Backend reachable from frontend (placeholder POST validated)  
-✔ Full Expo Router navigation / Auth setup completed  
-✔ Theming system (light/dark) unified with React Native Paper  
-✔ Date and Time pickers built as reusable components with animation  
-✔ Validation banners for invalid or inverted tee time ranges  
-✔ Top/bottom navigation bars correctly themed in dark mode  
-✔ Status bar configuration warning resolved  
-✔ Managed Expo workflow established (confirmed no native folder dependency)  
-✔ Toast notification system implemented via `react-native-toast-message`  
-✔ Successful sign-in redirects to previous form with all inputs preserved  
-✔ Logout flow improved with visual feedback  
-✔ Layout and spacing across all screens optimized for consistency  
+✔ Supabase schema finalized and linked to FastAPI  
+✔ FastAPI routes `/alerts/create`, `/alerts/user/{id}`, `/alerts/{id}` working  
+✔ ForeUp integration MVP operational  
+✔ Frontend API helpers consuming backend endpoints  
+✔ Expo Router navigation and auth context complete  
+✔ Persistent session memory with AsyncStorage  
+✔ Real End-to-End alert creation → DB insert → retrieval verified  
+✔ Toast notifications integrated globally  
+✔ Login persistence across app restarts  
+✔ Logout flow updated with visual feedback  
+✔ Styling unified across screens (Paper + theme consistency)  
+✔ Managed Expo workflow confirmed  
+✔ CORS middleware set up in FastAPI for secure frontend integration  
+✔ My Alerts tab displays live data from Supabase  
+✔ Deletion and live refresh working correctly  
+✔ Verified on-device via ngrok tunnel  
 
 
 ---------------------------------------------------------
 VII. DEVELOPMENT ROADMAP
 ---------------------------------------------------------
 
-Phase 4 — Frontend MVP (COMPLETE - POLISHING)
+Phase 4 — Frontend MVP (COMPLETE – POLISHING)
 ---------------------------------------------
-Goal: End‑to‑end working experience from mobile app.
-✅ User fills alert → creates account → can view, log in/out, and validate tee time alert entries  
-✅ Authentication persistence, toast feedback, and redirect flow complete  
-🚧 Next step: Integrate actual backend POST/GET alerts (`/alerts/create`, `/alerts/user/{id}`)
+Goal: End‑to‑end working prototype with full user journey.
+✅ Auth persistence & redirect flow complete  
+✅ Live alert creation + read/delete from backend functional  
+✅ Global success/error toasts integrated via `react-native-toast-message`  
+✅ Layout/spacings finalized and stable across components  
 
-Upcoming frontend tasks:
-- Toast feedback after “Create Alert” success  
-- My Alerts tab list populated from backend  
-- Minor visual polish (animations and typography refinement)  
+Next Steps (Active Polish Phase):
+- [ ] Show real **course** names on My Alerts (join with courses table).  
+- [ ] Add “Active/Inactive” toggle for alerts.  
+- [ ] Confirm visual contrast & theme accessibility in both modes.  
+- [ ] Auto-redirect to My Alerts with success toast after creating new alert.
 
-Phase 5 — Notifications Integration (IN PROGRESS)
--------------------------------------------------
-- Implement real push notifications (Expo Push or FCM)
-- Store push tokens in Supabase `user_profiles`
-- Handle invalid tokens/duplicates
-- Trigger mobile push during scan engine match  
+Phase 5 — Notifications Integration (UP NEXT)
+---------------------------------------------
+- Implement real push notifications (Expo Push or FCM).  
+- Store device Expo Push Token in `user_profiles`.  
+- Handle invalid/expired tokens gracefully.  
+- Trigger mock alert notification via backend scheduler to verify device flow.  
+- Add “Last triggered” label in My Alerts card UI.
 
 Phase 6 — Scheduling & Automation
 ---------------------------------
-- Deploy FastAPI backend (Oracle Cloud Free tier)
-- Cron/APScheduler for hourly course scans
-- Configure production-ready environment variables
+- Deploy FastAPI backend to Oracle Cloud (persistent HTTPS).  
+- Integrate APScheduler for periodic tee-time scans.  
+- Configure production-ready environment variables and secrets.
 
 Phase 7 — Analytics & Insights
 ------------------------------
-- Aggregate tee time frequency per course
-- `/stats/course/{id}` endpoint
-- Chart visualization in frontend (history & frequency trends)
+- Aggregate tee time frequency per course.  
+- `/stats/course/{id}` endpoint for insight graphs.  
+- Visualize alert activity via small charts in frontend.
 
 Phase 8 — Monetization
 ----------------------
-- Integrate Supabase + Stripe subscription billing
-- Enforce membership tiers: (Free, Plus, Pro)
-- Add API rate limits & alert caps tied to membership
+- Add Supabase + Stripe subscription billing.  
+- Enforce membership tiers: (Free, Plus, Pro).  
+- Restrict alerts count and scan frequency per tier.  
 
 Phase 9 — Provider Expansion
 ----------------------------
-- Add GolfNow, Club Prophet, etc. via adapter pattern
-- Confirm TOS/legal status for each provider
-- Normalize all new data providers into unified schema
+- Implement GolfNow, Club Prophet, etc. adapter patterns.  
+- Normalize and merge new provider responses into unified schema.
 
 Phase 10 — QA & Scalability
 ---------------------------
-- Structured logging (Loguru/Sentry)
-- Unit, integration, and E2E test coverage
-- Rate limiting + healthcheck endpoints
-- Observability dashboard (Supabase stats + backend logging)
+- Add detailed structured logging (Loguru + Supabase logs).  
+- Add unit/integration/E2E tests.  
+- Introduce healthcheck endpoints and rate limits.  
+- Add a small internal telemetry or metrics dashboard.  
 
 
 ---------------------------------------------------------
 VIII. DESIGN PRINCIPLES
 ---------------------------------------------------------
 
-- Legal and ethical: no auto-booking or unauthorized scraping
-- Modular: dedicated adapter per booking provider
-- UTC‑aware datetimes only
-- Supabase as single source of truth  
-- Clear separation of frontend (UI) and backend (logic)
-- Build incrementally and validate each phase
-- Maintain cloud cost efficiency until revenue scaling
-- Use global toast notifications for consistent feedback patterns
-- Maintain modern, accessible design and responsive layout
+- 100% ethical integrations — respect API and provider limits.  
+- Modular design: one provider adapter per booking API.  
+- UTC and timezone-aware datetimes throughout.  
+- Supabase as single source of truth.  
+- Maintain separation between UI logic (frontend) and business logic (backend).  
+- Build small, validate early, scale when proved.  
+- Focus on cost‑efficient, developer‑friendly stack.  
+- Consistent primary color usage for light/dark themes.  
+- Toasts for timely user feedback regardless of route context.  
+- Keep accessibility (contrast, sizing) in check across modes.
 
 
 ---------------------------------------------------------
 IX. TODO CHECKLIST
 ---------------------------------------------------------
 
-Frontend in Progress:
+Frontend In Progress:
 ---------------------
-[ ] Connect Create Alert → backend `/alerts/create`  
-[ ] Integrate `/alerts/user/{id}` list on My Alerts tab  
-[ ] Add toast for alert creation success  
-[ ] Confirm dark/light color balance across modals, toasts & pickers  
-[ ] Add subtle transition animation for toasts and modals  
+[ ] Resolve `course_id` → course name lookup for My Alerts.  
+[ ] Add toggle for Active/Inactive alerts.  
+[ ] Add toast confirmation for new alert success.  
+[ ] Auto-refresh My Alerts after creation.  
+[ ] Confirm dark/light color balance + modal edge spacing.  
+[ ] Minor typography & animation polish (modals, toasts, transitions).  
 
 Backend Upcoming:
 -----------------
-[ ] Add `expo_push_token` to `user_profiles`  
-[ ] Implement `notify_user()` to send real push messages  
-[ ] Expose `/alerts/notifications/{user_id}` endpoint  
-[ ] Deploy FastAPI backend to Oracle Cloud  
-[ ] Cron schedule for tee-time scans  
+[ ] Add `expo_push_token` column to `user_profiles`.  
+[ ] Implement `notify_user()` helper for push dispatch.  
+[ ] Expose `/alerts/notifications/{user_id}` endpoint.  
+[ ] Deploy FastAPI backend to Oracle Cloud (persistent).  
+[ ] Configure cron-like scheduled scans for tee-time availability.
 
 Misc / Validation:
 ------------------
-[ ] Local push test via Expo dev tools  
-[ ] Full e2e test — create alert → trigger match → receive push  
-[ ] Build analytics and metrics endpoints  
+[ ] Local push test via Expo dev tools.  
+[ ] Full E2E cycle test (Create Alert → Backend → Push trigger).  
+[ ] Add analytics & metrics routes for course/alert stats.  
 
 ---------------------------------------------------------
 X. LONG‑TERM VISION
 ---------------------------------------------------------
 
 After MVP validation:
-- Expand to additional booking providers
-- Add shared scheduling (“find foursome together”)
-- Offer partner dashboards (course operators)
-- Predictive tee‑time models (AI-based insights)
-- Referral/growth incentive systems
-- Containerize backend (Docker/Fly.io/Supabase Functions)
-- Geographic expansion beyond U.S.
-- Full production monitoring & automation
+- Expand to additional booking providers.  
+- Introduce shared scheduling (“find a foursome”).  
+- Offer partner dashboards (course operators).  
+- Implement predictive tee-time models (likely openings).  
+- Add referral/growth incentive system.  
+- Containerize backend for easy scaling (Docker/Fly.io/Supabase Functions).  
+- Expand internationally once core markets validated.  
+- Build out full production monitoring and CI/CD automation.  
 
 ---------------------------------------------------------
 END OF DOCUMENT
