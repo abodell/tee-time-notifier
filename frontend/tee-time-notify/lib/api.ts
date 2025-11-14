@@ -33,5 +33,5 @@ export async function getUserAlerts(userId: string) {
 }
 
 export async function deleteAlert(alertId: number) {
-    return request(`alerts/${alertId}`, { method: "DELETE" })
+    return request(`/alerts/${alertId}`, { method: "DELETE" })
 }
