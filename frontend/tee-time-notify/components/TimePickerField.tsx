@@ -1,22 +1,49 @@
-import React, { useState } from "react";
-import { Pressable, View, StyleSheet } from "react-native";
-import { TextInput, useTheme } from "react-native-paper";
+import React, { useState, useEffect } from "react";
+import { Pressable, View, StyleSheet, Platform } from "react-native";
+import { TextInput, useTheme, HelperText } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import dayjs from "dayjs";
 import PickerModal from "./PickerModal";
+
+interface Props {
+  label: string;
+  value: Date | null;
+  onChange: (d: Date) => void;
+  selectedDate?: Date | null;
+  startTime?: Date | null; // for end-time validation
+}
 
 export default function TimePickerField({
   label,
   value,
   onChange,
-}: {
-  label: string;
-  value: Date | null;
-  onChange: (d: Date) => void;
-}) {
-  const [visible, setVisible] = useState(false);
+  selectedDate,
+  startTime,
+}: Props) {
   const theme = useTheme();
   const isDark = theme.dark;
+  const [visible, setVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const now = new Date();
+  const isToday =
+    !!selectedDate && dayjs(selectedDate).isSame(dayjs(now), "day");
+
+  // live validate whenever value changes
+  useEffect(() => {
+    if (!value) {
+      setError(null);
+      return;
+    }
+
+    if (isToday && dayjs(value).isBefore(dayjs(now))) {
+      setError("That time has already passed today.");
+    } else if (startTime && dayjs(value).isBefore(dayjs(startTime))) {
+      setError("End time must be after the start time.");
+    } else {
+      setError(null);
+    }
+  }, [isToday, now, value, startTime]);
 
   return (
     <>
@@ -29,15 +56,18 @@ export default function TimePickerField({
             right={<TextInput.Icon icon="clock-outline" />}
             placeholder="Select Time"
             style={styles.field}
+            error={!!error}
           />
         </View>
       </Pressable>
 
-      <PickerModal
-        visible={visible}
-        onClose={() => setVisible(false)}
-        title="Select Time"
-      >
+      {error && (
+        <HelperText type="error" visible={!!error}>
+          {error}
+        </HelperText>
+      )}
+
+      <PickerModal visible={visible} onClose={() => setVisible(false)} title={label}>
         <View
           style={{
             backgroundColor: isDark ? theme.colors.surface : "#fff",
@@ -51,13 +81,11 @@ export default function TimePickerField({
             display="spinner"
             is24Hour={false}
             themeVariant={isDark ? "dark" : "light"}
-            minimumDate={new Date()} // disables times earlier than now (iOS supported)
             style={{
               backgroundColor: isDark ? theme.colors.surface : "#fff",
             }}
-            onChange={(_, d) => {
-              if (d && d < new Date()) return; // ignore past
-              if (d) onChange(d);
+            onChange={(_, selected) => {
+              if (selected) onChange(selected);
             }}
           />
         </View>
@@ -68,6 +96,6 @@ export default function TimePickerField({
 
 const styles = StyleSheet.create({
   field: {
-    marginBottom: 12,
+    marginBottom: 4,
   },
 });

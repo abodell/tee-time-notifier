@@ -1,4 +1,3 @@
-// app/_layout.tsx
 import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { supabase } from "../lib/supabase";
@@ -7,13 +6,9 @@ import {
   PaperLightTheme,
   PaperDarkTheme,
 } from "../constants/theme";
-import {
-  useColorScheme,
-  View,
-  ActivityIndicator,
-  SafeAreaView,
-} from "react-native";
+import { View, ActivityIndicator, SafeAreaView, useColorScheme } from "react-native";
 import { Session } from "@supabase/supabase-js";
+import { StatusBar } from "expo-status-bar";
 
 export default function RootLayout() {
   const systemScheme = useColorScheme();
@@ -25,9 +20,11 @@ export default function RootLayout() {
       setSession(data.session);
       setLoading(false);
     });
+
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, sess) => setSession(sess)
     );
+
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -52,17 +49,16 @@ export default function RootLayout() {
 
   return (
     <PaperProvider theme={theme}>
+      {/* Expo-managed status bar control */}
+      <StatusBar style={systemScheme === "dark" ? "light" : "dark"} />
+
       <Stack
         screenOptions={{
           headerShown: false,
-
-          // unify top/bottom navigation bar background and content colors
+          // Use Paper theme background for content
           contentStyle: {
             backgroundColor: theme.colors.background,
           },
-          navigationBarColor: theme.colors.background,
-          statusBarStyle: systemScheme === "dark" ? "light" : "dark",
-          statusBarBackgroundColor: theme.colors.background,
         }}
       >
         {session ? (

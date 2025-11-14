@@ -6,7 +6,6 @@ import { Colors } from "../../constants/theme";
 export default function TabsLayout() {
   const scheme = useColorScheme();
   const tint = Colors[scheme ?? "light"];
-
   const isDark = scheme === "dark";
 
   return (
@@ -14,15 +13,11 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: isDark
-            ? tint.background
-            : tint.background,
+          backgroundColor: tint.background,
         },
-        headerTintColor: isDark ? tint.text : tint.text,
+        headerTintColor: tint.text,
         tabBarStyle: {
-          backgroundColor: isDark
-            ? tint.background
-            : tint.background,
+          backgroundColor: tint.background,
           borderTopColor: isDark ? "#222" : "#ddd",
         },
         tabBarActiveTintColor: tint.tabIconSelected,
