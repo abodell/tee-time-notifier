@@ -33,6 +33,7 @@ export default function CreateDetailsScreen() {
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [startValid, setStartValid] = useState(false);
   const [endValid, setEndValid] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     const { data } = await supabase.auth.getSession();
@@ -42,6 +43,8 @@ export default function CreateDetailsScreen() {
     }
 
     try {
+      setSubmitting(true);
+
       const alertPayload = {
         user_id: data.session.user.id,
         holes: parseInt(holes),
@@ -49,30 +52,37 @@ export default function CreateDetailsScreen() {
         date_from: date?.toISOString(),
         date_to: date?.toISOString(),
         start_time: startTime?.toISOString(),
-        end_time: endTime?.toISOString()
-      }
+        end_time: endTime?.toISOString(),
+      };
 
-      await createAlert(alertPayload)
+      await createAlert(alertPayload);
 
       Toast.show({
         type: "success",
         text1: "Alert created successfully!",
         position: "top",
-        visibilityTime: 2500,
-      })
-      router.back();
+        visibilityTime: 2000,
+      });
+
+      // Short pause to let toast appear
+      setTimeout(() => {
+        // Navigate to My Alerts tab
+        router.push("/(tabs)/my-alerts");
+      }, 600);
     } catch (err: any) {
       Toast.show({
         type: "error",
         text1: "Failed to create alert",
         text2: err.message,
-        position: "top"
-      })
+        position: "top",
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const buttonDisabled =
-    !date || !startTime || !endTime || !startValid || !endValid;
+    !date || !startTime || !endTime || !startValid || !endValid || submitting;
 
   const { onBackground, onSurfaceVariant } = theme.colors;
   const containerWidth = Math.min(width - 32, 480);
@@ -113,7 +123,7 @@ export default function CreateDetailsScreen() {
 
         <Divider style={{ marginVertical: 8, opacity: 0.4 }} />
 
-        {/* Hole selection */}
+        {/* Hole Selection */}
         <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
           Number of Holes
         </Text>
@@ -133,7 +143,11 @@ export default function CreateDetailsScreen() {
         </Text>
 
         <View style={{ marginBottom: 12 }}>
-          <DatePickerField label="Preferred Date" value={date} onChange={setDate} />
+          <DatePickerField
+            label="Preferred Date"
+            value={date}
+            onChange={setDate}
+          />
         </View>
 
         <View style={{ marginBottom: 8 }}>
@@ -163,6 +177,7 @@ export default function CreateDetailsScreen() {
             style={[styles.ctaButton, buttonDisabled && { opacity: 0.6 }]}
             labelStyle={{ fontSize: 16, fontWeight: "600" }}
             onPress={handleSubmit}
+            loading={submitting}
           >
             Create Alert
           </Button>
