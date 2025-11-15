@@ -341,7 +341,7 @@ export default function UpgradeScreen() {
                 {isRedirecting
                   ? "Redirecting to Stripe..."
                   : isCurrent
-                  ? pendingDowngrade && cancelAt
+                  ? pendingDowngrade && cancelAt && userTier !== 1
                     ? `Downgrade scheduled — ends ${new Date(cancelAt).toLocaleDateString()}`
                     : "Current Plan"
                   : tier.price_cents === 0 && userTier && userTier !== 1
