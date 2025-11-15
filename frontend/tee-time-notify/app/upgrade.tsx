@@ -24,6 +24,13 @@ interface MembershipTier {
   scan_interval_seconds?: number;
 }
 
+interface UserProfileResponse {
+  membership_tier_id: number;
+  membership_tiers?: MembershipTier;
+  pending_downgrade?: boolean;
+  cancel_at?: string;
+}
+
 export default function UpgradeScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -31,6 +38,8 @@ export default function UpgradeScreen() {
   const [redirectingTier, setRedirectingTier] = useState<number | null>(null);
   const [tiers, setTiers] = useState<MembershipTier[]>([]);
   const [userTier, setUserTier] = useState<number | null>(null);
+  const [pendingDowngrade, setPendingDowngrade] = useState(false);
+  const [cancelAt, setCancelAt] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -52,10 +61,12 @@ export default function UpgradeScreen() {
         throw new Error("Failed to fetch membership info");
 
       const tierList: MembershipTier[] = await tiersRes.json();
-      const profileData = await profileRes.json();
+      const profileData: UserProfileResponse = await profileRes.json();
 
       setTiers(tierList);
       setUserTier(profileData.membership_tier_id);
+      setPendingDowngrade(profileData.pending_downgrade || false);
+      setCancelAt(profileData.cancel_at || null);
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -79,12 +90,68 @@ export default function UpgradeScreen() {
         return;
       }
 
+      // 🟡 Downgrade flow: user chooses Free plan
+      if (tier.price_cents === 0 && userTier && userTier !== 1) {
+        Alert.alert(
+          "Unsubscribe?",
+          "Are you sure you want to cancel your current subscription? " +
+            "Your plan will remain active until the end of this billing period.",
+          [
+            { text: "Keep Current Plan", style: "cancel" },
+            {
+              text: "Unsubscribe",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  const {
+                    data: { user },
+                  } = await supabase.auth.getUser();
+                  if (!user) throw new Error("Not logged in");
+
+                  const res = await fetch(`${API_URL}/membership/downgrade`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_id: user.id }),
+                  });
+
+                  if (!res.ok) throw new Error(await res.text());
+                  const data = await res.json();
+
+                  setPendingDowngrade(true);
+                  setCancelAt(
+                    new Date(data.cancel_at * 1000).toISOString()
+                  );
+
+                  Toast.show({
+                    type: "info",
+                    text1: "Downgrade scheduled",
+                    text2: `Plan will end on ${new Date(
+                      data.cancel_at * 1000
+                    ).toLocaleDateString()}`,
+                    position: "top",
+                  });
+                } catch (err: any) {
+                  Toast.show({
+                    type: "error",
+                    text1: "Failed to schedule downgrade",
+                    text2: err.message,
+                    position: "top",
+                  });
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // 🟢 Regular upgrade flow
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not logged in");
 
-      setRedirectingTier(tier.id); // turn this plan button into "Redirecting..."
+      setRedirectingTier(tier.id);
 
       const res = await fetch(`${API_URL}/membership/upgrade`, {
         method: "POST",
@@ -96,7 +163,7 @@ export default function UpgradeScreen() {
 
       const data = await res.json();
       const checkoutUrl = data.checkout_url;
-      if (!checkoutUrl) throw new Error("Checkout URL missing from response");
+      if (!checkoutUrl) throw new Error("Checkout URL missing");
 
       await Linking.openURL(checkoutUrl);
     } catch (err: any) {
@@ -150,7 +217,7 @@ export default function UpgradeScreen() {
             textAlign: "center",
           }}
         >
-          Upgrade Your Plan
+          Manage Your Plan
         </Text>
         <Text
           variant="bodyMedium"
@@ -161,15 +228,15 @@ export default function UpgradeScreen() {
             marginTop: 4,
           }}
         >
-          Choose the membership level that matches how often you golf
+          Upgrade or manage your subscription
         </Text>
       </View>
 
       {/* Membership Cards */}
       {tiers.map((tier) => {
         const isCurrent = tier.id === userTier;
-        const price = toPriceText(tier.price_cents);
         const isRedirecting = redirectingTier === tier.id;
+        const price = toPriceText(tier.price_cents);
 
         return (
           <Card
@@ -211,7 +278,7 @@ export default function UpgradeScreen() {
 
               <View style={styles.dividerLine} />
 
-              {/* Feature list */}
+              {/* Features */}
               <View style={styles.features}>
                 <View style={styles.featureRow}>
                   <IconButton
@@ -249,15 +316,12 @@ export default function UpgradeScreen() {
 
               <Text
                 variant="titleMedium"
-                style={[
-                  styles.price,
-                  {
-                    color: theme.colors.primary,
-                    marginTop: 10,
-                    marginBottom: 4,
-                    fontWeight: "600",
-                  },
-                ]}
+                style={{
+                  color: theme.colors.primary,
+                  marginTop: 10,
+                  marginBottom: 4,
+                  fontWeight: "600",
+                }}
               >
                 {price}
               </Text>
@@ -268,7 +332,6 @@ export default function UpgradeScreen() {
                 style={{
                   marginTop: 10,
                   borderRadius: 10,
-                  elevation: 0,
                   opacity: isRedirecting ? 0.85 : 1,
                 }}
                 contentStyle={{ height: 46 }}
@@ -278,7 +341,11 @@ export default function UpgradeScreen() {
                 {isRedirecting
                   ? "Redirecting to Stripe..."
                   : isCurrent
-                  ? "Current Plan"
+                  ? pendingDowngrade && cancelAt
+                    ? `Downgrade scheduled — ends ${new Date(cancelAt).toLocaleDateString()}`
+                    : "Current Plan"
+                  : tier.price_cents === 0 && userTier && userTier !== 1
+                  ? "Switch to Free"
                   : "Choose Plan"}
               </Button>
             </Card.Content>
@@ -339,9 +406,5 @@ const styles = StyleSheet.create({
   },
   highlight: {
     fontWeight: "600",
-  },
-  price: {
-    textAlign: "left",
-    fontSize: 17,
   },
 });

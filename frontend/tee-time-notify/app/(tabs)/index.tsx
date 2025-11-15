@@ -12,7 +12,10 @@ import {
   Card,
   ActivityIndicator,
   useTheme,
+  Button,
+  Surface,
 } from "react-native-paper";
+import { Skeleton } from "moti/skeleton";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 
@@ -24,15 +27,75 @@ type Course = {
   provider: string;
 };
 
+interface MembershipTierInfo {
+  name: string;
+  max_alerts: number | null;
+}
+
 export default function CourseSearchScreen() {
   const theme = useTheme();
   const router = useRouter();
+
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Quota / tier state
+  const [tierName, setTierName] = useState<string>("—");
+  const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
+  const [alertCount, setAlertCount] = useState<number>(0);
+  const [fetchingQuota, setFetchingQuota] = useState(true);
+
+  const isDark = theme.dark;
+
   useEffect(() => {
-    if (!query.trim()) {
+    loadQuotaData();
+  }, []);
+
+  const loadQuotaData = async () => {
+    try {
+      setFetchingQuota(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+
+      const [profileRes, alertsRes] = await Promise.all([
+        fetch(`${baseUrl}/membership/profile/${user.id}`),
+        fetch(`${baseUrl}/alerts/user/${user.id}`),
+      ]);
+
+      if (!profileRes.ok) {
+        const msg = await profileRes.text();
+        throw new Error(`Profile request failed: ${msg}`);
+      }
+      if (!alertsRes.ok) {
+        const msg = await alertsRes.text();
+        throw new Error(`Alerts request failed: ${msg}`);
+      }
+
+      const profileData = await profileRes.json();
+      const tier = profileData.membership_tiers as MembershipTierInfo;
+      setTierName(tier?.name || "—");
+      setMaxAlerts(tier?.max_alerts ?? null);
+
+      const userAlerts = await alertsRes.json();
+      setAlertCount(userAlerts?.length || 0);
+    } catch (e: any) {
+      console.error("Quota loading failed:", e.message);
+    } finally {
+      setFetchingQuota(false);
+    }
+  };
+
+  const reachedQuota =
+    maxAlerts !== null && alertCount >= (maxAlerts || 0) && !fetchingQuota;
+
+  // Query courses
+  useEffect(() => {
+    if (!query.trim() || reachedQuota) {
       setCourses([]);
       return;
     }
@@ -52,7 +115,7 @@ export default function CourseSearchScreen() {
 
     const debounce = setTimeout(fetchCourses, 300);
     return () => clearTimeout(debounce);
-  }, [query]);
+  }, [query, reachedQuota]);
 
   const handleSelectCourse = (course: Course) => {
     router.push({
@@ -61,28 +124,83 @@ export default function CourseSearchScreen() {
     });
   };
 
-  const isDark = theme.dark;
-
+  // -------------------------------------------------------------------
   return (
     <SafeAreaView
-      style={[
-        styles.safe,
-        { backgroundColor: theme.colors.background },
-      ]}
+      style={[styles.safe, { backgroundColor: theme.colors.background }]}
     >
       <View style={styles.container}>
+        {/* Subtitle */}
         <Text
-          variant="headlineMedium"
-          style={[
-            styles.title,
-            { color: theme.colors.onBackground },
-          ]}
+          variant="bodyMedium"
+          style={{
+            color: theme.colors.onSurfaceVariant,
+            marginBottom: 14,
+          }}
         >
-          Create New Alert
+          Choose a course to monitor for open tee times
         </Text>
 
+        {/* Quota or shimmer */}
+        {fetchingQuota ? (
+          <View style={{ marginBottom: 16 }}>
+            <Skeleton
+              colorMode={isDark ? "dark" : "light"}
+              width="100%"
+              height={52}
+              radius={12}
+            />
+          </View>
+        ) : (
+          <Surface
+            style={[
+              styles.quotaCard,
+              {
+                backgroundColor: reachedQuota
+                  ? theme.colors.errorContainer
+                  : theme.colors.surfaceVariant,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: reachedQuota
+                  ? theme.colors.onErrorContainer
+                  : theme.colors.onSurfaceVariant,
+                fontSize: 15,
+                textAlign: "center",
+                fontWeight: "500",
+              }}
+            >
+              {reachedQuota
+                ? `You’ve reached your limit of ${
+                    maxAlerts || 0
+                  } alerts on the ${tierName} plan.`
+                : `You’re using ${alertCount}${
+                    maxAlerts ? ` of ${maxAlerts}` : ""
+                  } alerts on your ${tierName} plan.`}
+            </Text>
+
+            {reachedQuota && (
+              <Button
+                mode="contained-tonal"
+                compact
+                style={{ marginTop: 6, borderRadius: 8 }}
+                labelStyle={{
+                  fontWeight: "600",
+                  color: theme.colors.primary,
+                }}
+                onPress={() => router.push("/upgrade")}
+              >
+                Upgrade Plan
+              </Button>
+            )}
+          </Surface>
+        )}
+
+        {/* Search / Courses */}
         <TextInput
-          label="Search Course"
+          label="Search course"
           value={query}
           onChangeText={setQuery}
           mode="outlined"
@@ -95,9 +213,20 @@ export default function CourseSearchScreen() {
           ]}
           textColor={theme.colors.onSurface}
           placeholderTextColor={isDark ? "#ccc" : "#666"}
+          disabled={reachedQuota}
         />
 
-        {loading ? (
+        {reachedQuota ? (
+          <Text
+            style={{
+              textAlign: "center",
+              color: theme.colors.onSurfaceVariant,
+              marginTop: 24,
+            }}
+          >
+            Upgrade your plan to add more alerts.
+          </Text>
+        ) : loading ? (
           <View style={styles.center}>
             <ActivityIndicator animating color={theme.colors.primary} />
           </View>
@@ -106,9 +235,7 @@ export default function CourseSearchScreen() {
             data={courses}
             keyExtractor={(item) => item.id.toString()}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              paddingVertical: 10,
-            }}
+            contentContainerStyle={{ paddingVertical: 10 }}
             renderItem={({ item }) => (
               <Card
                 mode="elevated"
@@ -138,11 +265,21 @@ export default function CourseSearchScreen() {
             )}
             ListEmptyComponent={
               query ? (
-                <Text style={[styles.helper, { color: theme.colors.onSurface }]}>
+                <Text
+                  style={[
+                    styles.helper,
+                    { color: theme.colors.onSurfaceVariant },
+                  ]}
+                >
                   No courses found.
                 </Text>
               ) : (
-                <Text style={[styles.helper, { color: theme.colors.onSurface }]}>
+                <Text
+                  style={[
+                    styles.helper,
+                    { color: theme.colors.onSurfaceVariant },
+                  ]}
+                >
                   Start typing to search courses.
                 </Text>
               )
@@ -155,21 +292,16 @@ export default function CourseSearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
+  safe: { flex: 1 },
+  container: { flex: 1, paddingHorizontal: 18, paddingTop: 16 },
+  quotaCard: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    elevation: 0,
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-  },
-  title: {
-    marginBottom: 10,
-    fontWeight: "600",
-  },
-  search: {
-    marginBottom: 12,
-  },
+  search: { marginBottom: 12 },
   card: {
     marginBottom: 8,
     borderRadius: 10,
@@ -177,30 +309,15 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.1,
         shadowRadius: 4,
         shadowOffset: { height: 2, width: 0 },
       },
-      android: {
-        elevation: 2,
-      },
+      android: { elevation: 1 },
     }),
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  cardSubtitle: {
-    fontSize: 13,
-  },
-  helper: {
-    textAlign: "center",
-    marginTop: 24,
-    fontSize: 14,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  cardTitle: { fontSize: 16, fontWeight: "600" },
+  cardSubtitle: { fontSize: 13 },
+  helper: { textAlign: "center", marginTop: 24, fontSize: 14 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
