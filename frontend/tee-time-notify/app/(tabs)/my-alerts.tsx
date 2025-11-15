@@ -12,25 +12,28 @@ import {
   Card,
   IconButton,
   ActivityIndicator,
+  Surface,
 } from "react-native-paper";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { getUserAlerts, deleteAlert } from "@/lib/api";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
+import { useRouter } from "expo-router";
 import dayjs from "dayjs";
 
-/**
- * My Alerts Screen
- * Displays all user alerts with modernized UI and full course info.
- */
 export default function MyAlertsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [alerts, setAlerts] = useState<AlertType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
+  const [tierName, setTierName] = useState("—");
 
   useEffect(() => {
     loadAlerts();
+    loadTier();
   }, []);
 
   const loadAlerts = async () => {
@@ -39,7 +42,6 @@ export default function MyAlertsScreen() {
       const { data } = await supabase.auth.getSession();
       const user = data.session?.user;
       if (!user) return;
-
       const result = await getUserAlerts(user.id);
       setAlerts(result);
     } catch (err: any) {
@@ -55,35 +57,41 @@ export default function MyAlertsScreen() {
     }
   };
 
-  const confirmDelete = (alertId: number) => {
-    RNAlert.alert("Delete Alert", "Are you sure you want to remove this alert?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => handleDelete(alertId),
-      },
-    ]);
-  };
-
-  const handleDelete = async (alertId: number) => {
+  const loadTier = async () => {
     try {
-      await deleteAlert(alertId);
-      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
-      Toast.show({
-        type: "success",
-        text1: "Alert deleted",
-        position: "top",
-      });
-    } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text1: "Failed to delete alert",
-        text2: err.message,
-        position: "top",
-      });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const baseUrl =
+        process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${baseUrl}/membership/profile/${user.id}`);
+      const data = await res.json();
+      const tier = data.membership_tiers;
+      setTierName(tier?.name || "—");
+      setMaxAlerts(tier?.max_alerts ?? null);
+    } catch (e) {
+      console.log("Tier load error", e);
     }
   };
+
+  const deleteConfirm = (id: number) =>
+    RNAlert.alert("Delete Alert", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => handleDelete(id) },
+    ]);
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteAlert(id);
+      setAlerts((p) => p.filter((a) => a.id !== id));
+      Toast.show({ type: "success", text1: "Alert deleted" });
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Failed", text2: err.message });
+    }
+  };
+
+  const atQuota = maxAlerts !== null && alerts.length >= (maxAlerts || 0);
 
   const renderItem = ({ item }: { item: AlertType }) => {
     const course = item.courses || {};
@@ -97,121 +105,148 @@ export default function MyAlertsScreen() {
       >
         <Card.Title
           title={course.name || `Course #${item.course_id}`}
-          subtitle={
-            course.city && course.state
-              ? `${course.city}, ${course.state}`
-              : course.city || course.state || "Location unavailable"
-          }
-          titleVariant="titleMedium"
-          subtitleVariant="bodySmall"
+          subtitle={`${course.city ?? ""}${course.state ? `, ${course.state}` : ""}`}
           right={(props) => (
             <IconButton
               {...props}
               icon="delete"
-              iconColor={theme.colors.error}
-              onPress={() => confirmDelete(item.id!)}
+              iconColor={theme.colors.primary}
+              onPress={() => deleteConfirm(item.id!)}
             />
           )}
         />
-        <Card.Content style={styles.cardContent}>
-          <Text
-            style={{
-              color: theme.colors.primary,
-              fontWeight: "600",
-              marginBottom: 4,
-            }}
-          >
+        <Card.Content>
+          <Text style={{ color: theme.colors.primary, fontWeight: "600" }}>
             {item.holes} Holes
           </Text>
-          <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>
-            {dayjs(item.date_from).format("MMM D, YYYY")} —{" "}
-            {dayjs(item.date_to || item.date_from).format("MMM D, YYYY")}
-          </Text>
-          <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 2 }}>
-            {dayjs(item.start_time).format("h:mm A")} →{" "}
+          <Text style={{ color: theme.colors.onSurfaceVariant }}>
+            {dayjs(item.date_from).format("MMM D, YYYY")} →{" "}
             {dayjs(item.end_time).format("h:mm A")}
           </Text>
-          {item.active === false && (
-            <Text style={{ color: theme.colors.error, marginTop: 6 }}>
-              Inactive
-            </Text>
-          )}
         </Card.Content>
       </Card>
     );
   };
 
-  if (loading) {
+  if (loading)
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
-  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {alerts.length === 0 ? (
-        <View style={styles.center}>
-          <IconButton
-            icon="bell-outline"
-            size={48}
-            iconColor={theme.colors.primary}
-          />
-          <Text
-            variant="bodyLarge"
-            style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}
-          >
-            No alerts yet
-          </Text>
-          <Text
-            variant="bodySmall"
-            style={{
-              color: theme.colors.onSurfaceVariant,
-              opacity: 0.7,
-              textAlign: "center",
-              marginTop: 4,
-            }}
-          >
-            Create one to start tracking tee times.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={alerts}
-          keyExtractor={(item) => item.id!.toString()}
-          renderItem={renderItem}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                loadAlerts();
-              }}
+      {/* Soft notice */}
+      <Animated.View entering={FadeIn.duration(600)}>
+        <Surface style={styles.noticeCard} elevation={1}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+            <IconButton
+              icon={atQuota ? "alert-circle-outline" : "information-outline"}
+              size={22}
+              iconColor={
+                atQuota ? theme.colors.primary : theme.colors.onSurfaceVariant
+              }
+              style={{ margin: 0, marginRight: 8 }}
             />
-          }
-          contentContainerStyle={{ padding: 16 }}
-        />
-      )}
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                  fontSize: 14,
+                  lineHeight: 20,
+                }}
+              >
+                {atQuota ? (
+                  <>
+                    You've used all alerts on the{" "}
+                    <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.{" "}
+                    <Text
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: "600",
+                      }}
+                      onPress={() => router.push("/upgrade")}
+                    >
+                      Upgrade
+                    </Text>{" "}
+                    to track more tee times.
+                  </>
+                ) : (
+                  <>
+                    You’re using{" "}
+                    <Text style={{ fontWeight: "600" }}>{alerts.length}</Text>
+                    {maxAlerts ? ` of ${maxAlerts}` : ""} alerts on your{" "}
+                    <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.
+                  </>
+                )}
+              </Text>
+            </View>
+          </View>
+        </Surface>
+      </Animated.View>
+
+      <FlatList
+        data={alerts}
+        keyExtractor={(i) => i.id!.toString()}
+        renderItem={renderItem}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadAlerts();
+              loadTier();
+            }}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <IconButton icon="bell-outline" size={48} iconColor={theme.colors.primary} />
+            <Text
+              variant="bodyLarge"
+              style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}
+            >
+              No alerts yet
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{
+                color: theme.colors.onSurfaceVariant,
+                opacity: 0.7,
+                textAlign: "center",
+                marginTop: 4,
+              }}
+            >
+              Create one to start tracking tee times.
+            </Text>
+          </View>
+        }
+        contentContainerStyle={{ padding: 16 }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  noticeCard: {
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "transparent",
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  card: {
+    marginBottom: 16,
+    elevation: 1,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-  },
-  card: {
-    marginBottom: 16,
-    elevation: 1,
-  },
-  cardContent: {
-    gap: 2,
   },
 });

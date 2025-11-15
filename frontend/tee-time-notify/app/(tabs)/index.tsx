@@ -12,10 +12,10 @@ import {
   Card,
   ActivityIndicator,
   useTheme,
-  Button,
   Surface,
+  IconButton,
 } from "react-native-paper";
-import { Skeleton } from "moti/skeleton";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 
@@ -35,12 +35,10 @@ interface MembershipTierInfo {
 export default function CourseSearchScreen() {
   const theme = useTheme();
   const router = useRouter();
-
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Quota / tier state
   const [tierName, setTierName] = useState<string>("—");
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
   const [alertCount, setAlertCount] = useState<number>(0);
@@ -61,20 +59,10 @@ export default function CourseSearchScreen() {
       if (!user) return;
 
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
       const [profileRes, alertsRes] = await Promise.all([
         fetch(`${baseUrl}/membership/profile/${user.id}`),
         fetch(`${baseUrl}/alerts/user/${user.id}`),
       ]);
-
-      if (!profileRes.ok) {
-        const msg = await profileRes.text();
-        throw new Error(`Profile request failed: ${msg}`);
-      }
-      if (!alertsRes.ok) {
-        const msg = await alertsRes.text();
-        throw new Error(`Alerts request failed: ${msg}`);
-      }
 
       const profileData = await profileRes.json();
       const tier = profileData.membership_tiers as MembershipTierInfo;
@@ -83,8 +71,8 @@ export default function CourseSearchScreen() {
 
       const userAlerts = await alertsRes.json();
       setAlertCount(userAlerts?.length || 0);
-    } catch (e: any) {
-      console.error("Quota loading failed:", e.message);
+    } catch (err) {
+      console.log("Quota load failed", err);
     } finally {
       setFetchingQuota(false);
     }
@@ -93,7 +81,7 @@ export default function CourseSearchScreen() {
   const reachedQuota =
     maxAlerts !== null && alertCount >= (maxAlerts || 0) && !fetchingQuota;
 
-  // Query courses
+  // Course search logic
   useEffect(() => {
     if (!query.trim() || reachedQuota) {
       setCourses([]);
@@ -124,13 +112,10 @@ export default function CourseSearchScreen() {
     });
   };
 
-  // -------------------------------------------------------------------
   return (
-    <SafeAreaView
-      style={[styles.safe, { backgroundColor: theme.colors.background }]}
-    >
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <View style={styles.container}>
-        {/* Subtitle */}
+        {/* Intro text */}
         <Text
           variant="bodyMedium"
           style={{
@@ -141,64 +126,57 @@ export default function CourseSearchScreen() {
           Choose a course to monitor for open tee times
         </Text>
 
-        {/* Quota or shimmer */}
-        {fetchingQuota ? (
-          <View style={{ marginBottom: 16 }}>
-            <Skeleton
-              colorMode={isDark ? "dark" : "light"}
-              width="100%"
-              height={52}
-              radius={12}
-            />
-          </View>
-        ) : (
-          <Surface
-            style={[
-              styles.quotaCard,
-              {
-                backgroundColor: reachedQuota
-                  ? theme.colors.errorContainer
-                  : theme.colors.surfaceVariant,
-              },
-            ]}
-          >
-            <Text
-              style={{
-                color: reachedQuota
-                  ? theme.colors.onErrorContainer
-                  : theme.colors.onSurfaceVariant,
-                fontSize: 15,
-                textAlign: "center",
-                fontWeight: "500",
-              }}
-            >
-              {reachedQuota
-                ? `You’ve reached your limit of ${
-                    maxAlerts || 0
-                  } alerts on the ${tierName} plan.`
-                : `You’re using ${alertCount}${
-                    maxAlerts ? ` of ${maxAlerts}` : ""
-                  } alerts on your ${tierName} plan.`}
-            </Text>
-
-            {reachedQuota && (
-              <Button
-                mode="contained-tonal"
-                compact
-                style={{ marginTop: 6, borderRadius: 8 }}
-                labelStyle={{
-                  fontWeight: "600",
-                  color: theme.colors.primary,
-                }}
-                onPress={() => router.push("/upgrade")}
-              >
-                Upgrade Plan
-              </Button>
-            )}
-          </Surface>
+        {/* Soft quota notice */}
+        {!fetchingQuota && (
+          <Animated.View entering={FadeIn.duration(600)}>
+            <Surface style={styles.noticeCard} elevation={1}>
+              <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+                <IconButton
+                  icon={reachedQuota ? "alert-circle-outline" : "information-outline"}
+                  size={22}
+                  iconColor={
+                    reachedQuota
+                      ? theme.colors.primary
+                      : theme.colors.onSurfaceVariant
+                  }
+                  style={{ margin: 0, marginRight: 8 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      fontSize: 14,
+                      lineHeight: 20,
+                    }}
+                  >
+                    {reachedQuota ? (
+                      <>
+                        You’ve used all alerts on the{" "}
+                        <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.{" "}
+                        <Text
+                          style={{ color: theme.colors.primary, fontWeight: "600" }}
+                          onPress={() => router.push("/upgrade")}
+                        >
+                          Upgrade
+                        </Text>{" "}
+                        to track more tee times.
+                      </>
+                    ) : (
+                      <>
+                        You’re using{" "}
+                        <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
+                        {maxAlerts ? ` of ${maxAlerts}` : ""} alerts on your{" "}
+                        <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.
+                      </>
+                    )}
+                  </Text>
+                </View>
+              </View>
+            </Surface>
+          </Animated.View>
         )}
 
-        {/* Search / Courses */}
+        {/* Search Field */}
         <TextInput
           label="Search course"
           value={query}
@@ -207,9 +185,7 @@ export default function CourseSearchScreen() {
           right={<TextInput.Icon icon="magnify" />}
           style={[
             styles.search,
-            {
-              backgroundColor: theme.colors.surface,
-            },
+            { backgroundColor: theme.colors.surface },
           ]}
           textColor={theme.colors.onSurface}
           placeholderTextColor={isDark ? "#ccc" : "#666"}
@@ -221,10 +197,10 @@ export default function CourseSearchScreen() {
             style={{
               textAlign: "center",
               color: theme.colors.onSurfaceVariant,
-              marginTop: 24,
+              marginTop: 20,
             }}
           >
-            Upgrade your plan to add more alerts.
+            You’ve reached your alert limit — upgrade to add more.
           </Text>
         ) : loading ? (
           <View style={styles.center}>
@@ -241,11 +217,7 @@ export default function CourseSearchScreen() {
                 mode="elevated"
                 style={[
                   styles.card,
-                  {
-                    backgroundColor: isDark
-                      ? theme.colors.surface
-                      : "#fff",
-                  },
+                  { backgroundColor: isDark ? theme.colors.surface : "#fff" },
                 ]}
                 onPress={() => handleSelectCourse(item)}
               >
@@ -263,27 +235,6 @@ export default function CourseSearchScreen() {
                 />
               </Card>
             )}
-            ListEmptyComponent={
-              query ? (
-                <Text
-                  style={[
-                    styles.helper,
-                    { color: theme.colors.onSurfaceVariant },
-                  ]}
-                >
-                  No courses found.
-                </Text>
-              ) : (
-                <Text
-                  style={[
-                    styles.helper,
-                    { color: theme.colors.onSurfaceVariant },
-                  ]}
-                >
-                  Start typing to search courses.
-                </Text>
-              )
-            }
           />
         )}
       </View>
@@ -294,12 +245,12 @@ export default function CourseSearchScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 18, paddingTop: 16 },
-  quotaCard: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    elevation: 0,
+  noticeCard: {
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "transparent",
+    marginBottom: 10,
   },
   search: { marginBottom: 12 },
   card: {
@@ -318,6 +269,5 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: "600" },
   cardSubtitle: { fontSize: 13 },
-  helper: { textAlign: "center", marginTop: 24, fontSize: 14 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
