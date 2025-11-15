@@ -24,7 +24,7 @@ def create_alert(alert: dict):
         if not profile.data:
             raise HTTPException(status_code=404, detail="User profile not found.")
         
-        tier_id = profile.data.get("member_tier_id")
+        tier_id = profile.data.get("membership_tier_id")
         if not tier_id:
             raise HTTPException(status_code=400, detail="Membership tier not found.")
         
