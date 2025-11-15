@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": true
-      }
+      },
+      "bundleIdentifier": "com.anonymous.teetimenotify"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +23,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.teetimenotify"
     },
     "web": {
       "output": "static",
@@ -46,6 +48,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c6f1ebe8-6dfb-45f0-8e44-e1a12d163058"
+      }
+    },
+    "owner": "abodell"
   }
 }

@@ -142,7 +142,7 @@ export default function SignInScreen() {
 
             <View style={styles.footer}>
               <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                Don’t have an account?
+                Don't have an account?
               </Text>
               <TouchableOpacity onPress={() => router.replace("/(auth)/sign-up")}>
                 <Text

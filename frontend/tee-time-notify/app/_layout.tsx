@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { PaperProvider } from "react-native-paper";
+import { setupNotificationHandlers, registerForPushNotificationsAsync } from "@/lib/notifications";
 import {
   PaperLightTheme,
   PaperDarkTheme,
@@ -30,6 +31,13 @@ export default function RootLayout() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (session) {
+      setupNotificationHandlers()
+      registerForPushNotificationsAsync()
+    }
+  }, [session])
 
   const theme = systemScheme === "dark" ? PaperDarkTheme : PaperLightTheme;
 
