@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
+import * as Linking from "expo-linking";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -27,6 +28,7 @@ export default function UpgradeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [redirectingTier, setRedirectingTier] = useState<number | null>(null);
   const [tiers, setTiers] = useState<MembershipTier[]>([]);
   const [userTier, setUserTier] = useState<number | null>(null);
 
@@ -47,7 +49,7 @@ export default function UpgradeScreen() {
       ]);
 
       if (!tiersRes.ok || !profileRes.ok)
-        throw new Error("Failed to fetch data");
+        throw new Error("Failed to fetch membership info");
 
       const tierList: MembershipTier[] = await tiersRes.json();
       const profileData = await profileRes.json();
@@ -55,7 +57,6 @@ export default function UpgradeScreen() {
       setTiers(tierList);
       setUserTier(profileData.membership_tier_id);
     } catch (err: any) {
-      console.error("UpgradeScreen error:", err);
       Toast.show({
         type: "error",
         text1: "Failed to load plans",
@@ -67,20 +68,46 @@ export default function UpgradeScreen() {
     }
   };
 
-  const handleSelectPlan = (tier: MembershipTier) => {
-    if (tier.id === userTier) {
+  const handleSelectPlan = async (tier: MembershipTier) => {
+    try {
+      if (tier.id === userTier) {
+        Toast.show({
+          type: "info",
+          text1: "You're already on this plan",
+          position: "top",
+        });
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not logged in");
+
+      setRedirectingTier(tier.id); // turn this plan button into "Redirecting..."
+
+      const res = await fetch(`${API_URL}/membership/upgrade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.id, tier_id: tier.id }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      const checkoutUrl = data.checkout_url;
+      if (!checkoutUrl) throw new Error("Checkout URL missing from response");
+
+      await Linking.openURL(checkoutUrl);
+    } catch (err: any) {
       Toast.show({
-        type: "info",
-        text1: "You're already on this plan",
+        type: "error",
+        text1: "Checkout failed",
+        text2: err.message,
         position: "top",
       });
-      return;
+      setRedirectingTier(null);
     }
-    Alert.alert(
-      "Upgrade",
-      `You selected the ${tier.name} plan.\nCheckout flow coming soon.`,
-      [{ text: "OK" }]
-    );
   };
 
   const toPriceText = (cents?: number) =>
@@ -100,7 +127,7 @@ export default function UpgradeScreen() {
       contentContainerStyle={styles.scroll}
       showsVerticalScrollIndicator={false}
     >
-      {/* Back button (lowered into comfortable reach) */}
+      {/* Back Button */}
       <View style={styles.navRow}>
         <Button
           icon="arrow-left"
@@ -117,10 +144,11 @@ export default function UpgradeScreen() {
       <View style={styles.headerContainer}>
         <Text
           variant="headlineSmall"
-          style={[
-            styles.header,
-            { color: theme.colors.onBackground, fontWeight: "700" },
-          ]}
+          style={{
+            color: theme.colors.onBackground,
+            fontWeight: "700",
+            textAlign: "center",
+          }}
         >
           Upgrade Your Plan
         </Text>
@@ -141,6 +169,8 @@ export default function UpgradeScreen() {
       {tiers.map((tier) => {
         const isCurrent = tier.id === userTier;
         const price = toPriceText(tier.price_cents);
+        const isRedirecting = redirectingTier === tier.id;
+
         return (
           <Card
             key={tier.id}
@@ -181,7 +211,7 @@ export default function UpgradeScreen() {
 
               <View style={styles.dividerLine} />
 
-              {/* Feature list with icons */}
+              {/* Feature list */}
               <View style={styles.features}>
                 <View style={styles.featureRow}>
                   <IconButton
@@ -234,16 +264,22 @@ export default function UpgradeScreen() {
 
               <Button
                 mode={isCurrent ? "outlined" : "contained"}
+                disabled={isRedirecting}
                 style={{
                   marginTop: 10,
                   borderRadius: 10,
                   elevation: 0,
+                  opacity: isRedirecting ? 0.85 : 1,
                 }}
                 contentStyle={{ height: 46 }}
                 labelStyle={{ fontWeight: "600" }}
                 onPress={() => handleSelectPlan(tier)}
               >
-                {isCurrent ? "Current Plan" : "Choose Plan"}
+                {isRedirecting
+                  ? "Redirecting to Stripe..."
+                  : isCurrent
+                  ? "Current Plan"
+                  : "Choose Plan"}
               </Button>
             </Card.Content>
           </Card>
@@ -256,7 +292,7 @@ export default function UpgradeScreen() {
 const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
-    paddingTop: 40, // slightly reduced from 60 for visibility
+    paddingTop: 40,
     paddingBottom: 80,
   },
   center: {
@@ -265,16 +301,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   navRow: {
+    marginTop: 24,
     marginBottom: 10,
     marginLeft: -4,
-    marginTop: 10
   },
   headerContainer: {
     alignItems: "center",
     marginBottom: 28,
-  },
-  header: {
-    textAlign: "center",
   },
   card: {
     borderRadius: 16,
