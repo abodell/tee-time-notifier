@@ -30,24 +30,41 @@ II. CURRENT STATE (NOV 2025)
 
 ✅ Repository / project structure initialized  
 ✅ React Native / Expo mobile frontend functioning (light/dark themes implemented)  
-✅ Supabase configured (Auth, Database, Stripe placeholder enabled)  
-✅ FastAPI backend functioning locally  
+✅ Supabase configured (Auth, Database, Stripe enabled and integrated)  
+✅ FastAPI backend functioning locally + deployed endpoint structure established  
 ✅ Core schema implemented in Supabase  
 ✅ ForeUp integration functional (live scan + normalization + UPSERT)  
 ✅ Alert engine MVP operational — alert matching and notification logging verified  
 ✅ Timezone-aware datetimes implemented  
 ✅ Expo Router navigation integrated  
 ✅ Auth flow (sign-in / sign-up) working end to end  
-✅ Successful login redirects user back to Create Details with persisted form data  
-✅ Toast messages (global notifications) implemented using `react-native-toast-message`  
-✅ Create Alert flow fully connected to backend `/alerts/create` endpoint  
-✅ Alerts now insert successfully into Supabase DB  
-✅ “My Alerts” tab connected live to `/alerts/user/{id}` endpoint  
 ✅ Authentication persistence enabled via AsyncStorage (auto-refresh + stay signed in)  
 ✅ FastAPI → Supabase pipeline verified with ngrok  
 ✅ Dynamic light/dark theming updated throughout  
 ✅ iOS / Android navigation unified with consistent theming  
-✅ Backend CORS and routing working for mobile requests via ngrok  
+✅ Backend CORS and routing working for secure mobile requests via ngrok  
+
+Added During Stripe + UX Phase:
+-------------------------------
+✅ Supabase `membership_tiers` and `user_profiles` integrated fully  
+✅ Automatic `user_profiles` creation trigger added on `auth.users` insert  
+✅ Free tier auto-assignment implemented for new users  
+✅ Stripe account + products created (Free, Plus, Pro tiers)  
+✅ FastAPI routes `/membership/upgrade` and `/membership/webhook` implemented  
+✅ Stripe Checkout integrated end-to-end from app → backend → webhook → Supabase  
+✅ Stripe webhook updates user’s membership tier automatically  
+✅ Customer email prefill implemented for first checkout  
+✅ Stripe `stripe_customer_id` persistence added to user profiles  
+✅ User’s current tier reflected in Profile screen dynamically  
+✅ Polished UI for membership tier display on Profile screen  
+✅ Modernized Upgrade screen with:
+   - Dynamic plans load from backend
+   - Stripe redirection flow w/ button state feedback
+   - Clean bordered “Current Plan” card highlight
+   - Subtle, modern visual hierarchy and clear pricing context  
+✅ Full production-ready checkout tested (Pro tier upgrade successful)  
+✅ Profile navigation and plan display confirmed after webhook update  
+
 
 System Capabilities:
 --------------------
@@ -56,11 +73,15 @@ System Capabilities:
 - Prevent duplicate entries via UPSERT
 - Match user alerts and generate notifications
 - Log all triggered notifications to `alert_notifications`
-- Authenticated mobile users can register, log in, create alerts, and view them
-- The app fully supports dark and light mode themes
+- Authenticated mobile users can register, log in, create alerts, view alerts
+- Stripe subscriptions create / update user’s membership tier automatically
+- Hosted Stripe Checkout with automatic webhook synchronization
+- Plans and prices fetched dynamically via `/membership/tiers`
+- Profile tab shows user’s email, current membership, and upgrade option
+- Clean modern UX across Profile, Upgrade, and Alert flow screens  
 - Authentication persists across app restarts
-- Toasts provide immediate user feedback (login, creation, deletion, etc.)
-- Frontend ↔ Backend integration functional over ngrok tunnel
+- Secure CORS and Supabase Auth integrations
+- Theming consistency across iOS/Android
 
 
 ---------------------------------------------------------
@@ -72,10 +93,10 @@ Directory Layout (simplified):
 /
 ├── frontend/
 │   ├── src/
-│   │   ├── lib/supabase.ts             # Supabase client setup w/ AsyncStorage persistence
-│   │   ├── lib/api.ts                  # API helpers for alerts CRUD
-│   │   ├── constants/theme.ts          # Centralized colors + Paper theme
-│   │   ├── components/                 # Custom modal + picker components + reusable elements
+│   │   ├── lib/supabase.ts
+│   │   ├── lib/api.ts
+│   │   ├── constants/theme.ts
+│   │   ├── components/
 │   │   │   ├── PickerModal.tsx
 │   │   │   ├── DatePickerField.tsx
 │   │   │   ├── TimePickerField.tsx
@@ -85,12 +106,15 @@ Directory Layout (simplified):
 │       ├── (auth)/sign-in.tsx, sign-up.tsx, _layout.tsx
 │       ├── (tabs)/index.tsx, my-alerts.tsx, profile.tsx, _layout.tsx
 │       ├── create-details.tsx
+│       ├── upgrade.tsx                     # Modern upgrade / Stripe integration screen
 │       └── _layout.tsx
 │
 ├── backend/
 │   ├── app/
 │   │   ├── main.py, db.py
-│   │   ├── routes/alerts.py            # Connected endpoints for alert CRUD
+│   │   ├── routes/alerts.py
+│   │   ├── routes/membership.py           # Lists tiers + user profile w/ tier join
+│   │   ├── routes/membership_stripe.py    # Stripe Checkout + webhook endpoints
 │   │   ├── services/, utils/
 │   └── .env
 │
@@ -102,18 +126,20 @@ Directory Layout (simplified):
 IV. SUPABASE DATABASE STRUCTURE
 ---------------------------------------------------------
 
-Matches previously documented schema with:
-- user_profiles
-- membership_tiers
-- courses
-- provider_configs
-- availability
-- alerts
-- alert_notifications
+Tables:
+- user_profiles  
+- membership_tiers  
+- courses  
+- provider_configs  
+- availability  
+- alerts  
+- alert_notifications  
 
-Alerts Table Additions Verified:
-- Working `/alerts/create`, `/alerts/user/{user_id}`, and `/alerts/{id}` delete flow  
-- Proper relationships enforced via FK to `courses` and `user_profiles`
+Recent Additions:
+- Added `stripe_customer_id` to `user_profiles`
+- Added `price_id` to `membership_tiers`
+- Established foreign key relationship for `membership_tier_id` in `user_profiles`
+- Added `handle_new_user()` trigger to auto-create user_profiles for new auth.users
 
 All schema elements migrated and verified.
 
@@ -122,166 +148,148 @@ All schema elements migrated and verified.
 V. HOW THE SYSTEM WORKS
 ---------------------------------------------------------
 
-End-to-end flow (current MVP):
-1. User can browse for courses and set alert preferences (holes, date/time window).  
-2. Non‑authenticated users are prompted to sign in or sign up.  
-3. After authentication, alert preferences are saved to the backend FastAPI API.  
-4. On successful login, the user is redirected back to Create Details with previous input state preserved.  
-5. Alert creation sends payload to `/alerts/create` → Supabase insert confirmed.  
-6. Toast notifications confirm success or display errors instantly.  
-7. “My Alerts” page renders all stored alerts from `/alerts/user/{user_id}`.  
-8. Users can delete alerts with an immediate update to the UI and DB.  
-9. Authentication is persistent and auto-renews via AsyncStorage.  
-10. Backend normalizes tee-time data (ForeUp currently live; others coming).  
-11. When matches occur, a notification event is logged (push flow to be implemented).  
+End‑to‑End Flow (Current):
+1. User creates alerts for tee times; unauthenticated users are prompted to sign up or log in.  
+2. Upon signup, a `user_profile` is created automatically and assigned to the Free tier.  
+3. Users on Free tier can add limited alerts and normal scan frequency.  
+4. On the “Upgrade” page, the app fetches available membership tiers via backend.  
+5. When a user selects a higher tier, the app calls `/membership/upgrade`.  
+6. Backend creates or reuses a Stripe Customer and opens hosted Checkout.  
+7. User completes purchase and Stripe redirects them to success URL.  
+8. Webhook fires → updates user’s `membership_tier_id` in Supabase.  
+9. When reopening the app, `/membership/profile/{user_id}` displays the new tier.  
+10. Profile tab now shows plan description, limits, and subscription tier summary.  
+11. App UX includes button loading state and responsive feedback during checkout.  
+12. Alerts, profile, and upgrade pages all follow consistent styling and spacing.  
+
 
 Frontend Highlights:
 --------------------
-- Searchable course selector (to be enriched next with live course names)  
-- Sticky bottom tab navigation (Home, My Alerts, Profile)  
-- Fully themed light/dark Paper integration  
-- Date/Time pickers with live validation banners  
-- Time‑range aware picker system (Preferred Start ↔ End Time)  
-- Supabase Auth persistence and silent token refresh  
-- Global toasts for all feedback (login, alert creation, deletion)  
-- Managed Expo workflow (works on iOS + Android with no native dependencies)  
+- Improved “Create Alert” → redirect → My Alerts flow  
+- Membership tier and upgrade UX fully polished and accessible  
+- Dynamic tier cards with modern layout and responsive feedback  
+- “Redirecting to Stripe…” indicator on checkout buttons  
+- Unified button and typography styling for consistency  
+- No unnecessary toasts or screen jumps; stable navigation UX
 
 
 ---------------------------------------------------------
 VI. IMPLEMENTED / VERIFIED
 ---------------------------------------------------------
 
-✔ Supabase schema finalized and linked to FastAPI  
-✔ FastAPI routes `/alerts/create`, `/alerts/user/{id}`, `/alerts/{id}` working  
-✔ ForeUp integration MVP operational  
-✔ Frontend API helpers consuming backend endpoints  
-✔ Expo Router navigation and auth context complete  
-✔ Persistent session memory with AsyncStorage  
-✔ Real End-to-End alert creation → DB insert → retrieval verified  
-✔ Toast notifications integrated globally  
-✔ Login persistence across app restarts  
-✔ Logout flow updated with visual feedback  
-✔ Styling unified across screens (Paper + theme consistency)  
-✔ Managed Expo workflow confirmed  
-✔ CORS middleware set up in FastAPI for secure frontend integration  
-✔ My Alerts tab displays live data from Supabase  
-✔ Deletion and live refresh working correctly  
-✔ Verified on-device via ngrok tunnel  
+✔ Stripe integration fully operational (Checkout + Webhooks)  
+✔ Tier data loads dynamically from backend endpoints  
+✔ Auth persistence + Supabase user link confirmed across sessions  
+✔ Customer email prefill functioning on first checkout  
+✔ Frontend checkout button UX polished with redirect indicator  
+✔ Membership display in Profile and Upgrade pages consistent  
+✔ Verified test subscription success using Stripe test card  
+✔ Verified webhook updates to `user_profiles.membership_tier_id`  
+✔ Deployed backend routing with proper error handling  
+✔ User onboarding automatically assigns Free tier  
+✔ Stripe customer creation includes user email + ID metadata  
+✔ Backend log statements validated for webhook test events  
 
 
 ---------------------------------------------------------
 VII. DEVELOPMENT ROADMAP
 ---------------------------------------------------------
 
-Phase 4 — Frontend MVP (COMPLETE – POLISHING)
----------------------------------------------
-Goal: End‑to‑end working prototype with full user journey.
-✅ Auth persistence & redirect flow complete  
-✅ Live alert creation + read/delete from backend functional  
-✅ Global success/error toasts integrated via `react-native-toast-message`  
-✅ Layout/spacings finalized and stable across components  
-
-Next Steps (Active Polish Phase):
-- [ ] Show real **course** names on My Alerts (join with courses table).  
-- [ ] Add “Active/Inactive” toggle for alerts.  
-- [ ] Confirm visual contrast & theme accessibility in both modes.  
-- [ ] Auto-redirect to My Alerts with success toast after creating new alert.
-
-Phase 5 — Notifications Integration (UP NEXT)
+Phase 5 – Notifications Integration (UP NEXT)
 ---------------------------------------------
 - Implement real push notifications (Expo Push or FCM).  
 - Store device Expo Push Token in `user_profiles`.  
 - Handle invalid/expired tokens gracefully.  
-- Trigger mock alert notification via backend scheduler to verify device flow.  
-- Add “Last triggered” label in My Alerts card UI.
+- Trigger mock alert notification via backend scheduler.  
+- Add “Last triggered” timestamp label in My Alerts card UI.
 
-Phase 6 — Scheduling & Automation
+Phase 6 – Scheduling & Automation
 ---------------------------------
 - Deploy FastAPI backend to Oracle Cloud (persistent HTTPS).  
-- Integrate APScheduler for periodic tee-time scans.  
-- Configure production-ready environment variables and secrets.
+- Add APScheduler for periodic tee-time scans.  
+- Configure production-ready secrets and runtime environment.
 
-Phase 7 — Analytics & Insights
+Phase 7 – Analytics & Insights
 ------------------------------
 - Aggregate tee time frequency per course.  
 - `/stats/course/{id}` endpoint for insight graphs.  
-- Visualize alert activity via small charts in frontend.
+- Visualize scan results + alert activity in charts.
 
-Phase 8 — Monetization
-----------------------
-- Add Supabase + Stripe subscription billing.  
-- Enforce membership tiers: (Free, Plus, Pro).  
-- Restrict alerts count and scan frequency per tier.  
+Phase 8 – Monetization (Refined + Complete)
+-------------------------------------------
+✓ Stripe + Supabase subscription integration functional.  
+- Expand onboarding to detect expired payments and downgrade users gracefully.  
+- Handle subscription cancel flow.  
+- Integrate in-app deep link redirects for mobile-native return-to-app UX.
 
-Phase 9 — Provider Expansion
+Phase 9 – Provider Expansion
 ----------------------------
-- Implement GolfNow, Club Prophet, etc. adapter patterns.  
-- Normalize and merge new provider responses into unified schema.
+- Implement GolfNow, Club Prophet, and additional providers.  
+- Normalize data merges under standard schema.
 
-Phase 10 — QA & Scalability
+Phase 10 – QA & Scalability
 ---------------------------
-- Add detailed structured logging (Loguru + Supabase logs).  
-- Add unit/integration/E2E tests.  
-- Introduce healthcheck endpoints and rate limits.  
-- Add a small internal telemetry or metrics dashboard.  
+- Structured logging (Loguru + Supabase logs).  
+- Unit/integration/E2E test coverage.  
+- Add rate-limiting and monitoring endpoints.  
+- Build a lightweight internal telemetry dashboard.  
 
 
 ---------------------------------------------------------
 VIII. DESIGN PRINCIPLES
 ---------------------------------------------------------
 
-- 100% ethical integrations — respect API and provider limits.  
-- Modular design: one provider adapter per booking API.  
-- UTC and timezone-aware datetimes throughout.  
-- Supabase as single source of truth.  
-- Maintain separation between UI logic (frontend) and business logic (backend).  
-- Build small, validate early, scale when proved.  
-- Focus on cost‑efficient, developer‑friendly stack.  
-- Consistent primary color usage for light/dark themes.  
-- Toasts for timely user feedback regardless of route context.  
-- Keep accessibility (contrast, sizing) in check across modes.
+- Premium, modern visual design emphasizing clarity and trust.  
+- Seamless tier upgrade path; clear, modern card layouts.  
+- Ethical provider integrations (no automation inside booking APIs).  
+- Full modular separation of provider adapters.  
+- UTC + timezone-aware data handling end-to-end.  
+- Supabase: single source of truth.  
+- Backend: logic-focused; frontend handles display & flow.  
+- Build lean → validate early → scale proven features.  
+- Maintain accessibility & color contrast for light/dark modes.  
+- Fast, low-latency UX on every major interaction.
 
 
 ---------------------------------------------------------
 IX. TODO CHECKLIST
 ---------------------------------------------------------
 
-Frontend In Progress:
----------------------
-[ ] Resolve `course_id` → course name lookup for My Alerts.  
-[ ] Add toggle for Active/Inactive alerts.  
-[ ] Add toast confirmation for new alert success.  
-[ ] Auto-refresh My Alerts after creation.  
-[ ] Confirm dark/light color balance + modal edge spacing.  
-[ ] Minor typography & animation polish (modals, toasts, transitions).  
+Frontend In Progress / Next Polish:
+-----------------------------------
+[ ] Add push notification UI flow (token permissions).  
+[ ] Refresh Profile & Alerts after webhook tier updates automatically.  
+[ ] Incorporate animation feedback (FadeSlide transitions).  
+[ ] Validate dark/light color balance on Upgrade and Profile pages.  
+[ ] Minor typography refinements across modals and toast positions.  
 
 Backend Upcoming:
 -----------------
 [ ] Add `expo_push_token` column to `user_profiles`.  
-[ ] Implement `notify_user()` helper for push dispatch.  
+[ ] Implement `notify_user()` utility for push dispatch.  
 [ ] Expose `/alerts/notifications/{user_id}` endpoint.  
-[ ] Deploy FastAPI backend to Oracle Cloud (persistent).  
-[ ] Configure cron-like scheduled scans for tee-time availability.
+[ ] Deploy backend to Oracle Cloud (production HTTPS).  
+[ ] Add cron-based tee time scan job using APScheduler.  
 
-Misc / Validation:
-------------------
-[ ] Local push test via Expo dev tools.  
-[ ] Full E2E cycle test (Create Alert → Backend → Push trigger).  
-[ ] Add analytics & metrics routes for course/alert stats.  
+Validation:
+-----------
+[ ] Full E2E Stripe test for subscription cancel / renew flows.  
+[ ] Local push notification test from backend scheduler.  
+[ ] Collect performance metrics per scan & per course frequency.  
 
 ---------------------------------------------------------
 X. LONG‑TERM VISION
 ---------------------------------------------------------
 
 After MVP validation:
-- Expand to additional booking providers.  
-- Introduce shared scheduling (“find a foursome”).  
-- Offer partner dashboards (course operators).  
-- Implement predictive tee-time models (likely openings).  
+- Expand to new booking providers + course data pipelines.  
+- Introduce shared scheduling features (“Find a Foursome”).  
+- Add course-operator analytics dashboards.  
+- Implement predictive tee‑time availability models.  
 - Add referral/growth incentive system.  
-- Containerize backend for easy scaling (Docker/Fly.io/Supabase Functions).  
-- Expand internationally once core markets validated.  
-- Build out full production monitoring and CI/CD automation.  
+- Containerize backend for easier scaling (Docker, Fly.io, etc.).  
+- Expand internationally once core usage validated.  
+- Establish full CI/CD and monitoring readiness.  
 
 ---------------------------------------------------------
 END OF DOCUMENT
