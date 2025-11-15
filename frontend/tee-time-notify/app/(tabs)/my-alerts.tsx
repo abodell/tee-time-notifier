@@ -16,6 +16,7 @@ import {
 } from "react-native-paper";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getUserAlerts, deleteAlert } from "@/lib/api";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
@@ -85,7 +86,7 @@ export default function MyAlertsScreen() {
     try {
       await deleteAlert(id);
       setAlerts((p) => p.filter((a) => a.id !== id));
-      Toast.show({ type: "success", text1: "Alert deleted" });
+      Toast.show({ type: "success", text1: "Alert deleted", visibilityTime: 1000});
     } catch (err: any) {
       Toast.show({ type: "error", text1: "Failed", text2: err.message });
     }
@@ -141,10 +142,10 @@ export default function MyAlertsScreen() {
       <Animated.View entering={FadeIn.duration(600)}>
         <Surface style={styles.noticeCard} elevation={1}>
           <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-            <IconButton
-              icon={atQuota ? "alert-circle-outline" : "information-outline"}
+            <MaterialCommunityIcons
+              name={atQuota ? "alert-circle-outline" : "information-outline"}
               size={22}
-              iconColor={
+              color={
                 atQuota ? theme.colors.primary : theme.colors.onSurfaceVariant
               }
               style={{ margin: 0, marginRight: 8 }}

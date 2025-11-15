@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
-  StyleSheet,
   FlatList,
   SafeAreaView,
+  StyleSheet,
   Platform,
 } from "react-native";
 import {
@@ -13,9 +14,10 @@ import {
   ActivityIndicator,
   useTheme,
   Surface,
-  IconButton,
 } from "react-native-paper";
 import Animated, { FadeIn } from "react-native-reanimated";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Skeleton } from "moti/skeleton";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 
@@ -35,6 +37,8 @@ interface MembershipTierInfo {
 export default function CourseSearchScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const isDark = theme.dark;
+
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,17 +46,21 @@ export default function CourseSearchScreen() {
   const [tierName, setTierName] = useState<string>("—");
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
   const [alertCount, setAlertCount] = useState<number>(0);
+
   const [fetchingQuota, setFetchingQuota] = useState(true);
+  const [hasData, setHasData] = useState(false);
 
-  const isDark = theme.dark;
-
-  useEffect(() => {
-    loadQuotaData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadQuotaData();
+    }, [])
+  );
 
   const loadQuotaData = async () => {
     try {
+      // keep placeholder visible during refreshes
       setFetchingQuota(true);
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -64,13 +72,15 @@ export default function CourseSearchScreen() {
         fetch(`${baseUrl}/alerts/user/${user.id}`),
       ]);
 
-      const profileData = await profileRes.json();
-      const tier = profileData.membership_tiers as MembershipTierInfo;
+      const profile = await profileRes.json();
+      const tier = profile.membership_tiers as MembershipTierInfo;
       setTierName(tier?.name || "—");
       setMaxAlerts(tier?.max_alerts ?? null);
 
       const userAlerts = await alertsRes.json();
       setAlertCount(userAlerts?.length || 0);
+
+      setHasData(true);
     } catch (err) {
       console.log("Quota load failed", err);
     } finally {
@@ -79,30 +89,26 @@ export default function CourseSearchScreen() {
   };
 
   const reachedQuota =
-    maxAlerts !== null && alertCount >= (maxAlerts || 0) && !fetchingQuota;
+    maxAlerts !== null && alertCount >= (maxAlerts || 0) && hasData;
 
-  // Course search logic
-  useEffect(() => {
+  const fetchCourses = async (search: string) => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("courses")
+      .select("id, name, city, state, provider")
+      .ilike("name", `%${search.trim()}%`)
+      .limit(25);
+    if (!error) setCourses(data || []);
+    setLoading(false);
+  };
+
+  React.useEffect(() => {
     if (!query.trim() || reachedQuota) {
       setCourses([]);
       return;
     }
-
-    const fetchCourses = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, name, city, state, provider")
-        .ilike("name", `%${query.trim()}%`)
-        .limit(25);
-
-      if (error) console.error(error);
-      else setCourses(data || []);
-      setLoading(false);
-    };
-
-    const debounce = setTimeout(fetchCourses, 300);
-    return () => clearTimeout(debounce);
+    const t = setTimeout(() => fetchCourses(query), 300);
+    return () => clearTimeout(t);
   }, [query, reachedQuota]);
 
   const handleSelectCourse = (course: Course) => {
@@ -115,32 +121,55 @@ export default function CourseSearchScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <View style={styles.container}>
-        {/* Intro text */}
         <Text
           variant="bodyMedium"
           style={{
             color: theme.colors.onSurfaceVariant,
             marginBottom: 14,
+            textAlign: "center",
           }}
         >
           Choose a course to monitor for open tee times
         </Text>
 
-        {/* Soft quota notice */}
-        {!fetchingQuota && (
-          <Animated.View entering={FadeIn.duration(600)}>
+        {/* Quota notification or skeleton */}
+        {fetchingQuota && !hasData ? (
+          <View style={{ marginBottom: 10 }}>
+            <Skeleton
+              colorMode={isDark ? "dark" : "light"}
+              width="100%"
+              height={50}
+              radius={12}
+            />
+          </View>
+        ) : (
+          <Animated.View entering={FadeIn.duration(400)}>
             <Surface style={styles.noticeCard} elevation={1}>
-              <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                <IconButton
-                  icon={reachedQuota ? "alert-circle-outline" : "information-outline"}
-                  size={22}
-                  iconColor={
-                    reachedQuota
-                      ? theme.colors.primary
-                      : theme.colors.onSurfaceVariant
-                  }
-                  style={{ margin: 0, marginRight: 8 }}
-                />
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={{
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: 24,
+                    width: 26,
+                    marginRight: 8,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      reachedQuota
+                        ? "alert-circle-outline"
+                        : "information-outline"
+                    }
+                    size={22}
+                    color={
+                      reachedQuota
+                        ? theme.colors.primary
+                        : theme.colors.onSurfaceVariant
+                    }
+                  />
+                </View>
+
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
@@ -152,9 +181,13 @@ export default function CourseSearchScreen() {
                     {reachedQuota ? (
                       <>
                         You’ve used all alerts on the{" "}
-                        <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.{" "}
+                        <Text style={{ fontWeight: "600" }}>{tierName}</Text>{" "}
+                        plan.{" "}
                         <Text
-                          style={{ color: theme.colors.primary, fontWeight: "600" }}
+                          style={{
+                            color: theme.colors.primary,
+                            fontWeight: "600",
+                          }}
                           onPress={() => router.push("/upgrade")}
                         >
                           Upgrade
@@ -183,10 +216,7 @@ export default function CourseSearchScreen() {
           onChangeText={setQuery}
           mode="outlined"
           right={<TextInput.Icon icon="magnify" />}
-          style={[
-            styles.search,
-            { backgroundColor: theme.colors.surface },
-          ]}
+          style={[styles.search, { backgroundColor: theme.colors.surface }]}
           textColor={theme.colors.onSurface}
           placeholderTextColor={isDark ? "#ccc" : "#666"}
           disabled={reachedQuota}

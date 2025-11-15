@@ -203,7 +203,7 @@ export default function UpgradeScreen() {
           labelStyle={{ fontWeight: "500" }}
           onPress={() => router.back()}
         >
-          Back to Profile
+          Back
         </Button>
       </View>
 
