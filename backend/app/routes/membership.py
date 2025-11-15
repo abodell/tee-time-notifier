@@ -31,7 +31,7 @@ def get_user_membership(user_id: str):
         result = (
             supabase.table("user_profiles")
             .select(
-                "id, full_name, phone, membership_tier_id, stripe_customer_id, "
+                "id, full_name, phone, membership_tier_id, stripe_customer_id, pending_downgrade, cancel_at, "
                 "membership_tiers!user_profiles_membership_tier_id_fkey(name, description, price_cents, max_alerts, scan_interval_seconds)"
             )
             .eq("id", user_id)
