@@ -21,6 +21,15 @@ import { supabase } from "@/lib/supabase";
 import DatePickerField from "../components/DatePickerField";
 import TimePickerField from "../components/TimePickerField";
 
+function combinedDateAndTime(date: Date, time: Date) {
+  const combined = new Date(date)
+  combined.setHours(time.getHours())
+  combined.setMinutes(time.getMinutes())
+  combined.setSeconds(time.getSeconds())
+  combined.setMilliseconds(0)
+  return combined
+}
+
 export default function CreateDetailsScreen() {
   const { name } = useLocalSearchParams();
   const router = useRouter();
@@ -44,15 +53,18 @@ export default function CreateDetailsScreen() {
 
     try {
       setSubmitting(true);
-
+      // Combine the selected date with the chosen times
+      const combinedStart = date && startTime ? combinedDateAndTime(date, startTime) : null
+      const combinedEnd = date && endTime ? combinedDateAndTime(date, endTime) : null
+      
       const alertPayload = {
         user_id: data.session.user.id,
         holes: parseInt(holes),
         course_id: 1,
         date_from: date?.toISOString(),
         date_to: date?.toISOString(),
-        start_time: startTime?.toISOString(),
-        end_time: endTime?.toISOString(),
+        start_time: combinedStart?.toISOString(),
+        end_time: combinedEnd?.toISOString(),
       };
 
       await createAlert(alertPayload);

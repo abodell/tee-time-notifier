@@ -121,7 +121,8 @@ export default function MyAlertsScreen() {
             {item.holes} Holes
           </Text>
           <Text style={{ color: theme.colors.onSurfaceVariant }}>
-            {dayjs(item.date_from).format("MMM D, YYYY")} →{" "}
+            {dayjs(item.date_from).format("MMM D, YYYY")}{": "}
+            {dayjs(item.start_time).format("h:mm A")} →{" "}
             {dayjs(item.end_time).format("h:mm A")}
           </Text>
         </Card.Content>
