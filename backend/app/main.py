@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import date
@@ -9,8 +10,14 @@ from app.routes import alerts as alert_routes
 from app.routes import membership as membership_routes
 from app.routes import membership_stripe as stripe_routes
 from app.routes import push
+from app.scheduler.scheduler import start_scheduler
 
-app = FastAPI(title = "Tee Time Notify API", version = "0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_scheduler(app)
+    yield
+
+app = FastAPI(title = "Tee Time Notify API", version = "0.1.0", lifespan=lifespan)
 app.include_router(alert_routes.router)
 app.include_router(membership_routes.router)
 app.include_router(stripe_routes.router)

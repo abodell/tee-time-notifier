@@ -4,3 +4,7 @@ supabase
 requests
 python-dotenv
 stripe
+apscheduler
+httpx
+pydantic-settings
+python-dateutil

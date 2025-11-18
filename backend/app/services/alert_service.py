@@ -16,24 +16,43 @@ def notify_user(user_id, course_id, tee_time, method="push"):
         f"tee time {tee_time} via {method}"
     )
 
-def run_alert_engine():
+def run_alert_engine(tier_id: int | None = None):
     """ Check all alerts vs. availability and queue new notifications. """
     now = datetime.now(timezone.utc).isoformat()
-    alerts = supabase.table("alerts").select("*").eq("active", True).execute().data
+    query = supabase.table("alerts").select(
+        "*, user_profiles!alerts_user_id_fkey(membership_tier_id)"
+    ).eq("active", True)
+
+    alerts = query.execute().data or []
+
+    if tier_id is not None:
+        alerts = [
+            a for a in alerts
+            if a.get("user_profiles", {}).get("membership_tier_id") == tier_id
+        ]
+        print(f"[AlertEngine] Processing tier {tier_id}: {len(alerts)} alerts")
 
     for alert in alerts or []:
         course_id = alert["course_id"]
         holes = alert.get("holes")
-        date_from = datetime.fromisoformat(alert["date_from"])
-        date_to = datetime.fromisoformat(alert["date_to"]) + timedelta(days = 1)
+        # User selected day in UTC
+        base_date = datetime.fromisoformat(alert['date_from']).astimezone(timezone.utc)
+        
+        start_t = datetime.fromisoformat(alert['start_time']).time()
+        end_t = datetime.fromisoformat(alert['end_time']).time()
+
+        start_dt = datetime.combine(base_date.date(), start_t, tzinfo=timezone.utc)
+        end_dt = datetime.combine(base_date.date(), end_t, tzinfo=timezone.utc)
+
+        print(f"Start: {start_dt}, End: {end_dt}")
 
         tee_times = (
             supabase.table("availability")
             .select("id, course_id, tee_time, holes")
             .eq("course_id", course_id)
             .eq("holes", holes)
-            .gte("tee_time", date_from.isoformat())
-            .lte("tee_time", date_to.isoformat())
+            .gte("tee_time", start_dt.isoformat())
+            .lte("tee_time", end_dt.isoformat())
             .execute()
             .data
         )

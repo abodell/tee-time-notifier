@@ -2,6 +2,7 @@ import json
 import requests
 from typing import List, Union
 from datetime import datetime
+from dateutil import tz
 from urllib.parse import urlencode
 
 from app.db import supabase
@@ -51,7 +52,7 @@ def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[str, i
     }
 
     full_url = f"{base_url}?{urlencode(params, doseq=True)}"
-    print(f"Fetching {course['name']} | holes={holes}...")
+    print(f"Fetching {course['name']} | holes={holes} | date={date_str}...")
     resp = requests.get(full_url, timeout = 10)
     resp.raise_for_status()
 
@@ -60,11 +61,23 @@ def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[str, i
 def normalize_and_store(course, raw_data, holes_requested: Union[str, int] = "all"):
     """ Convert ForeUp response to TeeTime objects and insert into Supabase """
     tee_times: List[TeeTime] = []
+
+    local_tz = tz.gettz(course.get("timezone")) or tz.tzutc()
+    utc_tz = tz.tzutc()
+
     for item in raw_data:
+        dt = None
         try:
             dt = datetime.fromisoformat(item["time"])
         except Exception:
-            dt = datetime.strptime(item["time"], "%Y-%m-%dT%H:%M:%S")
+            try:
+                dt = datetime.strptime(item["time"], "%Y-%m-%dT%H:%M:%S")
+            except Exception:
+                print(f"Skipping invalid time: {item.get('time')}")
+        
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo = local_tz)
+        dt_utc = dt.astimezone(utc_tz)
         
         price = float(item.get("green_fee", 0) or 0)
         available = not item.get("booked") and not item.get("locked")
@@ -86,7 +99,7 @@ def normalize_and_store(course, raw_data, holes_requested: Union[str, int] = "al
         tee_times.append(
             TeeTime(
                 course_id = course['id'],
-                tee_time = dt,
+                tee_time = dt_utc,
                 price = price,
                 holes = normalized_holes,
                 available = available,
