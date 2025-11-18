@@ -29,93 +29,75 @@ II. CURRENT STATE (NOV 2025)
 ---------------------------------------------------------
 
 ✅ Repository / project structure initialized  
-✅ React Native / Expo mobile frontend functioning (light/dark themes implemented)  
-✅ Supabase configured (Auth, Database, Stripe enabled and integrated)  
-✅ FastAPI backend functioning locally + deployed endpoint structure established  
-✅ Core schema implemented in Supabase  
-✅ ForeUp integration functional (live scan + normalization + UPSERT)  
-✅ Alert engine MVP operational — alert matching and notification logging verified  
-✅ Timezone-aware datetimes implemented  
-✅ Expo Router navigation integrated  
-✅ Auth flow (sign-in / sign-up) working end to end  
-✅ Authentication persistence enabled via AsyncStorage (auto-refresh + stay signed in)  
-✅ FastAPI → Supabase pipeline verified with ngrok  
-✅ Dynamic light/dark theming updated throughout  
-✅ iOS / Android navigation unified with consistent theming  
-✅ Backend CORS and routing working for secure mobile requests via ngrok  
+✅ React Native / Expo mobile frontend functional (light/dark themes)  
+✅ Supabase configured (Auth, Database, Stripe integration live)  
+✅ FastAPI backend operational and linked to Supabase  
+✅ Schema finalized and verified  
+✅ ForeUp adapter active — live scans and normalization working  
+✅ Alert engine MVP operational — matching logic & notification logging verified  
+✅ Timezone-aware datetimes implemented throughout  
+✅ Expo Router navigation and persistent authentication in place  
+✅ Consistent theming and layout parity iOS ↔ Android  
+✅ Stripe payment flow complete with automatic webhook sync  
+✅ Tier restrictions enforced on backend (`max_alerts` per membership tier)  
 
-Added During Stripe + UX Phase:
--------------------------------
-✅ Supabase `membership_tiers` and `user_profiles` integrated fully  
-✅ Automatic `user_profiles` creation trigger added on `auth.users` insert  
-✅ Free tier auto-assignment implemented for new users  
-✅ Stripe account + products created (Free, Plus, Pro tiers)  
-✅ FastAPI routes `/membership/upgrade` and `/membership/webhook` implemented  
-✅ Stripe Checkout integrated end-to-end from app → backend → webhook → Supabase  
-✅ Stripe webhook updates user’s membership tier automatically  
-✅ Customer email prefill implemented for first checkout  
-✅ Stripe `stripe_customer_id` persistence added to user profiles  
-✅ User’s current tier reflected in Profile screen dynamically  
-✅ Polished UI for membership tier display on Profile screen  
-✅ Modernized Upgrade screen with:
-   - Dynamic plans load from backend
-   - Stripe redirection flow w/ button state feedback
-   - Clean bordered “Current Plan” card highlight
-   - Subtle, modern visual hierarchy and clear pricing context  
-✅ Full production-ready checkout tested (Pro tier upgrade successful)  
-✅ Profile navigation and plan display confirmed after webhook update  
+Recent Additions (Post-Stripe, Quota, & Notifications Integration):
+-------------------------------------------------------------------
+✅ Notifications lifecycle configured (Expo push tokens registered & stored)  
+✅ Added `expo_push_token` to `user_profiles`  
+✅ Expo Go + EAS integration working with Project ID  
+✅ Backend `/push/register` and `/push/test` endpoints working  
+✅ Verified tokens saved successfully to Supabase via mobile client  
+✅ Notification permission + Expo handler registration added on app load  
+✅ `/push/test` route and Expo endpoint hooked to support dev push delivery  
+✅ Quota enforcement confirmed in `alerts.py` and frontend flows  
+✅ Skeleton shimmer via `moti` implemented to remove layout pop-in  
+✅ Cross-tab quota refresh working automatically through `useFocusEffect`  
+✅ Visual/UI modernization of quota cards and soft upgrade banners  
+✅ Conditional downgraded messaging logic improved on Upgrade screen  
+✅ Navigation and authentication flows refactored for clarity and consistency  
 
 
 System Capabilities:
 --------------------
-- Query live tee times from ForeUp booking API
-- Normalize and store availability records
-- Prevent duplicate entries via UPSERT
-- Match user alerts and generate notifications
-- Log all triggered notifications to `alert_notifications`
-- Authenticated mobile users can register, log in, create alerts, view alerts
-- Stripe subscriptions create / update user’s membership tier automatically
-- Hosted Stripe Checkout with automatic webhook synchronization
-- Plans and prices fetched dynamically via `/membership/tiers`
-- Profile tab shows user’s email, current membership, and upgrade option
-- Clean modern UX across Profile, Upgrade, and Alert flow screens  
-- Authentication persists across app restarts
-- Secure CORS and Supabase Auth integrations
-- Theming consistency across iOS/Android
+- Query, normalize, and store tee-time availability from ForeUp API.  
+- Alert creation and matching via user-defined preferences.  
+- Authenticated mobile users (Supabase) with full subscription lifecycle.  
+- Automatic Stripe tier management (upgrade/downgrade/webhook).  
+- Tier-based alert restrictions and quota display across app.  
+- Dynamic membership information fetched via backend.  
+- Expo Push Notification registration and device token storage.  
+- Consistent light/dark mode, modern Material 3-inspired design.  
+- Frictionless UX across all navigation routes.
 
 
 ---------------------------------------------------------
-III. APPLICATION STRUCTURE
+III. APPLICATION STRUCTURE (Simplified)
 ---------------------------------------------------------
 
-Directory Layout (simplified):
-------------------------------
 /
 ├── frontend/
 │   ├── src/
-│   │   ├── lib/supabase.ts
-│   │   ├── lib/api.ts
-│   │   ├── constants/theme.ts
-│   │   ├── components/
-│   │   │   ├── PickerModal.tsx
-│   │   │   ├── DatePickerField.tsx
-│   │   │   ├── TimePickerField.tsx
-│   │   │   ├── FadeSlideTransition.tsx
-│   │   └── screens/
+│   │   ├── lib/ (supabase.ts, notifications.ts)
+│   │   ├── constants/, components/, screens/
 │   └── app/
-│       ├── (auth)/sign-in.tsx, sign-up.tsx, _layout.tsx
-│       ├── (tabs)/index.tsx, my-alerts.tsx, profile.tsx, _layout.tsx
+│       ├── (auth)/sign-in.tsx, sign-up.tsx
+│       ├── (tabs)/index.tsx, my-alerts.tsx, profile.tsx
 │       ├── create-details.tsx
-│       ├── upgrade.tsx                     # Modern upgrade / Stripe integration screen
-│       └── _layout.tsx
+│       ├── upgrade.tsx
+│       └── _layout.tsx  (global theme + notification setup)
 │
 ├── backend/
 │   ├── app/
 │   │   ├── main.py, db.py
-│   │   ├── routes/alerts.py
-│   │   ├── routes/membership.py           # Lists tiers + user profile w/ tier join
-│   │   ├── routes/membership_stripe.py    # Stripe Checkout + webhook endpoints
-│   │   ├── services/, utils/
+│   │   ├── routes/
+│   │   │   ├── alerts.py
+│   │   │   ├── membership.py
+│   │   │   ├── membership_stripe.py
+│   │   │   ├── push.py        # push token register & test endpoints
+│   │   └── services/
+│   │       ├── push_service.py  # handles sending to Expo Push API
+│   │       ├── scanner.py       # periodic tee-time scan + push trigger
 │   └── .env
 │
 └── docs/
@@ -127,169 +109,154 @@ IV. SUPABASE DATABASE STRUCTURE
 ---------------------------------------------------------
 
 Tables:
-- user_profiles  
-- membership_tiers  
-- courses  
-- provider_configs  
-- availability  
-- alerts  
-- alert_notifications  
+- user_profiles        → membership, stripe, push token, downgrade state  
+- membership_tiers     → plan specs and limits  
+- courses              → course database  
+- provider_configs     → third-party API mappings  
+- availability         → normalized tee-time data  
+- alerts               → user alert preferences  
+- alert_notifications  → optional push delivery log  
 
-Recent Additions:
-- Added `stripe_customer_id` to `user_profiles`
-- Added `price_id` to `membership_tiers`
-- Established foreign key relationship for `membership_tier_id` in `user_profiles`
-- Added `handle_new_user()` trigger to auto-create user_profiles for new auth.users
-
-All schema elements migrated and verified.
+Recent Schema Updates:
+----------------------
+- Added `expo_push_token` (nullable text)  
+- Added `pending_downgrade` (boolean default false)  
+- Added `cancel_at` (timestamptz)  
+- Added triggers to create default profile on sign-up  
+- Confirmed all foreign-key mappings are working (alerts → users/courses)  
 
 
 ---------------------------------------------------------
 V. HOW THE SYSTEM WORKS
 ---------------------------------------------------------
 
-End‑to‑End Flow (Current):
-1. User creates alerts for tee times; unauthenticated users are prompted to sign up or log in.  
-2. Upon signup, a `user_profile` is created automatically and assigned to the Free tier.  
-3. Users on Free tier can add limited alerts and normal scan frequency.  
-4. On the “Upgrade” page, the app fetches available membership tiers via backend.  
-5. When a user selects a higher tier, the app calls `/membership/upgrade`.  
-6. Backend creates or reuses a Stripe Customer and opens hosted Checkout.  
-7. User completes purchase and Stripe redirects them to success URL.  
-8. Webhook fires → updates user’s `membership_tier_id` in Supabase.  
-9. When reopening the app, `/membership/profile/{user_id}` displays the new tier.  
-10. Profile tab now shows plan description, limits, and subscription tier summary.  
-11. App UX includes button loading state and responsive feedback during checkout.  
-12. Alerts, profile, and upgrade pages all follow consistent styling and spacing.  
-
-
-Frontend Highlights:
---------------------
-- Improved “Create Alert” → redirect → My Alerts flow  
-- Membership tier and upgrade UX fully polished and accessible  
-- Dynamic tier cards with modern layout and responsive feedback  
-- “Redirecting to Stripe…” indicator on checkout buttons  
-- Unified button and typography styling for consistency  
-- No unnecessary toasts or screen jumps; stable navigation UX
+Flow Overview:
+---------------
+1. User signs up or logs in (Supabase auth).  
+2. Newly created user auto-assigned Free tier (DB trigger).  
+3. The device requests notification permission and registers with Expo → token stored in Supabase.  
+4. User sets a tee-time alert by choosing course, date range, and preferred window.  
+5. Backend validates alert creation versus `max_alerts` restriction.  
+6. ForeUp adapter scans course data → normalized availability saved.  
+7. `scanner.py` periodically checks for matches → triggers Expo push notification via `push_service.py`.  
+8. User receives a mobile notification → tap opens app and navigates to relevant page.  
+9. Stripe handles upgrades/downgrades → webhook syncs membership tier automatically.  
+10. UI reflects current tier, quotas, and prompts to upgrade when limits reached.
 
 
 ---------------------------------------------------------
 VI. IMPLEMENTED / VERIFIED
 ---------------------------------------------------------
 
-✔ Stripe integration fully operational (Checkout + Webhooks)  
-✔ Tier data loads dynamically from backend endpoints  
-✔ Auth persistence + Supabase user link confirmed across sessions  
-✔ Customer email prefill functioning on first checkout  
-✔ Frontend checkout button UX polished with redirect indicator  
-✔ Membership display in Profile and Upgrade pages consistent  
-✔ Verified test subscription success using Stripe test card  
-✔ Verified webhook updates to `user_profiles.membership_tier_id`  
-✔ Deployed backend routing with proper error handling  
-✔ User onboarding automatically assigns Free tier  
-✔ Stripe customer creation includes user email + ID metadata  
-✔ Backend log statements validated for webhook test events  
+✔ Stripe integration + webhook verification  
+✔ Downgrade scheduling & cleanup complete  
+✔ Tier quota enforcement across backend + frontend  
+✔ Supabase/Expo push token registration verified  
+✔ `/push/register` + `/push/test` endpoints functional  
+✔ Device permissions + manifest `projectId` resolved (EAS linked)  
+✔ UI/UX improvements: soft upgrade prompts, skeleton shimmer, refreshing states  
+✔ Smooth dark/light-mode parity across all app tabs  
+✔ App successfully logs Expo token → token persisted in DB  
+✔ Auth flow redesign complete:
+   - Safe back navigation across Sign‑In and Sign‑Up.
+   - Context-aware redirects using a `redirectTo` param to preserve flow.
+   - Unified navigation behavior from Profile, Create Details, and Logout.  
 
 
 ---------------------------------------------------------
-VII. DEVELOPMENT ROADMAP
+VII. DEVELOPMENT ROADMAP (NEXT MVP STEPS)
 ---------------------------------------------------------
 
-Phase 5 – Notifications Integration (UP NEXT)
----------------------------------------------
-- Implement real push notifications (Expo Push or FCM).  
-- Store device Expo Push Token in `user_profiles`.  
-- Handle invalid/expired tokens gracefully.  
-- Trigger mock alert notification via backend scheduler.  
-- Add “Last triggered” timestamp label in My Alerts card UI.
+**Final Functional Steps Before MVP Launch**
+--------------------------------------------
+1️⃣ **Push Notification Testing**
+   - Use `/push/test` backend route for manual sends to confirm device delivery.  
+   - Validate notification behavior both in foreground and background (Expo Go/device build).  
+   - Log push events into `alert_notifications` for internal testing.
 
-Phase 6 – Scheduling & Automation
----------------------------------
-- Deploy FastAPI backend to Oracle Cloud (persistent HTTPS).  
-- Add APScheduler for periodic tee-time scans.  
-- Configure production-ready secrets and runtime environment.
+2️⃣ **Profile Page Auth Handling**
+   - Add condition in Profile screen to check login state.  
+   - If no active session: redirect users to sign-in page or show “Sign in required” placeholder.  
+   - Prevent membership fetch calls when unauthenticated.
 
-Phase 7 – Analytics & Insights
-------------------------------
-- Aggregate tee time frequency per course.  
-- `/stats/course/{id}` endpoint for insight graphs.  
-- Visualize scan results + alert activity in charts.
+3️⃣ **Backend Scan + Push Automation**
+   - Implement or enable periodic scheduling in `scanner.py` using APScheduler.  
+   - Ensure each ForeUp availability scan triggers `send_push_notification()` for matches.  
+   - Log successful sends to `alert_notifications`.
 
-Phase 8 – Monetization (Refined + Complete)
--------------------------------------------
-✓ Stripe + Supabase subscription integration functional.  
-- Expand onboarding to detect expired payments and downgrade users gracefully.  
-- Handle subscription cancel flow.  
-- Integrate in-app deep link redirects for mobile-native return-to-app UX.
+4️⃣ **Frontend Quota + Soft Upgrade Reminders**
+   - Maintain alignment of upgrade banners across all screens.  
+   - Ensure quota disables “Create Alert” forms gracefully with a toast/modal prompt.
 
-Phase 9 – Provider Expansion
-----------------------------
-- Implement GolfNow, Club Prophet, and additional providers.  
-- Normalize data merges under standard schema.
+5️⃣ **UI / Visual Refinement**
+   - Adjust typography hierarchy for unified Material 3 feel.  
+   - Confirm theme contrasts and micro-transitions (fade/slide).  
+   - Continue refining subtle animations and icon alignment.
 
-Phase 10 – QA & Scalability
----------------------------
-- Structured logging (Loguru + Supabase logs).  
-- Unit/integration/E2E test coverage.  
-- Add rate-limiting and monitoring endpoints.  
-- Build a lightweight internal telemetry dashboard.  
+6️⃣ **App Branding (Pre‑Launch Polish)**
+   - Add favicon (`assets/favicon.png`) for web and manifest.  
+   - Add app icon (`assets/icon.png`) and splash screen (`assets/splash.png`) to `app.json`.  
+   - Verify `expo-splash-screen` configuration for controlled app startup.  
+   - Test logo appearance across dark/light mode and different device aspect ratios.
 
 
 ---------------------------------------------------------
 VIII. DESIGN PRINCIPLES
 ---------------------------------------------------------
 
-- Premium, modern visual design emphasizing clarity and trust.  
-- Seamless tier upgrade path; clear, modern card layouts.  
-- Ethical provider integrations (no automation inside booking APIs).  
-- Full modular separation of provider adapters.  
-- UTC + timezone-aware data handling end-to-end.  
-- Supabase: single source of truth.  
-- Backend: logic-focused; frontend handles display & flow.  
-- Build lean → validate early → scale proven features.  
-- Maintain accessibility & color contrast for light/dark modes.  
-- Fast, low-latency UX on every major interaction.
+- Simple, high-trust UX with clear communication of limits and upgrades.  
+- Push notifications as a core engagement tool — instant, reliable, not spammy.  
+- Ethical provider integration; no API violation or scraping.  
+- Backend single source of truth with minimal latency and stable cloud cost.  
+- Visual consistency in both light/dark themes across devices.  
+- Performance + clarity over complexity.  
+- Branded visual polish (splash screen, icons, adaptive theme colors).  
 
 
 ---------------------------------------------------------
 IX. TODO CHECKLIST
 ---------------------------------------------------------
 
-Frontend In Progress / Next Polish:
------------------------------------
-[ ] Add push notification UI flow (token permissions).  
-[ ] Refresh Profile & Alerts after webhook tier updates automatically.  
-[ ] Incorporate animation feedback (FadeSlide transitions).  
-[ ] Validate dark/light color balance on Upgrade and Profile pages.  
-[ ] Minor typography refinements across modals and toast positions.  
+Frontend:
+---------
+[ ] Test live push delivery via Expo to physical devices.  
+[ ] Add auth-guard logic to Profile (redirect/placeholder if not signed in).  
+[ ] Confirm quota disabling and 403 modal behavior on Create Details.  
+[ ] Refine banner styling for unified upgrade prompts.  
+[ ] Complete typography and color audits for final polish.  
+[ ] Add favicon & splash screen assets to finalize app branding.  
+[ ] Final validation on redirect behavior between Sign‑In ↔ Sign‑Up and Profile flows.  
 
-Backend Upcoming:
------------------
-[ ] Add `expo_push_token` column to `user_profiles`.  
-[ ] Implement `notify_user()` utility for push dispatch.  
-[ ] Expose `/alerts/notifications/{user_id}` endpoint.  
-[ ] Deploy backend to Oracle Cloud (production HTTPS).  
-[ ] Add cron-based tee time scan job using APScheduler.  
+Backend:
+--------
+[ ] Add periodic job in `scanner.py` that triggers push notifications for matched alerts.  
+[ ] Unit-test `/push/register` and `/push/test` responses.  
+[ ] Add delivery logs (`alert_notifications`).  
+[ ] Deploy production backend (Oracle Cloud / Render).  
 
 Validation:
 -----------
-[ ] Full E2E Stripe test for subscription cancel / renew flows.  
-[ ] Local push notification test from backend scheduler.  
-[ ] Collect performance metrics per scan & per course frequency.  
+[ ] Confirm push permission + token registration persists across app restarts.  
+[ ] Verify unread alerts and notifications flow correctly after scans.  
+[ ] Full E2E paid / free plan transition validation.  
+[ ] Regression test on Profile redirect logic and session persistence.  
+[ ] Validate splash screen and app icon rendering across iOS/Android web builds.  
 
 ---------------------------------------------------------
 X. LONG‑TERM VISION
 ---------------------------------------------------------
 
-After MVP validation:
-- Expand to new booking providers + course data pipelines.  
-- Introduce shared scheduling features (“Find a Foursome”).  
-- Add course-operator analytics dashboards.  
-- Implement predictive tee‑time availability models.  
-- Add referral/growth incentive system.  
-- Containerize backend for easier scaling (Docker, Fly.io, etc.).  
-- Expand internationally once core usage validated.  
-- Establish full CI/CD and monitoring readiness.  
+After MVP:
+-----------
+- Integrate additional booking providers (GolfNow, Club Prophet, etc.).  
+- Launch user metrics dashboard: alerts created, notifications sent.  
+- Add "Find a Foursome" shared scheduling feature.  
+- Course operators → access analytics and opening stats.  
+- Predictive tee-time forecasting algorithms.  
+- Implement referral & incentive growth loops.  
+- Containerize backend via Docker for cloud scalability.  
+- Expand internationally after U.S. launch.  
+- Introduce automated CI/CD workflows with testing pipeline.  
 
 ---------------------------------------------------------
 END OF DOCUMENT

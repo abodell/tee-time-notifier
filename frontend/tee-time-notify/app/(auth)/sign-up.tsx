@@ -17,15 +17,17 @@ import {
   IconButton,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import FadeSlideTransition from "@/components/FadeSlideTransition";
 
 export default function SignUpScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const isDark = theme.dark;
+  const params = useLocalSearchParams<{ redirectTo?: string }>();
+  const redirectTo = params.redirectTo || null;
 
+  const isDark = theme.dark;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +37,33 @@ export default function SignUpScreen() {
   const handleSignUp = async () => {
     setLoading(true);
     setError(null);
+
     const { error } = await supabase.auth.signUp({ email, password });
+
     setLoading(false);
-    if (error) setError(error.message);
-    else setSuccess(true);
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess(true);
+    }
+  };
+
+  const handleSafeBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/profile");
+  };
+
+  const goToSignIn = () => {
+    router.replace({
+      pathname: "/(auth)/sign-in",
+      params: redirectTo ? { redirectTo } : {},
+    });
+  };
+
+  const goBackToProfile = () => {
+    if (redirectTo) router.replace(redirectTo as any);
+    else router.replace("/(tabs)/profile");
   };
 
   return (
@@ -58,7 +83,7 @@ export default function SignUpScreen() {
           <IconButton
             icon="arrow-left"
             size={26}
-            onPress={() => router.back()}
+            onPress={handleSafeBack}
             style={styles.backBtn}
           />
           <FadeSlideTransition>
@@ -83,10 +108,17 @@ export default function SignUpScreen() {
                   </Text>
                   <Button
                     mode="contained"
-                    onPress={() => router.replace("/(auth)/sign-in")}
+                    onPress={goToSignIn}
                     contentStyle={{ height: 48 }}
                   >
-                    Back to Sign-In
+                    Back to Sign‑In
+                  </Button>
+                  <Button
+                    mode="text"
+                    style={{ marginTop: 12 }}
+                    onPress={goBackToProfile}
+                  >
+                    Return to App
                   </Button>
                 </>
               ) : (
@@ -131,7 +163,7 @@ export default function SignUpScreen() {
                     <Text style={{ color: theme.colors.onSurfaceVariant }}>
                       Already have an account?
                     </Text>
-                    <TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")}>
+                    <TouchableOpacity onPress={goToSignIn}>
                       <Text
                         style={{
                           color: theme.colors.primary,

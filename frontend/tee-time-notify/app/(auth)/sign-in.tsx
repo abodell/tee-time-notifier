@@ -11,20 +11,21 @@ import {
   Button,
   Text,
   useTheme,
-  HelperText,
   Surface,
   IconButton,
 } from "react-native-paper";
-import { supabase } from "../../lib/supabase";
-import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { supabase } from "../../lib/supabase";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Toast from "react-native-toast-message";
 
 export default function SignInScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const isDark = theme.dark;
+  const params = useLocalSearchParams<{ redirectTo?: string }>();
+  const redirectTo = params.redirectTo || null;
 
+  const isDark = theme.dark;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +48,6 @@ export default function SignInScreen() {
     }
 
     if (data.session) {
-      // ✅ Show global success toast
       Toast.show({
         type: "success",
         text1: "Signed in successfully!",
@@ -55,12 +55,24 @@ export default function SignInScreen() {
         visibilityTime: 2500,
       });
 
-      // Navigate back to previous page (retains form inputs)
       setTimeout(() => {
-        if (router.canGoBack()) router.back();
-        else router.replace("/create-details");
+        if (redirectTo) {
+          // Auth originated from a specific flow, go there
+          router.replace(redirectTo as any);
+        } else if (router.canGoBack()) {
+          // Return to previous if stack exists
+          router.back();
+        } else {
+          // Default fallback (Profile tab makes the most sense)
+          router.replace("/(tabs)/profile");
+        }
       }, 150);
     }
+  };
+
+  const handleSafeBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/profile");
   };
 
   return (
@@ -77,7 +89,7 @@ export default function SignInScreen() {
           <IconButton
             icon="arrow-left"
             size={26}
-            onPress={() => router.back()}
+            onPress={handleSafeBack}
             style={styles.backBtn}
           />
 

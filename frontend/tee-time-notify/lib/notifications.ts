@@ -16,7 +16,6 @@ export async function registerForPushNotificationsAsync() {
     if (finalStatus !== "granted") return;
 
     const token = (await Notifications.getExpoPushTokenAsync()).data
-    console.log("Expo push token:", token)
 
     const { data } = await supabase.auth.getSession()
     const user = data.session?.user

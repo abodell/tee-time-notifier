@@ -8,10 +8,15 @@ import {
   IconButton,
   Card,
   Divider,
+  TextInput,
+  HelperText,
+  Surface,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
+import FadeSlideTransition from "@/components/FadeSlideTransition";
+import { LinearGradient } from "expo-linear-gradient";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -32,20 +37,43 @@ interface UserProfile {
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
+
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
 
+  // For embedded sign-up form (when not authenticated)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [signUpLoading, setSignUpLoading] = useState(false);
+
   useEffect(() => {
-    fetchProfile();
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, sess) => setSession(sess)
+    );
+
+    return () => listener.subscription.unsubscribe();
   }, []);
+
+  // Fetch membership profile ONLY when session exists
+  useEffect(() => {
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+    fetchProfile();
+  }, [session]);
 
   const fetchProfile = async () => {
     try {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-      if (error || !user) throw new Error(error?.message || "User not found");
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (!user) throw new Error("No active session");
 
       const res = await fetch(`${API_URL}/membership/profile/${user.id}`);
       if (!res.ok) throw new Error("Unable to load membership info.");
@@ -77,6 +105,113 @@ export default function ProfileScreen() {
     router.replace("/(auth)/sign-in");
   };
 
+  const handleSignUp = async () => {
+    setSignUpLoading(true);
+    setSignupError(null);
+
+    const { error } = await supabase.auth.signUp({ email, password });
+    setSignUpLoading(false);
+
+    if (error) {
+      setSignupError(error.message);
+    } else {
+      Toast.show({
+        type: "success",
+        text1: "Check your email to confirm your account",
+        position: "top",
+      });
+      router.replace("/(auth)/sign-in");
+    }
+  };
+
+  // -------------------------------------------------------
+  // 🟥 If NOT logged in → Show SIGN-UP FORM instead of Profile UI
+  // -------------------------------------------------------
+  if (!session) {
+    const isDark = theme.dark;
+
+    return (
+      <LinearGradient
+        colors={
+          isDark
+            ? ["#0e1012", "#121416", "#1a1c1f"]
+            : ["#f8f9fa", "#ffffff", "#f2f4f6"]
+        }
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.authContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <FadeSlideTransition>
+            <Surface style={[styles.authCard, { backgroundColor: theme.colors.surface }]}>
+              <Text
+                variant="headlineMedium"
+                style={[styles.authHeader, { color: theme.colors.onSurface }]}
+              >
+                Create an Account
+              </Text>
+
+              <TextInput
+                label="Email"
+                mode="outlined"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                style={{ marginBottom: 12 }}
+              />
+
+              <TextInput
+                label="Password"
+                mode="outlined"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                style={{ marginBottom: 12 }}
+              />
+
+              {signupError && (
+                <HelperText type="error" visible={!!signupError}>
+                  {signupError}
+                </HelperText>
+              )}
+
+              <Button
+                mode="contained"
+                onPress={handleSignUp}
+                disabled={!email || !password || signUpLoading}
+                contentStyle={{ height: 48 }}
+                labelStyle={{ fontWeight: "600" }}
+              >
+                {signUpLoading ? "Creating..." : "Create Account"}
+              </Button>
+
+              <View style={styles.authFooter}>
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                  Already have an account?
+                </Text>
+
+                <Button
+                  onPress={() => router.replace("/(auth)/sign-in")}
+                  compact
+                  textColor={theme.colors.primary}
+                  labelStyle={{ fontWeight: "600" }}
+                >
+                  Sign In
+                </Button>
+              </View>
+            </Surface>
+          </FadeSlideTransition>
+        </ScrollView>
+      </LinearGradient>
+    );
+  }
+
+  // -------------------------------------------------------
+  // 🟩 If logged in → Normal PROFILE UI
+  // -------------------------------------------------------
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
@@ -129,9 +264,7 @@ export default function ProfileScreen() {
               >
                 {tier?.name || "Free Plan"}
               </Text>
-              <Text
-                style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}
-              >
+              <Text style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
                 {tier?.description ||
                   "Basic access with limited tee-time alerts per day"}
               </Text>
@@ -140,14 +273,14 @@ export default function ProfileScreen() {
 
           <View style={styles.planDetails}>
             <Text style={styles.detailText}>
-              {`Track up to ${tier?.max_alerts ?? 3} tee-time alerts simultaneously.`}
+              Track up to {tier?.max_alerts ?? 3} tee-time alerts simultaneously.
             </Text>
             <Text style={styles.detailText}>
-              {`We'll check new availabilities every ${
-                tier?.scan_interval_seconds
-                  ? tier.scan_interval_seconds / 60
-                  : 10
-              } minutes to keep you updated.`}
+              We'll check new availabilities every{" "}
+              {tier?.scan_interval_seconds
+                ? tier.scan_interval_seconds / 60
+                : 10}{" "}
+              minutes to keep you updated.
             </Text>
           </View>
 
@@ -173,7 +306,7 @@ export default function ProfileScreen() {
         </Card.Content>
       </Card>
 
-      {/* Lightweight Account Info (subsection, minimalist) */}
+      {/* Account Details */}
       <View style={[styles.accountContainer]}>
         <Divider style={{ marginVertical: 8, opacity: 0.15 }} />
         <Text
@@ -196,6 +329,7 @@ export default function ProfileScreen() {
         >
           {user?.email ?? "—"}
         </Text>
+
         <Button
           mode="text"
           textColor={theme.colors.error}
@@ -213,6 +347,31 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Auth (unauthenticated) styling
+  authContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  authCard: {
+    borderRadius: 16,
+    padding: 24,
+    elevation: 3,
+  },
+  authHeader: {
+    marginBottom: 30,
+    textAlign: "center",
+    fontWeight: "700",
+  },
+  authFooter: {
+    marginTop: 28,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // Profile (authenticated)
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -237,7 +396,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   detailText: {
-    color: "rgba(255,255,255,0.7)",
+    color: "#a1a1a1",
     fontSize: 14,
     marginBottom: 3,
   },
