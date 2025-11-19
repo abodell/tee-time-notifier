@@ -73,7 +73,11 @@ async def get_user_alerts(user_id: str):
     supabase = await create_supabase()
     alerts = await(
         supabase.table("alerts")
-        .select("*, courses!alerts_course_id_fkey(name, city, state)")
+        .select(
+            "*, "
+            "courses!alerts_course_id_fkey(name, city, state, provider_url), "
+            "alert_notifications(id, sent_at, availability(tee_time))"
+        )
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .execute()
