@@ -56,6 +56,7 @@ Recent Additions (Post-Stripe, Quota, & Notifications Integration):
 ✅ Visual/UI modernization of quota cards and soft upgrade banners  
 ✅ Conditional downgraded messaging logic improved on Upgrade screen  
 ✅ Navigation and authentication flows refactored for clarity and consistency  
+✅ Fixed async/await usage in ForeUp service and Alert service (bug fixes)  
 
 
 System Capabilities:
@@ -89,15 +90,21 @@ III. APPLICATION STRUCTURE (Simplified)
 │
 ├── backend/
 │   ├── app/
-│   │   ├── main.py, db.py
+│   │   ├── main.py, db.py, config.py
 │   │   ├── routes/
 │   │   │   ├── alerts.py
 │   │   │   ├── membership.py
 │   │   │   ├── membership_stripe.py
 │   │   │   ├── push.py        # push token register & test endpoints
+│   │   │   ├── debug.py       # optional dev routes for manual testing
+│   │   ├── scheduler/
+│   │   │   ├── jobs.py        # ForeUp scan + tiered alert jobs
+│   │   │   └── scheduler.py   # AsyncIOScheduler entry
 │   │   └── services/
 │   │       ├── push_service.py  # handles sending to Expo Push API
-│   │       ├── scanner.py       # periodic tee-time scan + push trigger
+│   │       ├── foreup_service.py
+│   │       ├── alert_service.py  # core alert matching + push logic
+│   │       ├── scanner.py        # periodic tee-time scan + push trigger
 │   └── .env
 │
 └── docs/
@@ -115,15 +122,17 @@ Tables:
 - provider_configs     → third-party API mappings  
 - availability         → normalized tee-time data  
 - alerts               → user alert preferences  
-- alert_notifications  → optional push delivery log  
+- alert_notifications  → push delivery log  
 
 Recent Schema Updates:
 ----------------------
 - Added `expo_push_token` (nullable text)  
 - Added `pending_downgrade` (boolean default false)  
 - Added `cancel_at` (timestamptz)  
-- Added triggers to create default profile on sign-up  
-- Confirmed all foreign-key mappings are working (alerts → users/courses)  
+- Added `timezone` column to `courses` (e.g., 'America/New_York')  
+- Added `trigger` for default profile creation on sign-up  
+- Added `last_pushed_at` plan to `alerts` (for persistent cooldown handling)  
+- All foreign-key mappings verified (alerts → users/courses)  
 
 
 ---------------------------------------------------------
@@ -134,33 +143,29 @@ Flow Overview:
 ---------------
 1. User signs up or logs in (Supabase auth).  
 2. Newly created user auto-assigned Free tier (DB trigger).  
-3. The device requests notification permission and registers with Expo → token stored in Supabase.  
-4. User sets a tee-time alert by choosing course, date range, and preferred window.  
-5. Backend validates alert creation versus `max_alerts` restriction.  
-6. ForeUp adapter scans course data → normalized availability saved.  
-7. `scanner.py` periodically checks for matches → triggers Expo push notification via `push_service.py`.  
-8. User receives a mobile notification → tap opens app and navigates to relevant page.  
-9. Stripe handles upgrades/downgrades → webhook syncs membership tier automatically.  
-10. UI reflects current tier, quotas, and prompts to upgrade when limits reached.
+3. Device requests notification permission and registers with Expo → token stored in `user_profiles`.  
+4. User sets a tee-time alert by choosing course, date range, and preferred time window.  
+5. Backend validates alert creation vs. tier quota limit.  
+6. ForeUp adapter scans course availability → normalized into UTC tee times.  
+7. APScheduler periodically executes tier-based alert checks.  
+8. `alert_service` matches availability vs. alert criteria → inserts `alert_notifications` for new matches.  
+9. Summary push notifications sent to users for new matches (once per alert per cooldown window).  
+10. User receives push → opens app → navigates to “My Alerts.”  
 
 
 ---------------------------------------------------------
 VI. IMPLEMENTED / VERIFIED
 ---------------------------------------------------------
 
-✔ Stripe integration + webhook verification  
-✔ Downgrade scheduling & cleanup complete  
-✔ Tier quota enforcement across backend + frontend  
-✔ Supabase/Expo push token registration verified  
-✔ `/push/register` + `/push/test` endpoints functional  
-✔ Device permissions + manifest `projectId` resolved (EAS linked)  
-✔ UI/UX improvements: soft upgrade prompts, skeleton shimmer, refreshing states  
-✔ Smooth dark/light-mode parity across all app tabs  
-✔ App successfully logs Expo token → token persisted in DB  
-✔ Auth flow redesign complete:
-   - Safe back navigation across Sign‑In and Sign‑Up.
-   - Context-aware redirects using a `redirectTo` param to preserve flow.
-   - Unified navigation behavior from Profile, Create Details, and Logout.  
+✔ Tier-aware APScheduler jobs (Free/Plus/Pro intervals).  
+✔ Unified UTC normalization for ForeUp, alerts, and availability.  
+✔ Timezone-safe matching (course.timezone drives normalization).  
+✔ Combined date + time logic for alert window matching.  
+✔ Deduplicated push logic using `alert_notifications`.  
+✔ In-memory cooldown window (30-minute) to prevent spam.  
+✔ Verified push delivery on Expo Go + EAS Dev Builds.  
+✔ End-to-end alert-matching → notification flow fully operational.  
+✔ Fallback and manual debug routes for controlled testing.  
 
 
 ---------------------------------------------------------
@@ -169,35 +174,36 @@ VII. DEVELOPMENT ROADMAP (NEXT MVP STEPS)
 
 **Final Functional Steps Before MVP Launch**
 --------------------------------------------
-1️⃣ **Push Notification Testing**
-   - Use `/push/test` backend route for manual sends to confirm device delivery.  
-   - Validate notification behavior both in foreground and background (Expo Go/device build).  
-   - Log push events into `alert_notifications` for internal testing.
+1️⃣ **Push Summary + Cooldown Persistence**
+   - Add `last_pushed_at` column to `alerts` to persist push cooldown.  
+   - Update alert engine to skip pushes for alerts within cooldown based on DB timestamp.  
+   - Log all summary sends for analytics.
 
-2️⃣ **Profile Page Auth Handling**
-   - Add condition in Profile screen to check login state.  
-   - If no active session: redirect users to sign-in page or show “Sign in required” placeholder.  
-   - Prevent membership fetch calls when unauthenticated.
+2️⃣ **Scheduler Configuration**
+   - Verify AsyncIOScheduler startup during FastAPI lifespan startup.  
+   - Confirm environment guard disables scheduler during local dev.  
+   - Validate logs for interval jobs and tier intervals.
 
-3️⃣ **Backend Scan + Push Automation**
-   - Implement or enable periodic scheduling in `scanner.py` using APScheduler.  
-   - Ensure each ForeUp availability scan triggers `send_push_notification()` for matches.  
-   - Log successful sends to `alert_notifications`.
+3️⃣ **Frontend Branding + Polish**
+   - Add favicon, icon, and splash assets.  
+   - Verify splash visibility with expo-splash-screen (controlled hide on load).  
+   - Confirm logo/theme contrast for light/dark.
 
-4️⃣ **Frontend Quota + Soft Upgrade Reminders**
-   - Maintain alignment of upgrade banners across all screens.  
-   - Ensure quota disables “Create Alert” forms gracefully with a toast/modal prompt.
+4️⃣ **Auth UX Improvements**
+   - Finalize sign-in/up flow redirects & placeholder logic on Profile.  
+   - Unified behavior when auth session expires.
 
-5️⃣ **UI / Visual Refinement**
-   - Adjust typography hierarchy for unified Material 3 feel.  
-   - Confirm theme contrasts and micro-transitions (fade/slide).  
-   - Continue refining subtle animations and icon alignment.
+5️⃣ **Testing & Validation**
+   - Run full E2E test: ForeUp → availability → alert → push → device.  
+   - Regression test on redirect logic and session persistence.  
+   - Verify persistence of `expo_push_token` and notification permissions.  
+   - Test push flow on inactive apps using EAS build.
 
-6️⃣ **App Branding (Pre‑Launch Polish)**
-   - Add favicon (`assets/favicon.png`) for web and manifest.  
-   - Add app icon (`assets/icon.png`) and splash screen (`assets/splash.png`) to `app.json`.  
-   - Verify `expo-splash-screen` configuration for controlled app startup.  
-   - Test logo appearance across dark/light mode and different device aspect ratios.
+6️⃣ **Deployment & Monitoring**
+   - Deploy production backend to Render or Oracle Cloud.  
+   - Run load and schedule tests on all intervals (1m/3m/5m).  
+   - Add structured logs for scanner + alert engine (summary + errors).  
+   - Implement admin “run now” tasks for manual testing endpoints.
 
 
 ---------------------------------------------------------
@@ -211,6 +217,7 @@ VIII. DESIGN PRINCIPLES
 - Visual consistency in both light/dark themes across devices.  
 - Performance + clarity over complexity.  
 - Branded visual polish (splash screen, icons, adaptive theme colors).  
+- Reduce push noise via tier-aware cooldowns and daily summaries.  
 
 
 ---------------------------------------------------------
@@ -223,24 +230,28 @@ Frontend:
 [ ] Add auth-guard logic to Profile (redirect/placeholder if not signed in).  
 [ ] Confirm quota disabling and 403 modal behavior on Create Details.  
 [ ] Refine banner styling for unified upgrade prompts.  
-[ ] Complete typography and color audits for final polish.  
-[ ] Add favicon & splash screen assets to finalize app branding.  
-[ ] Final validation on redirect behavior between Sign‑In ↔ Sign‑Up and Profile flows.  
+[ ] Add favicon & splash assets to finalize app branding.  
+[ ] Final validation on sign-in ↔ sign-up ↔ profile redirects.  
+[ ] Validate theme, typography, and color contrast polish.
 
 Backend:
 --------
-[ ] Add periodic job in `scanner.py` that triggers push notifications for matched alerts.  
-[ ] Unit-test `/push/register` and `/push/test` responses.  
-[ ] Add delivery logs (`alert_notifications`).  
+[ ] Add periodic job in `scanner.py` (global ForeUp scan every 60s).  
+[ ] Enable APScheduler interval for tiered alert checks (1m/3m/5m).  
+[ ] Add column `alerts.last_pushed_at` and persist cooldown window.  
+[ ] Upgrade logs → structured + summary of counts/pushes.  
+[ ] Add admin debug endpoints (`/debug/run-alerts`) for manual testing.  
+[ ] Validate `/push/test` and `/push/register` endpoints post-deployment.  
 [ ] Deploy production backend (Oracle Cloud / Render).  
 
 Validation:
 -----------
-[ ] Confirm push permission + token registration persists across app restarts.  
-[ ] Verify unread alerts and notifications flow correctly after scans.  
-[ ] Full E2E paid / free plan transition validation.  
-[ ] Regression test on Profile redirect logic and session persistence.  
-[ ] Validate splash screen and app icon rendering across iOS/Android web builds.  
+[ ] Confirm push tokens persist across restarts and refreshes.  
+[ ] Verify new alert adds push notification rows correctly.  
+[ ] Ensure summary push only fires when new matches exist.  
+[ ] Confirm APScheduler runs at correct intervals in prod.  
+[ ] Test EAS build push behavior (closed app, inactive).  
+[ ] Validate splash screen, favicon, and adaptive icon rendering.  
 
 ---------------------------------------------------------
 X. LONG‑TERM VISION
@@ -249,14 +260,14 @@ X. LONG‑TERM VISION
 After MVP:
 -----------
 - Integrate additional booking providers (GolfNow, Club Prophet, etc.).  
-- Launch user metrics dashboard: alerts created, notifications sent.  
+- Launch metrics dashboard (alerts created, notifications sent, response rate).  
 - Add "Find a Foursome" shared scheduling feature.  
-- Course operators → access analytics and opening stats.  
-- Predictive tee-time forecasting algorithms.  
-- Implement referral & incentive growth loops.  
-- Containerize backend via Docker for cloud scalability.  
-- Expand internationally after U.S. launch.  
-- Introduce automated CI/CD workflows with testing pipeline.  
+- Course operator analytics → opening frequency & fill‑rate reports.  
+- Predictive tee‑time forecasting algorithm.  
+- Referral & incentive growth loops for viral acquisition.  
+- Containerize backend and enable CI/CD pipeline.  
+- Expand internationally after U.S. release.  
+- Introduce ML-based push ranking (notify most likely converted users first).  
 
 ---------------------------------------------------------
 END OF DOCUMENT
