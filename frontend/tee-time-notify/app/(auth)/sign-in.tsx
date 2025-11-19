@@ -5,6 +5,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import {
   TextInput,
@@ -18,6 +19,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "../../lib/supabase";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Toast from "react-native-toast-message";
+import { Colors } from "@/constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignInScreen() {
   const theme = useTheme();
@@ -25,7 +28,6 @@ export default function SignInScreen() {
   const params = useLocalSearchParams<{ redirectTo?: string }>();
   const redirectTo = params.redirectTo || null;
 
-  const isDark = theme.dark;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +59,10 @@ export default function SignInScreen() {
 
       setTimeout(() => {
         if (redirectTo) {
-          // Auth originated from a specific flow, go there
           router.replace(redirectTo as any);
         } else if (router.canGoBack()) {
-          // Return to previous if stack exists
           router.back();
         } else {
-          // Default fallback (Profile tab makes the most sense)
           router.replace("/(tabs)/profile");
         }
       }, 150);
@@ -76,52 +75,38 @@ export default function SignInScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={
-        isDark
-          ? ["#0e1012", "#121416", "#1a1c1f"]
-          : ["#f8f9fa", "#ffffff", "#f2f4f6"]
-      }
-      style={styles.gradient}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
+        <View style={styles.inner}>
           <IconButton
             icon="arrow-left"
-            size={26}
+            size={24}
             onPress={handleSafeBack}
             style={styles.backBtn}
+            iconColor={theme.colors.onBackground}
           />
 
-          <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.headerContainer}>
             <Text
-              variant="headlineMedium"
-              style={[styles.header, { color: theme.colors.onSurface }]}
+              variant="displaySmall"
+              style={[styles.header, { color: theme.colors.onBackground }]}
             >
               Welcome Back
             </Text>
+            <Text style={[styles.subHeader, { color: theme.colors.secondary }]}>
+              Sign in to continue sniping tee times.
+            </Text>
+          </View>
 
-            {error && (
-              <View
-                style={{
-                  backgroundColor: theme.colors.errorContainer,
-                  padding: 8,
-                  borderRadius: 8,
-                  marginBottom: 10,
-                }}
-              >
-                <Text
-                  style={{
-                    color: theme.colors.onErrorContainer,
-                    textAlign: "center",
-                    fontWeight: "500",
-                  }}
-                >
-                  {error}
-                </Text>
-              </View>
-            )}
+          {error && (
+            <Surface style={[styles.errorContainer, { backgroundColor: theme.colors.errorContainer }]} elevation={0}>
+              <Text style={{ color: theme.colors.onErrorContainer, textAlign: "center", fontWeight: "600" }}>
+                {error}
+              </Text>
+            </Surface>
+          )}
 
+          <View style={styles.form}>
             <TextInput
               label="Email"
               mode="outlined"
@@ -130,6 +115,7 @@ export default function SignInScreen() {
               value={email}
               onChangeText={setEmail}
               style={styles.input}
+              outlineStyle={{ borderRadius: 12 }}
             />
 
             <TextInput
@@ -139,70 +125,115 @@ export default function SignInScreen() {
               value={password}
               onChangeText={setPassword}
               style={styles.input}
+              outlineStyle={{ borderRadius: 12 }}
             />
 
-            <Button
-              mode="contained"
+            <TouchableOpacity
               onPress={handleSignIn}
               disabled={!email || !password || loading}
-              style={{ marginTop: 12 }}
-              contentStyle={{ height: 48 }}
-              labelStyle={{ fontWeight: "600" }}
+              activeOpacity={0.8}
+              style={{ marginTop: 24 }}
             >
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-
-            <View style={styles.footer}>
-              <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                Don't have an account?
-              </Text>
-              <TouchableOpacity onPress={() => router.replace("/(auth)/sign-up")}>
+              <LinearGradient
+                colors={
+                  ((!email || !password || loading)
+                    ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
+                    : Colors.light.gradients.primary) as [string, string, ...string[]]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.gradientButton,
+                  { opacity: (!email || !password || loading) ? 0.6 : 1 },
+                ]}
+              >
                 <Text
                   style={{
-                    color: theme.colors.primary,
-                    fontWeight: "600",
-                    marginLeft: 6,
+                    color: (!email || !password || loading)
+                      ? theme.colors.onSurfaceDisabled
+                      : "#FFF",
+                    fontWeight: "700",
+                    fontSize: 16,
                   }}
                 >
-                  Sign Up
+                  {loading ? "Signing in..." : "Sign In"}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          </Surface>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.footer}>
+            <Text style={{ color: theme.colors.onSurfaceVariant }}>
+              Don't have an account?
+            </Text>
+            <TouchableOpacity onPress={() => router.replace("/(auth)/sign-up")}>
+              <Text
+                style={{
+                  color: theme.colors.primary,
+                  fontWeight: "700",
+                  marginLeft: 6,
+                }}
+              >
+                Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableWithoutFeedback>
-    </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  container: {
+  container: { flex: 1 },
+  inner: {
     flex: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingHorizontal: 24,
   },
   backBtn: {
-    position: "absolute",
-    top: 40,
-    left: 4,
-    zIndex: 10,
+    marginLeft: -12,
+    marginTop: 8,
   },
-  card: {
-    borderRadius: 16,
-    padding: 24,
-    elevation: 3,
+  headerContainer: {
+    marginTop: 20,
+    marginBottom: 40,
   },
   header: {
-    marginBottom: 30,
-    textAlign: "center",
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 8,
   },
-  input: { marginBottom: 16 },
+  subHeader: {
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  errorContainer: {
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  form: {
+    marginBottom: 20,
+  },
+  input: {
+    marginBottom: 16,
+    backgroundColor: "transparent",
+  },
+  gradientButton: {
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#2F80ED",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   footer: {
-    marginTop: 28,
+    marginTop: "auto",
+    marginBottom: 20,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -1,22 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import {
   Text,
   Button,
   useTheme,
   ActivityIndicator,
   IconButton,
-  Card,
-  Divider,
+  Surface,
   TextInput,
   HelperText,
-  Surface,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import FadeSlideTransition from "@/components/FadeSlideTransition";
-import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -128,31 +126,25 @@ export default function ProfileScreen() {
   // 🟥 If NOT logged in → Show SIGN-UP FORM instead of Profile UI
   // -------------------------------------------------------
   if (!session) {
-    const isDark = theme.dark;
-
     return (
-      <LinearGradient
-        colors={
-          isDark
-            ? ["#0e1012", "#121416", "#1a1c1f"]
-            : ["#f8f9fa", "#ffffff", "#f2f4f6"]
-        }
-        style={{ flex: 1 }}
-      >
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.authContainer}
           showsVerticalScrollIndicator={false}
         >
           <FadeSlideTransition>
-            <Surface style={[styles.authCard, { backgroundColor: theme.colors.surface }]}>
-              <Text
-                variant="headlineMedium"
-                style={[styles.authHeader, { color: theme.colors.onSurface }]}
-              >
-                Create an Account
+            <View style={{ alignItems: "center", marginBottom: 32 }}>
+              <MaterialCommunityIcons name="golf" size={64} color={theme.colors.primary} />
+              <Text variant="headlineMedium" style={{ fontWeight: "700", marginTop: 16, color: theme.colors.onBackground }}>
+                Join Tee Time Snipe
               </Text>
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant, textAlign: "center", marginTop: 8 }}>
+                Create an account to start tracking open tee times.
+              </Text>
+            </View>
 
+            <Surface style={[styles.authCard, { backgroundColor: theme.colors.surface }]} elevation={0}>
               <TextInput
                 label="Email"
                 mode="outlined"
@@ -160,7 +152,8 @@ export default function ProfileScreen() {
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
-                style={{ marginBottom: 12 }}
+                style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
+                outlineStyle={{ borderRadius: 12 }}
               />
 
               <TextInput
@@ -169,7 +162,8 @@ export default function ProfileScreen() {
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
-                style={{ marginBottom: 12 }}
+                style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
+                outlineStyle={{ borderRadius: 12 }}
               />
 
               {signupError && (
@@ -182,30 +176,27 @@ export default function ProfileScreen() {
                 mode="contained"
                 onPress={handleSignUp}
                 disabled={!email || !password || signUpLoading}
-                contentStyle={{ height: 48 }}
-                labelStyle={{ fontWeight: "600" }}
+                contentStyle={{ height: 50 }}
+                labelStyle={{ fontWeight: "600", fontSize: 16 }}
+                style={{ borderRadius: 12, marginTop: 8 }}
               >
-                {signUpLoading ? "Creating..." : "Create Account"}
+                {signUpLoading ? "Creating Account..." : "Create Account"}
               </Button>
-
-              <View style={styles.authFooter}>
-                <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                  Already have an account?
-                </Text>
-
-                <Button
-                  onPress={() => router.replace("/(auth)/sign-in")}
-                  compact
-                  textColor={theme.colors.primary}
-                  labelStyle={{ fontWeight: "600" }}
-                >
-                  Sign In
-                </Button>
-              </View>
             </Surface>
+
+            <View style={styles.authFooter}>
+              <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                Already have an account?
+              </Text>
+              <TouchableOpacity onPress={() => router.replace("/(auth)/sign-in")}>
+                <Text style={{ color: theme.colors.primary, fontWeight: "600", marginLeft: 4 }}>
+                  Sign In
+                </Text>
+              </TouchableOpacity>
+            </View>
           </FadeSlideTransition>
         </ScrollView>
-      </LinearGradient>
+      </View>
     );
   }
 
@@ -227,185 +218,140 @@ export default function ProfileScreen() {
       : "Free";
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Tagline / intro */}
-      <View style={{ alignItems: "center", marginBottom: 24 }}>
-        <Text
-          variant="bodyMedium"
-          style={{
-            color: theme.colors.onSurfaceVariant,
-            opacity: 0.8,
-            textAlign: "center",
-          }}
-        >
-          Manage your membership and profile
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.header}>
+        <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+          Profile
         </Text>
       </View>
 
-      {/* Membership Plan Card */}
-      <Card
-        mode="elevated"
-        style={[styles.planCard, { backgroundColor: theme.colors.surface }]}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <Card.Content>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <IconButton icon="crown" size={28} iconColor={theme.colors.primary} />
-            <View style={{ flexShrink: 1 }}>
-              <Text
-                variant="titleMedium"
-                style={{
-                  color: theme.colors.onSurface,
-                  fontWeight: "600",
-                }}
-              >
+        {/* Membership Section */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>MEMBERSHIP</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.row}>
+            <View style={[styles.iconBox, { backgroundColor: theme.colors.primary + "20" }]}>
+              <MaterialCommunityIcons name="crown" size={22} color={theme.colors.primary} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
                 {tier?.name || "Free Plan"}
               </Text>
-              <Text style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
-                {tier?.description ||
-                  "Basic access with limited tee-time alerts per day"}
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                {price} • {tier?.max_alerts ?? 3} Active Alerts
               </Text>
             </View>
+            <Button
+              mode="text"
+              compact
+              textColor={theme.colors.primary}
+              labelStyle={{ fontWeight: "600" }}
+              onPress={() => router.push("/upgrade")}
+            >
+              Manage
+            </Button>
           </View>
 
-          <View style={styles.planDetails}>
-            <Text style={styles.detailText}>
-              Track up to {tier?.max_alerts ?? 3} tee-time alerts simultaneously.
+          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
+
+          <View style={styles.row}>
+            <Text style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
+              Scan Interval
             </Text>
-            <Text style={styles.detailText}>
-              We'll check new availabilities every{" "}
-              {tier?.scan_interval_seconds
-                ? tier.scan_interval_seconds / 60
-                : 10}{" "}
-              minutes to keep you updated.
+            <Text style={{ color: theme.colors.onSurface, fontWeight: "500" }}>
+              Every {tier?.scan_interval_seconds ? tier.scan_interval_seconds / 60 : 10} mins
             </Text>
           </View>
+        </View>
 
-          <Text
-            variant="bodyLarge"
-            style={[
-              styles.planPrice,
-              { color: theme.colors.primary, fontWeight: "600" },
-            ]}
-          >
-            {price}
-          </Text>
+        {/* Account Section */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant, marginTop: 24 }]}>ACCOUNT</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.row}>
+            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Email</Text>
+            <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 16 }}>{user?.email}</Text>
+          </View>
 
-          <Button
-            mode="contained"
-            style={{ marginTop: 16, borderRadius: 10 }}
-            contentStyle={{ height: 48 }}
-            labelStyle={{ fontWeight: "600" }}
-            onPress={() => router.push("/upgrade")}
-          >
-            {tier?.price_cents === 0 ? "Explore Upgrade Options" : "Manage Plan"}
-          </Button>
-        </Card.Content>
-      </Card>
+          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
 
-      {/* Account Details */}
-      <View style={[styles.accountContainer]}>
-        <Divider style={{ marginVertical: 8, opacity: 0.15 }} />
-        <Text
-          style={{
-            color: theme.colors.onSurfaceVariant,
-            fontSize: 14,
-            textAlign: "center",
-            marginBottom: 4,
-          }}
-        >
-          Signed in as
+          <TouchableOpacity style={styles.row} onPress={handleLogout}>
+            <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "500" }}>Log Out</Text>
+            <MaterialCommunityIcons name="logout" size={20} color={theme.colors.error} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
+          Tee Time Snipe v1.0.0
         </Text>
-        <Text
-          style={{
-            color: theme.colors.onSurface,
-            fontSize: 16,
-            fontWeight: "500",
-            textAlign: "center",
-          }}
-        >
-          {user?.email ?? "—"}
-        </Text>
-
-        <Button
-          mode="text"
-          textColor={theme.colors.error}
-          onPress={handleLogout}
-          style={{ marginTop: 12 }}
-          labelStyle={{ fontWeight: "600", fontSize: 15 }}
-        >
-          Log Out
-        </Button>
-      </View>
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Auth (unauthenticated) styling
-  authContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
+  container: { flex: 1 },
+  header: {
     paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
-  authCard: {
-    borderRadius: 16,
-    padding: 24,
-    elevation: 3,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
-  authHeader: {
-    marginBottom: 30,
-    textAlign: "center",
-    fontWeight: "700",
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+    marginLeft: 16,
+    letterSpacing: 0.5,
   },
-  authFooter: {
-    marginTop: 28,
+  sectionContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  row: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    justifyContent: "space-between",
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // Profile (authenticated)
-  scrollContent: {
+  // Auth styles
+  authContainer: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 60,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  authCard: {
+    borderRadius: 16,
+    padding: 24,
+  },
+  authFooter: {
+    marginTop: 24,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  planCard: {
-    borderRadius: 14,
-    marginBottom: 32,
-    elevation: 3,
-    paddingVertical: 4,
-  },
-  planDetails: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.15)",
-    marginTop: 12,
-    paddingTop: 10,
-  },
-  detailText: {
-    color: "#a1a1a1",
-    fontSize: 14,
-    marginBottom: 3,
-  },
-  planPrice: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  accountContainer: {
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

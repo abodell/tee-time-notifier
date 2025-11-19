@@ -5,11 +5,11 @@ import {
   RefreshControl,
   StyleSheet,
   Alert as RNAlert,
+  TouchableOpacity,
 } from "react-native";
 import {
   Text,
   useTheme,
-  Card,
   IconButton,
   ActivityIndicator,
   Surface,
@@ -77,7 +77,7 @@ export default function MyAlertsScreen() {
   };
 
   const deleteConfirm = (id: number) =>
-    RNAlert.alert("Delete Alert", "Are you sure?", [
+    RNAlert.alert("Delete Alert", "Are you sure you want to remove this alert?", [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: "destructive", onPress: () => handleDelete(id) },
     ]);
@@ -86,7 +86,7 @@ export default function MyAlertsScreen() {
     try {
       await deleteAlert(id);
       setAlerts((p) => p.filter((a) => a.id !== id));
-      Toast.show({ type: "success", text1: "Alert deleted", visibilityTime: 1000});
+      Toast.show({ type: "success", text1: "Alert deleted", visibilityTime: 1000 });
     } catch (err: any) {
       Toast.show({ type: "error", text1: "Failed", text2: err.message });
     }
@@ -94,43 +94,44 @@ export default function MyAlertsScreen() {
 
   const atQuota = maxAlerts !== null && alerts.length >= (maxAlerts || 0);
 
-  const renderItem = ({ item }: { item: AlertType }) => {
+  const renderItem = ({ item, index }: { item: AlertType; index: number }) => {
     const course = item.courses || {};
     return (
-      <Card
+      <View
         style={[
-          styles.card,
-          { backgroundColor: theme.colors.surface, borderRadius: 12 },
+          styles.listItem,
+          {
+            backgroundColor: theme.colors.surface,
+            borderTopLeftRadius: index === 0 ? 12 : 0,
+            borderTopRightRadius: index === 0 ? 12 : 0,
+            borderBottomLeftRadius: index === alerts.length - 1 ? 12 : 0,
+            borderBottomRightRadius: index === alerts.length - 1 ? 12 : 0,
+          }
         ]}
-        mode="elevated"
       >
-        <Card.Title
-          title={course.name || `Course #${item.course_id}`}
-          subtitle={`${course.city ?? ""}${course.state ? `, ${course.state}` : ""}`}
-          right={(props) => (
-            <IconButton
-              {...props}
-              icon="delete"
-              iconColor={theme.colors.primary}
-              onPress={() => deleteConfirm(item.id!)}
-            />
-          )}
-        />
-        <Card.Content>
-          <Text style={{ color: theme.colors.primary, fontWeight: "600" }}>
-            {item.holes} Holes
+        <View style={{ flex: 1 }}>
+          <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+            {course.name || `Course #${item.course_id}`}
           </Text>
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>
-            {dayjs(item.date_from).format("MMM D, YYYY")}{": "}
-            {dayjs(item.start_time).format("h:mm A")} →{" "}
-            {dayjs(item.end_time).format("h:mm A")}
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
+            {dayjs(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
           </Text>
-        </Card.Content>
-      </Card>
+          <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
+            {dayjs(item.start_time).format("h:mm A")} - {dayjs(item.end_time).format("h:mm A")}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => deleteConfirm(item.id!)}
+          style={{ padding: 8 }}
+        >
+          <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.colors.error} style={{ opacity: 0.8 }} />
+        </TouchableOpacity>
+      </View>
     );
   };
 
-  if (loading)
+  if (loading && !refreshing)
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -139,47 +140,44 @@ export default function MyAlertsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.header}>
+        <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+          My Alerts
+        </Text>
+      </View>
+
       {/* Soft notice */}
-      <Animated.View entering={FadeIn.duration(600)}>
-        <Surface style={styles.noticeCard} elevation={1}>
-          <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-            <MaterialCommunityIcons
-              name={atQuota ? "alert-circle-outline" : "information-outline"}
-              size={22}
-              color={
-                atQuota ? theme.colors.primary : theme.colors.onSurfaceVariant
-              }
-              style={{ margin: 0, marginRight: 8 }}
-            />
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  fontSize: 14,
-                  lineHeight: 20,
-                }}
-              >
+      <Animated.View entering={FadeIn.duration(600)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+        <Surface style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]} elevation={0}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={[
+                styles.iconContainer,
+                { backgroundColor: atQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name={atQuota ? "alert-circle" : "information"}
+                size={24}
+                color={atQuota ? theme.colors.error : theme.colors.primary}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
                 {atQuota ? (
                   <>
-                    You've used all alerts on the{" "}
-                    <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.{" "}
+                    Limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
                     <Text
-                      style={{
-                        color: theme.colors.primary,
-                        fontWeight: "600",
-                      }}
+                      style={{ color: theme.colors.primary, fontWeight: "600" }}
                       onPress={() => router.push("/upgrade")}
                     >
                       Upgrade
-                    </Text>{" "}
-                    to track more tee times.
+                    </Text>
                   </>
                 ) : (
                   <>
-                    You’re using{" "}
-                    <Text style={{ fontWeight: "600" }}>{alerts.length}</Text>
-                    {maxAlerts ? ` of ${maxAlerts}` : ""} alerts on your{" "}
-                    <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.
+                    Using <Text style={{ fontWeight: "600" }}>{alerts.length}</Text>
+                    {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
                   </>
                 )}
               </Text>
@@ -192,6 +190,8 @@ export default function MyAlertsScreen() {
         data={alerts}
         keyExtractor={(i) => i.id!.toString()}
         renderItem={renderItem}
+        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.outline, marginLeft: 16 }} />}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -200,31 +200,41 @@ export default function MyAlertsScreen() {
               loadAlerts();
               loadTier();
             }}
+            tintColor={theme.colors.primary}
           />
         }
         ListEmptyComponent={
           <View style={styles.center}>
-            <IconButton icon="bell-outline" size={48} iconColor={theme.colors.primary} />
+            <View style={[styles.emptyIcon, { backgroundColor: theme.colors.surface }]}>
+              <MaterialCommunityIcons name="bell-off-outline" size={32} color={theme.colors.onSurfaceVariant} />
+            </View>
             <Text
-              variant="bodyLarge"
-              style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}
+              variant="titleMedium"
+              style={{ color: theme.colors.onSurface, marginTop: 16, fontWeight: "600" }}
             >
               No alerts yet
             </Text>
             <Text
-              variant="bodySmall"
+              variant="bodyMedium"
               style={{
                 color: theme.colors.onSurfaceVariant,
-                opacity: 0.7,
                 textAlign: "center",
-                marginTop: 4,
+                marginTop: 8,
+                maxWidth: 250,
               }}
             >
-              Create one to start tracking tee times.
+              Create an alert to get notified when tee times become available.
             </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/")}
+              style={{ marginTop: 24 }}
+            >
+              <Text style={{ color: theme.colors.primary, fontSize: 16, fontWeight: "600" }}>
+                Find a Course
+              </Text>
+            </TouchableOpacity>
           </View>
         }
-        contentContainerStyle={{ padding: 16 }}
       />
     </View>
   );
@@ -232,23 +242,40 @@ export default function MyAlertsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  noticeCard: {
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: "transparent",
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 4,
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
-  card: {
-    marginBottom: 16,
-    elevation: 1,
+  noticeCard: {
+    borderRadius: 12,
+    padding: 12,
+    overflow: "hidden",
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingTop: 60,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

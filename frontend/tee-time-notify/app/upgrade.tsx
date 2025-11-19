@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import {
   Text,
   Button,
   useTheme,
   ActivityIndicator,
-  Card,
   IconButton,
+  Surface,
+  Divider,
 } from "react-native-paper";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "@/constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -95,7 +99,7 @@ export default function UpgradeScreen() {
         Alert.alert(
           "Unsubscribe?",
           "Are you sure you want to cancel your current subscription? " +
-            "Your plan will remain active until the end of this billing period.",
+          "Your plan will remain active until the end of this billing period.",
           [
             { text: "Keep Current Plan", style: "cancel" },
             {
@@ -189,211 +193,238 @@ export default function UpgradeScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.scroll}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Back Button */}
-      <View style={styles.navRow}>
-        <Button
-          icon="arrow-left"
-          mode="text"
-          textColor={theme.colors.primary}
-          labelStyle={{ fontWeight: "500" }}
-          onPress={() => router.back()}
-        >
-          Back
-        </Button>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <IconButton
+            icon="arrow-left"
+            size={24}
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            iconColor={theme.colors.primary}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text
+              variant="titleMedium"
+              style={{ color: theme.colors.onBackground, fontWeight: "700" }}
+            >
+              Manage Plan
+            </Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
 
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <Text
-          variant="headlineSmall"
-          style={{
-            color: theme.colors.onBackground,
-            fontWeight: "700",
-            textAlign: "center",
-          }}
-        >
-          Manage Your Plan
-        </Text>
-        <Text
-          variant="bodyMedium"
-          style={{
-            color: theme.colors.onSurfaceVariant,
-            opacity: 0.85,
-            textAlign: "center",
-            marginTop: 4,
-          }}
-        >
-          Upgrade or manage your subscription
-        </Text>
-      </View>
-
-      {/* Membership Cards */}
-      {tiers.map((tier) => {
-        const isCurrent = tier.id === userTier;
-        const isRedirecting = redirectingTier === tier.id;
-        const price = toPriceText(tier.price_cents);
-
-        return (
-          <Card
-            key={tier.id}
-            mode="elevated"
-            style={[
-              styles.card,
-              {
-                borderColor: isCurrent
-                  ? theme.colors.primary
-                  : "transparent",
-                borderWidth: isCurrent ? 1 : 0,
-              },
-            ]}
+        <View style={styles.headerContainer}>
+          <Text
+            variant="headlineSmall"
+            style={{
+              color: theme.colors.onBackground,
+              fontWeight: "800",
+              textAlign: "center",
+              marginBottom: 8,
+            }}
           >
-            <Card.Content>
+            Upgrade Your Game
+          </Text>
+          <Text
+            style={{
+              color: theme.colors.secondary,
+              textAlign: "center",
+              fontSize: 16,
+              paddingHorizontal: 20,
+            }}
+          >
+            Unlock faster scans and more alerts to never miss a tee time.
+          </Text>
+        </View>
+
+        {/* Membership Cards */}
+        {tiers.map((tier) => {
+          const isCurrent = tier.id === userTier;
+          const isRedirecting = redirectingTier === tier.id;
+          const price = toPriceText(tier.price_cents);
+          const isFree = tier.price_cents === 0;
+
+          return (
+            <Surface
+              key={tier.id}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: isCurrent ? theme.colors.primary : "transparent",
+                  borderWidth: isCurrent ? 2 : 0,
+                },
+              ]}
+              elevation={isCurrent ? 4 : 1}
+            >
               <View style={styles.cardHeader}>
                 <Text
                   variant="titleLarge"
                   style={{
                     color: theme.colors.onSurface,
-                    fontWeight: "700",
+                    fontWeight: "800",
                   }}
                 >
                   {tier.name}
                 </Text>
+                {isCurrent && (
+                  <View style={[styles.badge, { backgroundColor: theme.colors.primaryContainer }]}>
+                    <Text style={[styles.badgeText, { color: theme.colors.onPrimaryContainer }]}>
+                      Current
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <Text
-                style={{
-                  color: theme.colors.onSurfaceVariant,
-                  marginTop: 6,
-                  fontSize: 15,
-                }}
-              >
-                {tier.description ||
-                  "Everything you need to find your next tee time."}
-              </Text>
-
-              <View style={styles.dividerLine} />
-
-              {/* Features */}
-              <View style={styles.features}>
-                <View style={styles.featureRow}>
-                  <IconButton
-                    icon="bell-outline"
-                    size={20}
-                    iconColor={theme.colors.primary}
-                  />
-                  <Text style={styles.featureText}>
-                    Track up to{" "}
-                    <Text style={styles.highlight}>
-                      {tier.max_alerts ?? 3}
-                    </Text>{" "}
-                    active alerts
-                  </Text>
-                </View>
-
-                <View style={styles.featureRow}>
-                  <IconButton
-                    icon="update"
-                    size={20}
-                    iconColor={theme.colors.primary}
-                  />
-                  <Text style={styles.featureText}>
-                    Refreshes every{" "}
-                    <Text style={styles.highlight}>
-                      {tier.scan_interval_seconds
-                        ? tier.scan_interval_seconds / 60
-                        : 10}
-                      {" min"}
-                    </Text>{" "}
-                    for new openings
-                  </Text>
-                </View>
-              </View>
-
-              <Text
-                variant="titleMedium"
+                variant="displaySmall"
                 style={{
                   color: theme.colors.primary,
-                  marginTop: 10,
+                  marginTop: 12,
                   marginBottom: 4,
-                  fontWeight: "600",
+                  fontWeight: "800",
+                  fontSize: 32,
                 }}
               >
                 {price}
               </Text>
 
-              <Button
-                mode={isCurrent ? "outlined" : "contained"}
-                disabled={isRedirecting}
-                style={{
-                  marginTop: 10,
-                  borderRadius: 10,
-                  opacity: isRedirecting ? 0.85 : 1,
-                }}
-                contentStyle={{ height: 46 }}
-                labelStyle={{ fontWeight: "600" }}
-                onPress={() => handleSelectPlan(tier)}
-              >
-                {isRedirecting
-                  ? "Redirecting to Stripe..."
-                  : isCurrent
-                  ? pendingDowngrade && cancelAt && userTier !== 1
-                    ? `Downgrade scheduled — ends ${new Date(cancelAt).toLocaleDateString()}`
-                    : "Current Plan"
-                  : tier.price_cents === 0 && userTier && userTier !== 1
-                  ? "Switch to Free"
-                  : "Choose Plan"}
-              </Button>
-            </Card.Content>
-          </Card>
-        );
-      })}
-    </ScrollView>
+              <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 20 }}>
+                {tier.description || "Everything you need to find your next tee time."}
+              </Text>
+
+              <Divider style={{ marginBottom: 20, opacity: 0.5 }} />
+
+              {/* Features */}
+              <View style={styles.features}>
+                <View style={styles.featureRow}>
+                  <Text style={{ fontSize: 18, marginRight: 12 }}>🔔</Text>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                    <Text style={{ fontWeight: "700" }}>{tier.max_alerts ?? 3}</Text> active alerts
+                  </Text>
+                </View>
+
+                <View style={styles.featureRow}>
+                  <Text style={{ fontSize: 18, marginRight: 12 }}>⚡️</Text>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                    Refreshes every{" "}
+                    <Text style={{ fontWeight: "700" }}>
+                      {tier.scan_interval_seconds
+                        ? tier.scan_interval_seconds / 60
+                        : 10}
+                      {" min"}
+                    </Text>
+                  </Text>
+                </View>
+              </View>
+
+              {/* Action Button */}
+              <View style={{ marginTop: 24 }}>
+                {isCurrent ? (
+                  <Button
+                    mode="outlined"
+                    disabled={true}
+                    style={{ borderRadius: 12, borderColor: theme.colors.outline }}
+                    labelStyle={{ color: theme.colors.onSurfaceDisabled }}
+                  >
+                    {pendingDowngrade && cancelAt && userTier !== 1
+                      ? `Ends ${new Date(cancelAt).toLocaleDateString()}`
+                      : "Active Plan"}
+                  </Button>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => handleSelectPlan(tier)}
+                    disabled={isRedirecting}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={
+                        (isRedirecting
+                          ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
+                          : Colors.light.gradients.primary) as [string, string, ...string[]]
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[
+                        styles.gradientButton,
+                        { opacity: isRedirecting ? 0.7 : 1 },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: "#FFF",
+                          fontWeight: "700",
+                          fontSize: 16,
+                        }}
+                      >
+                        {isRedirecting
+                          ? "Processing..."
+                          : isFree
+                            ? "Downgrade to Free"
+                            : "Upgrade Now"}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Surface>
+          );
+        })}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 80,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  navRow: {
-    marginTop: 24,
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
-    marginLeft: -4,
+    justifyContent: "space-between",
+  },
+  backBtn: {
+    margin: 0,
   },
   headerContainer: {
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 32,
+    marginTop: 10,
   },
   card: {
-    borderRadius: 16,
-    paddingVertical: 2,
-    marginBottom: 22,
-    elevation: 3,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 20,
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  dividerLine: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    marginVertical: 12,
+  badge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   features: {
-    gap: 4,
+    gap: 16,
   },
   featureRow: {
     flexDirection: "row",
@@ -401,10 +432,16 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 15,
-    flexShrink: 1,
-    color: "rgba(255,255,255,0.85)",
   },
-  highlight: {
-    fontWeight: "600",
+  gradientButton: {
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#2F80ED",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

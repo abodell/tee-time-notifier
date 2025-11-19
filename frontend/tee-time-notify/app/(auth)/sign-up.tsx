@@ -20,6 +20,8 @@ import { supabase } from "../../lib/supabase";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import FadeSlideTransition from "@/components/FadeSlideTransition";
+import { Colors } from "@/constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignUpScreen() {
   const theme = useTheme();
@@ -27,7 +29,6 @@ export default function SignUpScreen() {
   const params = useLocalSearchParams<{ redirectTo?: string }>();
   const redirectTo = params.redirectTo || null;
 
-  const isDark = theme.dark;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -67,152 +68,224 @@ export default function SignUpScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={
-        isDark
-          ? ["#0e1012", "#121416", "#1a1c1f"]
-          : ["#f8f9fa", "#ffffff", "#f2f4f6"]
-      }
-      style={styles.gradient}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.container}
-        >
+        <View style={styles.inner}>
           <IconButton
             icon="arrow-left"
-            size={26}
+            size={24}
             onPress={handleSafeBack}
             style={styles.backBtn}
+            iconColor={theme.colors.onBackground}
           />
+
           <FadeSlideTransition>
-            <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            <View style={styles.headerContainer}>
               <Text
-                variant="headlineMedium"
-                style={[styles.header, { color: theme.colors.onSurface }]}
+                variant="displaySmall"
+                style={[styles.header, { color: theme.colors.onBackground }]}
               >
                 Create Account
               </Text>
+              <Text style={[styles.subHeader, { color: theme.colors.secondary }]}>
+                Join the club and start sniping.
+              </Text>
+            </View>
 
-              {success ? (
-                <>
-                  <Text
-                    style={{
-                      textAlign: "center",
-                      color: theme.colors.primary,
-                      marginBottom: 20,
-                    }}
-                  >
-                    Success! Check your email to confirm your account.
-                  </Text>
-                  <Button
-                    mode="contained"
-                    onPress={goToSignIn}
-                    contentStyle={{ height: 48 }}
-                  >
-                    Back to Sign‑In
-                  </Button>
-                  <Button
-                    mode="text"
-                    style={{ marginTop: 12 }}
-                    onPress={goBackToProfile}
-                  >
-                    Return to App
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <TextInput
-                    label="Email"
-                    mode="outlined"
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    value={email}
-                    onChangeText={setEmail}
-                    style={styles.input}
-                  />
+            {success ? (
+              <Surface style={[styles.successCard, { backgroundColor: theme.colors.surface }]} elevation={0}>
+                <View style={styles.successIconContainer}>
+                  <Text style={{ fontSize: 40 }}>✉️</Text>
+                </View>
+                <Text
+                  variant="titleMedium"
+                  style={{
+                    textAlign: "center",
+                    color: theme.colors.onSurface,
+                    fontWeight: "700",
+                    marginBottom: 8,
+                  }}
+                >
+                  Check your email
+                </Text>
+                <Text
+                  style={{
+                    textAlign: "center",
+                    color: theme.colors.onSurfaceVariant,
+                    marginBottom: 24,
+                    lineHeight: 20,
+                  }}
+                >
+                  We've sent you a confirmation link. Please verify your account to continue.
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={goToSignIn}
+                  contentStyle={{ height: 48 }}
+                  style={{ borderRadius: 24 }}
+                >
+                  Back to Sign‑In
+                </Button>
+                <Button
+                  mode="text"
+                  style={{ marginTop: 12 }}
+                  onPress={goBackToProfile}
+                >
+                  Return to App
+                </Button>
+              </Surface>
+            ) : (
+              <View style={styles.form}>
+                <TextInput
+                  label="Email"
+                  mode="outlined"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                  style={styles.input}
+                  outlineStyle={{ borderRadius: 12 }}
+                />
 
-                  <TextInput
-                    label="Password"
-                    mode="outlined"
-                    secureTextEntry
-                    value={password}
-                    onChangeText={setPassword}
-                    style={styles.input}
-                  />
+                <TextInput
+                  label="Password"
+                  mode="outlined"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  style={styles.input}
+                  outlineStyle={{ borderRadius: 12 }}
+                />
 
-                  {error && (
-                    <HelperText type="error" visible={!!error}>
+                {error && (
+                  <View style={[styles.errorContainer, { backgroundColor: theme.colors.errorContainer }]}>
+                    <Text style={{ color: theme.colors.onErrorContainer, fontWeight: "600", textAlign: "center" }}>
                       {error}
-                    </HelperText>
-                  )}
-
-                  <Button
-                    mode="contained"
-                    onPress={handleSignUp}
-                    disabled={!email || !password || loading}
-                    style={{ marginTop: 12 }}
-                    contentStyle={{ height: 48 }}
-                    labelStyle={{ fontWeight: "600" }}
-                  >
-                    {loading ? "Creating..." : "Create Account"}
-                  </Button>
-
-                  <View style={styles.footer}>
-                    <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                      Already have an account?
                     </Text>
-                    <TouchableOpacity onPress={goToSignIn}>
-                      <Text
-                        style={{
-                          color: theme.colors.primary,
-                          fontWeight: "600",
-                          marginLeft: 6,
-                        }}
-                      >
-                        Sign In
-                      </Text>
-                    </TouchableOpacity>
                   </View>
-                </>
-              )}
-            </Surface>
+                )}
+
+                <TouchableOpacity
+                  onPress={handleSignUp}
+                  disabled={!email || !password || loading}
+                  activeOpacity={0.8}
+                  style={{ marginTop: 24 }}
+                >
+                  <LinearGradient
+                    colors={
+                      ((!email || !password || loading)
+                        ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
+                        : Colors.light.gradients.primary) as [string, string, ...string[]]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.gradientButton,
+                      { opacity: (!email || !password || loading) ? 0.6 : 1 },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: (!email || !password || loading)
+                          ? theme.colors.onSurfaceDisabled
+                          : "#FFF",
+                        fontWeight: "700",
+                        fontSize: 16,
+                      }}
+                    >
+                      {loading ? "Creating..." : "Create Account"}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <View style={styles.footer}>
+                  <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                    Already have an account?
+                  </Text>
+                  <TouchableOpacity onPress={goToSignIn}>
+                    <Text
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: "700",
+                        marginLeft: 6,
+                      }}
+                    >
+                      Sign In
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </FadeSlideTransition>
-        </ScrollView>
+        </View>
       </TouchableWithoutFeedback>
-    </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  container: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+  container: { flex: 1 },
+  inner: {
+    flex: 1,
+    paddingHorizontal: 24,
   },
   backBtn: {
-    position: "absolute",
-    top: 40,
-    left: 4,
-    zIndex: 10,
+    marginLeft: -12,
+    marginTop: 8,
   },
-  card: {
-    borderRadius: 16,
-    padding: 24,
-    elevation: 3,
+  headerContainer: {
+    marginTop: 20,
+    marginBottom: 40,
   },
   header: {
-    marginBottom: 30,
-    textAlign: "center",
-    fontWeight: "700",
+    fontWeight: "800",
+    marginBottom: 8,
   },
-  input: { marginBottom: 16 },
+  subHeader: {
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  successCard: {
+    padding: 32,
+    borderRadius: 24,
+    alignItems: "center",
+  },
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(47, 128, 237, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  form: {
+    marginBottom: 20,
+  },
+  input: {
+    marginBottom: 16,
+    backgroundColor: "transparent",
+  },
+  errorContainer: {
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  gradientButton: {
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#2F80ED",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   footer: {
-    marginTop: 28,
+    marginTop: 40,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
   },
 });
