@@ -24,3 +24,9 @@ async def send_push_notification(token: str, title: str, body: str):
         res.raise_for_status()
         print("Expo push response:", res.json())
     
+async def send_summary_push(token: str, course_name: str, count: int):
+    """ Send a summarized 'x opening available' notification. """
+    title = f"{course_name}: {count} openings!"
+    body = f"We found {count} new tee time(s) matching your alert"
+    await send_push_notification(token, title, body)
+
