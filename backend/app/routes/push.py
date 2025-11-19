@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
-from app.db import supabase
+from app.db import create_supabase
 from app.services.push_service import send_push_notification
 
 router = APIRouter(prefix = "/push", tags=["push"])
@@ -10,6 +10,7 @@ async def register_push_token(request: Request):
     Saves Expo Push Token to user_profiles (called on app start).
     Body: { "user_id": str, "token": str }
     """
+    supabase = await create_supabase()
     data = await request.json()
     user_id = data.get("user_id")
     token = data.get("token")
@@ -28,6 +29,7 @@ async def send_test_push(request: Request):
     """
     Developer tool to trigger a manual push
     """
+    supabase = await create_supabase()
     data = await request.json()
     user_id = data.get("user_id")
     title = data.get("title", "Tee Time Alert!")

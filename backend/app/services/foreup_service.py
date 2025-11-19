@@ -1,21 +1,46 @@
 import json
 import requests
+from httpx import AsyncClient
 from typing import List, Union
 from datetime import datetime
 from dateutil import tz
 from urllib.parse import urlencode
 
-from app.db import supabase
+from app.db import create_supabase
 from app.models.tee_time import TeeTime
 
-def get_foreup_courses():
-    """ Fetch all active ForeUp Courses """
-    res = supabase.table("courses").select("*").eq("provider", "ForeUp").execute()
-    return res.data or []
+http_client = AsyncClient()
 
-def get_provider_configs(course_id: int) -> dict:
+async def get_foreup_courses():
+    """ Fetch foreup courses that are attached to alerts that we should scan """
+    # Get all course IDs referenced in active alerts
+    supabase = await create_supabase()
+    alerts_res = await (
+        supabase.table("alerts")
+        .select("course_id")
+        .eq("active", True)
+        .execute()
+    )
+    alert_course_ids = {a["course_id"] for a in (alerts_res.data or [])}
+
+    if not alert_course_ids:
+        print(f"[ForeUp] No active alerts - skipping scan.")
+        return []
+    
+    courses_res = await (
+        supabase.table("courses")
+        .select("*")
+        .eq("provider", "ForeUp")
+        .in_("id", list(alert_course_ids))
+        .execute()
+    )
+
+    return courses_res.data or []
+
+async def get_provider_configs(course_id: int) -> dict:
     """ Fetch key/value pairs for provider configs """
-    res = (
+    supabase = await create_supabase()
+    res = await (
         supabase.table("provider_configs")
         .select("key", "value")
         .eq("course_id", course_id)
@@ -33,7 +58,7 @@ def get_provider_configs(course_id: int) -> dict:
 
     return cfg
 
-def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[str, int] = "all"):
+async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[str, int] = "all"):
     """ Construct the ForeUp request and return the data """
     base_url = (
         "https://foreupsoftware.com/index.php/api/booking/times"
@@ -53,14 +78,15 @@ def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[str, i
 
     full_url = f"{base_url}?{urlencode(params, doseq=True)}"
     print(f"Fetching {course['name']} | holes={holes} | date={date_str}...")
-    resp = requests.get(full_url, timeout = 10)
+    resp = await http_client.get(full_url, timeout = 10)
     resp.raise_for_status()
 
     return resp.json()
 
-def normalize_and_store(course, raw_data, holes_requested: Union[str, int] = "all"):
+async def normalize_and_store(course, raw_data, holes_requested: Union[str, int] = "all"):
     """ Convert ForeUp response to TeeTime objects and insert into Supabase """
     tee_times: List[TeeTime] = []
+    supabase = await create_supabase()
 
     local_tz = tz.gettz(course.get("timezone")) or tz.tzutc()
     utc_tz = tz.tzutc()
@@ -110,15 +136,15 @@ def normalize_and_store(course, raw_data, holes_requested: Union[str, int] = "al
 
     if tee_times:
         payload = [t.to_dict() for t in tee_times]
-        supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
+        await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
     print("Inserted to availability table...")
     
-def run_foreup_scan(date_str: str, holes: Union[str, int] = "all"):
-    courses = get_foreup_courses()
+async def run_foreup_scan(date_str: str, holes: Union[str, int] = "all"):
+    courses = await get_foreup_courses()
     for c in courses:
         try:
-            cfgs = get_provider_configs(c["id"])
-            data = fetch_foreup_times(c, cfgs, date_str, holes)
-            normalize_and_store(c, data, holes)
+            cfgs = await get_provider_configs(c["id"])
+            data = await fetch_foreup_times(c, cfgs, date_str, holes)
+            await normalize_and_store(c, data, holes)
         except Exception as e:
             print(f"Error scanning {c['name']}: {e}")

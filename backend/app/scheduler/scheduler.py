@@ -6,10 +6,10 @@ from app.scheduler.jobs import (
     scan_foreup_job,
     run_alert_engine_for_tier
 )
-from app.db import supabase
+from app.db import create_supabase
 from app.config import settings
 
-def start_scheduler(app: FastAPI):
+async def start_scheduler(app: FastAPI):
     """
     Starts the APScheduler if ENABLE_SCHEDULER=true in environment.
     Should be called inside FastAPI startup event
@@ -18,15 +18,18 @@ def start_scheduler(app: FastAPI):
         print("[Scheduler] Disabled (ENABLE_SCHEDULER != true)")
         return
     
+    supabase = await create_supabase()
+    
     print("[Scheduler] ENABLED - starting AsyncIOScheduler")
 
     scheduler = AsyncIOScheduler()
 
-    tiers = supabase.table("membership_tiers").select("*").execute().data or []
+    query = await supabase.table("membership_tiers").select("*").execute() or []
+    tiers = query.data
 
     scheduler.add_job(
         scan_foreup_job,
-        trigger=IntervalTrigger(seconds=settings.SCAN_INTERVAL_SECONDS),
+        trigger=IntervalTrigger(seconds=30),
         name="ForeUp_GLOBAL_scan",
     )
 
@@ -36,8 +39,9 @@ def start_scheduler(app: FastAPI):
 
         scheduler.add_job(
             run_alert_engine_for_tier,
-            trigger=IntervalTrigger(seconds=interval),
-            args=[tier_id],
+            trigger=IntervalTrigger(seconds=45),
+            args=[1],
+            misfire_grace_time=10,
             name=f"AlertEngine_Tier_{tier_id}"
         )
 

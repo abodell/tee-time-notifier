@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from app.db import supabase
+from app.db import create_supabase
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
 @router.post("/create")
-def create_alert(alert: dict):
+async def create_alert(alert: dict):
     """ Create a new alert (enforcing membership tier restrictions) """
     try:
+        supabase = await create_supabase()
         user_id = alert.get("user_id")
         if not user_id:
             raise HTTPException(status_code = 400, detail = "Missing user_id")
@@ -67,8 +68,9 @@ def create_alert(alert: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/user/{user_id}")
-def get_user_alerts(user_id: str):
+async def get_user_alerts(user_id: str):
     """ Return all active alerts for a user. """
+    supabase = await create_supabase()
     alerts = (
         supabase.table("alerts")
         .select("*, courses!alerts_course_id_fkey(name, city, state)")
@@ -79,7 +81,8 @@ def get_user_alerts(user_id: str):
     return alerts.data or []
 
 @router.delete("/{alert_id}")
-def delete_alert(alert_id: int):
+async def delete_alert(alert_id: int):
     """ Delete an alert. """
+    supabase = await create_supabase()
     supabase.table("alerts").delete().eq("id", alert_id).execute()
     return {"status": "deleted", "alert_id": alert_id}

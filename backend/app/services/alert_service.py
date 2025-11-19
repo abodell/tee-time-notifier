@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from app.db import supabase
+from app.db import create_supabase
 from collections import defaultdict
 from app.services.push_service import send_push_notification
 
@@ -23,14 +23,16 @@ def notify_user(user_id, course_id, tee_time, method="push"):
 
 async def run_alert_engine(tier_id: int | None = None):
     """ Check all alerts vs. availability and queue new notifications. """
-    now = datetime.now(timezone.utc).isoformat()
+    supabase = await create_supabase()
+    now = datetime.now(timezone.utc)
     summaries = defaultdict(lambda: {"course_id": None, "count": 0, "user_id": None})
 
     query = supabase.table("alerts").select(
         "*, user_profiles!alerts_user_id_fkey(membership_tier_id)"
     ).eq("active", True)
 
-    alerts = query.execute().data or []
+    query_execute = await query.execute()
+    alerts = query_execute.data or []
 
     if tier_id is not None:
         alerts = [
@@ -58,7 +60,7 @@ async def run_alert_engine(tier_id: int | None = None):
         start_dt = datetime.combine(base_date.date(), start_t, tzinfo=timezone.utc)
         end_dt = datetime.combine(base_date.date(), end_t, tzinfo=timezone.utc)
 
-        tee_times = (
+        tee_times_execute = await (
             supabase.table("availability")
             .select("id, course_id, tee_time, holes")
             .eq("course_id", course_id)
@@ -66,8 +68,9 @@ async def run_alert_engine(tier_id: int | None = None):
             .gte("tee_time", start_dt.isoformat())
             .lte("tee_time", end_dt.isoformat())
             .execute()
-            .data
         )
+
+        tee_times = tee_times_execute.data
 
         new_ids = []
         for tee in tee_times or []:
@@ -77,23 +80,24 @@ async def run_alert_engine(tier_id: int | None = None):
             ):
                 continue
 
-            existing = (
+            existing_execute = await (
                 supabase.table("alert_notifications")
                 .select("id")
                 .eq("alert_id", alert["id"])
                 .eq("availability_id", tee["id"])
                 .execute()
-                .data
             )
 
+            existing = existing_execute.data
+
             if not existing:
-                supabase.table("alert_notifications").insert(
+                await supabase.table("alert_notifications").insert(
                     {
                         "alert_id": alert["id"],
                         "availability_id": tee["id"],
                         "via": "push",
                         "status": "sent",
-                        "sent_at": now
+                        "sent_at": now.isoformat()
                     }
                 ).execute()
                 new_ids.append(tee["id"])
@@ -106,12 +110,12 @@ async def run_alert_engine(tier_id: int | None = None):
     
 
     for alert_id, info in summaries.items():
-        course_name = get_course_name(info["course_id"])
+        course_name = await get_course_name(info["course_id"])
         title = f"{course_name}: {info['count']} opening(s)!"
         body = f"We found {info["count"]} new tee time(s) that match your alert"
         user_id = info["user_id"]
 
-        token = get_user_push_token(user_id)
+        token = await get_user_push_token(user_id)
         if token:
             try:
                 await send_push_notification(token, title, body)
@@ -121,9 +125,10 @@ async def run_alert_engine(tier_id: int | None = None):
         else:
             print(f"[Push] No token found for user {user_id}")
 
-def get_user_push_token(user_id: str) -> str | None:
+async def get_user_push_token(user_id: str) -> str | None:
     """ Fetch saved Expo push token for a user. """
-    res = (
+    supabase = await create_supabase()
+    res = await (
         supabase.table("user_profiles")
         .select("expo_push_token")
         .eq("id", user_id)
@@ -133,9 +138,10 @@ def get_user_push_token(user_id: str) -> str | None:
 
     return (res.data or {}).get("expo_push_token")
 
-def get_course_name(course_id: int) -> str:
+async def get_course_name(course_id: int) -> str:
     """ Fetch course name for push noti """
-    res = (
+    supabase = await create_supabase()
+    res = await (
         supabase.table("courses")
         .select("name")
         .eq("id", course_id)

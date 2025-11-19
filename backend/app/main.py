@@ -14,7 +14,7 @@ from app.scheduler.scheduler import start_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    start_scheduler(app)
+    await start_scheduler(app)
     yield
 
 app = FastAPI(title = "Tee Time Notify API", version = "0.1.0", lifespan=lifespan)

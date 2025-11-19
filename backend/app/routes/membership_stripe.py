@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
-from app.db import supabase
+from app.db import create_supabase
 import stripe
 import os
 from datetime import datetime, timezone
@@ -17,6 +17,7 @@ async def create_checkout_session(request: Request):
     Expects JSON body: { "user_id": str, "tier_id": int }
     """
     try:
+        supabase = await create_supabase()
         payload = await request.json()
         user_id = payload.get("user_id")
         tier_id = payload.get("tier_id")
@@ -79,6 +80,7 @@ async def stripe_webhook(request: Request):
     """
     Receives a Stripe webhook events and updates user membership
     """
+    supabase = await create_supabase()
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
 
@@ -156,6 +158,7 @@ async def schedule_downgrade(request: Request):
     Expect JSON: {"user_id": str}
     """
     try:
+        supabase = await create_supabase()
         data = await request.json()
         user_id = data.get("user_id")
         if not user_id:

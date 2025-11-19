@@ -1,15 +1,16 @@
 from fastapi import APIRouter, HTTPException
-from app.db import supabase
+from app.db import create_supabase
 
 router = APIRouter(prefix="/membership", tags=["membership"])
 
 @router.get("/tiers")
-def list_membership_tiers():
+async def list_membership_tiers():
     """
     Public route - return all available membership tiers for display.
     No authentication required.
     """
     try:
+        supabase = await create_supabase()
         result = (
             supabase.table("membership_tiers")
             .select("id, name, description, price_cents, max_alerts, scan_interval_seconds")
@@ -23,11 +24,12 @@ def list_membership_tiers():
         raise HTTPException(status_code = 500, detail = "Failed to fetch membership tiers.")
     
 @router.get("/profile/{user_id}")
-def get_user_membership(user_id: str):
+async def get_user_membership(user_id: str):
     """
     Return the user's profile joined with membership_tier data
     """
     try:
+        supabase = await create_supabase()
         result = (
             supabase.table("user_profiles")
             .select(
