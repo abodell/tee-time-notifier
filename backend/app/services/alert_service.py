@@ -4,7 +4,7 @@ from collections import defaultdict
 from app.services.push_service import send_push_notification
 
 ALERT_COOLDOWN_MINUTES = 30
-_last_push_times = {}
+
 
 def within_time_window(tee_time_str: str, start_str: str, end_str: str):
     """ Return True if tee_time.time() within user window. """
@@ -41,15 +41,28 @@ async def run_alert_engine(tier_id: int | None = None):
         ]
         print(f"[AlertEngine] Processing tier {tier_id}: {len(alerts)} alerts")
 
+    # Batch fetch recent notifications to determine cooldowns
+    cooldown_threshold = now - timedelta(minutes=ALERT_COOLDOWN_MINUTES)
+    
+    recent_notifs_res = await (
+        supabase.table("alert_notifications")
+        .select("alert_id")
+        .gte("sent_at", cooldown_threshold.isoformat())
+        .execute()
+    )
+    
+    # Set of alert_ids that have triggered a notification recently
+    cooldown_alert_ids = {row["alert_id"] for row in (recent_notifs_res.data or [])}
+
     for alert in alerts or []:
         course_id = alert["course_id"]
         holes = alert.get("holes")
         alert_id = alert["id"]
         user_id = alert["user_id"]
 
-        # cooldown check
-        last_push_time = _last_push_times.get(alert_id)
-        if last_push_time and (now - last_push_time) < timedelta(minutes=ALERT_COOLDOWN_MINUTES):
+        # Cooldown check: skip if we sent a notification for this alert recently
+        if alert_id in cooldown_alert_ids:
+            print(f"[AlertEngine] Skipping alert {alert_id} (cooldown active)")
             continue
         # User selected day in UTC
         base_date = datetime.fromisoformat(alert['date_from']).astimezone(timezone.utc)
@@ -106,7 +119,7 @@ async def run_alert_engine(tier_id: int | None = None):
             summaries[alert_id]["course_id"] = course_id
             summaries[alert_id]["count"] += len(new_ids)
             summaries[alert_id]["user_id"] = user_id
-            _last_push_times[alert_id] = now
+
     
 
     for alert_id, info in summaries.items():

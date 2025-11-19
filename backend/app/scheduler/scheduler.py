@@ -29,7 +29,7 @@ async def start_scheduler(app: FastAPI):
 
     scheduler.add_job(
         scan_foreup_job,
-        trigger=IntervalTrigger(seconds=30),
+        trigger=IntervalTrigger(seconds=60),
         name="ForeUp_GLOBAL_scan",
     )
 
@@ -39,8 +39,8 @@ async def start_scheduler(app: FastAPI):
 
         scheduler.add_job(
             run_alert_engine_for_tier,
-            trigger=IntervalTrigger(seconds=45),
-            args=[1],
+            trigger=IntervalTrigger(seconds=interval),
+            args=[tier_id],
             misfire_grace_time=10,
             name=f"AlertEngine_Tier_{tier_id}"
         )
