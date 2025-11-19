@@ -14,7 +14,7 @@ async def create_alert(alert: dict):
             raise HTTPException(status_code = 400, detail = "Missing user_id")
         
         # Fetch the profile
-        profile = (
+        profile = await (
             supabase.table("user_profiles")
             .select("id, membership_tier_id")
             .eq("id", user_id)
@@ -30,7 +30,7 @@ async def create_alert(alert: dict):
             raise HTTPException(status_code=400, detail="Membership tier not found.")
         
         # Fetch tier info
-        tier = (
+        tier = await (
             supabase.table("membership_tiers")
             .select("id, name, max_alerts")
             .eq("id", tier_id)
@@ -45,7 +45,7 @@ async def create_alert(alert: dict):
         tier_name = tier.data.get("name")
 
         # get the current existing alerts for this user
-        current_alerts = (
+        current_alerts = await (
             supabase.table("alerts")
             .select("id", count="exact")
             .eq("user_id", user_id)
@@ -58,7 +58,7 @@ async def create_alert(alert: dict):
                 status_code=403,
                 detail=f"Your {tier_name} plan allows up to {max_alerts} active alert(s). Please upgrade your plan to add more"
             )
-        result = supabase.table("alerts").insert(alert).execute()
+        result = await supabase.table("alerts").insert(alert).execute()
         return {"status": "success", "alert": result.data[0]}
     
     except HTTPException:
@@ -71,7 +71,7 @@ async def create_alert(alert: dict):
 async def get_user_alerts(user_id: str):
     """ Return all active alerts for a user. """
     supabase = await create_supabase()
-    alerts = (
+    alerts = await(
         supabase.table("alerts")
         .select("*, courses!alerts_course_id_fkey(name, city, state)")
         .eq("user_id", user_id)
@@ -84,5 +84,5 @@ async def get_user_alerts(user_id: str):
 async def delete_alert(alert_id: int):
     """ Delete an alert. """
     supabase = await create_supabase()
-    supabase.table("alerts").delete().eq("id", alert_id).execute()
+    await supabase.table("alerts").delete().eq("id", alert_id).execute()
     return {"status": "deleted", "alert_id": alert_id}

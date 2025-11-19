@@ -11,7 +11,7 @@ async def list_membership_tiers():
     """
     try:
         supabase = await create_supabase()
-        result = (
+        result = await (
             supabase.table("membership_tiers")
             .select("id, name, description, price_cents, max_alerts, scan_interval_seconds")
             .order("id")
@@ -30,7 +30,7 @@ async def get_user_membership(user_id: str):
     """
     try:
         supabase = await create_supabase()
-        result = (
+        result = await (
             supabase.table("user_profiles")
             .select(
                 "id, full_name, phone, membership_tier_id, stripe_customer_id, pending_downgrade, cancel_at, "
