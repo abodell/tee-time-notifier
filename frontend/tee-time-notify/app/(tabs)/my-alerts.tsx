@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Alert as RNAlert,
   TouchableOpacity,
+  Linking,
+  DeviceEventEmitter,
 } from "react-native";
 import {
   Text,
@@ -13,8 +15,10 @@ import {
   IconButton,
   ActivityIndicator,
   Surface,
+  Button,
+  Divider,
 } from "react-native-paper";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, Layout } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getUserAlerts, deleteAlert } from "@/lib/api";
@@ -31,6 +35,7 @@ export default function MyAlertsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
   const [tierName, setTierName] = useState("—");
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     loadAlerts();
@@ -87,47 +92,130 @@ export default function MyAlertsScreen() {
       await deleteAlert(id);
       setAlerts((p) => p.filter((a) => a.id !== id));
       Toast.show({ type: "success", text1: "Alert deleted", visibilityTime: 1000 });
+      // Notify other screens to refresh data
+      DeviceEventEmitter.emit("alertsUpdated");
     } catch (err: any) {
       Toast.show({ type: "error", text1: "Failed", text2: err.message });
     }
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleBookNow = (url: string | undefined, date: string) => {
+    if (!url) {
+      Toast.show({ type: "error", text1: "No booking URL available" });
+      return;
+    }
+    // Construct ForeUp URL with date parameter
+    // Assuming date is ISO string, extract YYYY-MM-DD
+    const dateStr = dayjs(date).format("MM-DD-YYYY");
+    const bookingUrl = `${url}?date=${dateStr}`;
+    Linking.openURL(bookingUrl).catch((err) =>
+      Toast.show({ type: "error", text1: "Could not open link", text2: err.message })
+    );
   };
 
   const atQuota = maxAlerts !== null && alerts.length >= (maxAlerts || 0);
 
   const renderItem = ({ item, index }: { item: AlertType; index: number }) => {
     const course = item.courses || {};
-    return (
-      <View
-        style={[
-          styles.listItem,
-          {
-            backgroundColor: theme.colors.surface,
-            borderTopLeftRadius: index === 0 ? 12 : 0,
-            borderTopRightRadius: index === 0 ? 12 : 0,
-            borderBottomLeftRadius: index === alerts.length - 1 ? 12 : 0,
-            borderBottomRightRadius: index === alerts.length - 1 ? 12 : 0,
-          }
-        ]}
-      >
-        <View style={{ flex: 1 }}>
-          <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-            {course.name || `Course #${item.course_id}`}
-          </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
-            {dayjs(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
-          </Text>
-          <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
-            {dayjs(item.start_time).format("h:mm A")} - {dayjs(item.end_time).format("h:mm A")}
-          </Text>
-        </View>
+    const isExpanded = item.id ? expandedIds.has(item.id) : false;
+    const notifications = item.alert_notifications || [];
+    const hasNotifications = notifications.length > 0;
 
-        <TouchableOpacity
-          onPress={() => deleteConfirm(item.id!)}
-          style={{ padding: 8 }}
+    return (
+      <Animated.View layout={Layout.springify()}>
+        <Surface
+          style={[
+            styles.listItem,
+            {
+              backgroundColor: theme.colors.surface,
+              borderRadius: 12,
+              marginBottom: 12, // Add spacing between items
+              elevation: 1,
+            },
+          ]}
+          elevation={1}
         >
-          <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.colors.error} style={{ opacity: 0.8 }} />
-        </TouchableOpacity>
-      </View>
+          <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
+            <View style={{ flex: 1 }}>
+              <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                {course.name || `Course #${item.course_id}`}
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
+                {dayjs(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
+                {dayjs(item.start_time).format("h:mm A")} - {dayjs(item.end_time).format("h:mm A")}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <IconButton
+                icon={isExpanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                onPress={() => item.id && toggleExpand(item.id)}
+                iconColor={theme.colors.onSurfaceVariant}
+              />
+              <TouchableOpacity
+                onPress={() => deleteConfirm(item.id!)}
+                style={{ padding: 8 }}
+              >
+                <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.colors.error} style={{ opacity: 0.8 }} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Expanded Notifications Section */}
+          {isExpanded && (
+            <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.outline, padding: 16, backgroundColor: theme.colors.surfaceVariant + "40" }}>
+              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+                Found Openings
+              </Text>
+              {!hasNotifications ? (
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, fontStyle: "italic" }}>
+                  No tee times available currently.
+                </Text>
+              ) : (
+                notifications.map((notif) => {
+                  const teeTime = notif.availability?.tee_time;
+                  if (!teeTime) return null;
+                  return (
+                    <View key={notif.id} style={styles.notificationRow}>
+                      <View style={{ flexDirection: "row", alignItems: "center" }}>
+                        <MaterialCommunityIcons name="golf" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                        <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                          {dayjs(teeTime).format("h:mm A")}
+                        </Text>
+                      </View>
+                      <Button
+                        mode="contained"
+                        compact
+                        onPress={() => handleBookNow(course.provider_url, teeTime)}
+                        style={{ borderRadius: 8 }}
+                        labelStyle={{ fontSize: 12, marginHorizontal: 8, marginVertical: 4 }}
+                        contentStyle={{ height: 32 }}
+                      >
+                        Book
+                      </Button>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          )}
+        </Surface>
+      </Animated.View>
     );
   };
 
@@ -190,7 +278,6 @@ export default function MyAlertsScreen() {
         data={alerts}
         keyExtractor={(i) => i.id!.toString()}
         renderItem={renderItem}
-        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.outline, marginLeft: 16 }} />}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
         refreshControl={
           <RefreshControl
@@ -260,10 +347,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   listItem: {
+    overflow: "hidden",
+  },
+  notificationRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    justifyContent: "space-between",
+    paddingVertical: 8,
   },
   center: {
     flex: 1,

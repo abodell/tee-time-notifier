@@ -2,6 +2,17 @@ export interface Course {
   name?: string;
   city?: string;
   state?: string;
+  provider_url?: string;
+}
+
+export interface Availability {
+  tee_time: string;
+}
+
+export interface AlertNotification {
+  id: number;
+  sent_at: string;
+  availability?: Availability;
 }
 
 export interface Alert {
@@ -16,10 +27,11 @@ export interface Alert {
   active?: boolean;
   created_at?: string;
   updated_at?: string;
-  // add this:
-  courses?: Course; // nested relation from Supabase join
+  // Relations
+  courses?: Course;
+  alert_notifications?: AlertNotification[];
 }
 export type CreateAlertPayload = Omit<
-    Alert,
-    "id" | "created_at" | "updated_at"
+  Alert,
+  "id" | "created_at" | "updated_at"
 >;

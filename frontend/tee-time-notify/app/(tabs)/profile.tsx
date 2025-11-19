@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
 import FadeSlideTransition from "@/components/FadeSlideTransition";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Skeleton } from "moti/skeleton";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -203,13 +204,10 @@ export default function ProfileScreen() {
   // -------------------------------------------------------
   // 🟩 If logged in → Normal PROFILE UI
   // -------------------------------------------------------
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
+  // -------------------------------------------------------
+  // 🟩 If logged in → Normal PROFILE UI
+  // -------------------------------------------------------
+  // Removed full screen loading to show Skeleton instead
 
   const tier = user?.membership_tiers;
   const price =
@@ -237,12 +235,22 @@ export default function ProfileScreen() {
               <MaterialCommunityIcons name="crown" size={22} color={theme.colors.primary} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                {tier?.name || "Free Plan"}
-              </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                {price} • {tier?.max_alerts ?? 3} Active Alerts
-              </Text>
+              {loading ? (
+                <Skeleton colorMode={theme.dark ? "dark" : "light"} width={120} height={20} />
+              ) : (
+                <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                  {tier?.name}
+                </Text>
+              )}
+              <View style={{ marginTop: 4 }}>
+                {loading ? (
+                  <Skeleton colorMode={theme.dark ? "dark" : "light"} width={180} height={16} />
+                ) : (
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {price} {tier?.max_alerts ? `• ${tier.max_alerts} Active Alerts` : ""}
+                  </Text>
+                )}
+              </View>
             </View>
             <Button
               mode="text"
@@ -261,9 +269,13 @@ export default function ProfileScreen() {
             <Text style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
               Scan Interval
             </Text>
-            <Text style={{ color: theme.colors.onSurface, fontWeight: "500" }}>
-              Every {tier?.scan_interval_seconds ? tier.scan_interval_seconds / 60 : 10} mins
-            </Text>
+            {loading ? (
+              <Skeleton colorMode={theme.dark ? "dark" : "light"} width={100} height={20} />
+            ) : (
+              <Text style={{ color: theme.colors.onSurface, fontWeight: "500" }}>
+                {tier?.scan_interval_seconds ? `Every ${tier.scan_interval_seconds / 60} mins` : ""}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -272,7 +284,11 @@ export default function ProfileScreen() {
         <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.row}>
             <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Email</Text>
-            <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 16 }}>{user?.email}</Text>
+            {loading ? (
+              <Skeleton colorMode={theme.dark ? "dark" : "light"} width={180} height={20} />
+            ) : (
+              <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 16 }}>{user?.email}</Text>
+            )}
           </View>
 
           <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
@@ -287,7 +303,7 @@ export default function ProfileScreen() {
           Tee Time Snipe v1.0.0
         </Text>
       </ScrollView>
-    </View>
+    </View >
   );
 }
 

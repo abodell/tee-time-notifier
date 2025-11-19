@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
   TouchableOpacity,
+  DeviceEventEmitter,
 } from "react-native";
 import {
   Text,
@@ -56,6 +57,14 @@ export default function CourseSearchScreen() {
       loadQuotaData();
     }, [])
   );
+
+  // Listen for global alert updates (e.g. from My Alerts deletion)
+  React.useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener("alertsUpdated", () => {
+      loadQuotaData();
+    });
+    return () => subscription.remove();
+  }, []);
 
   const loadQuotaData = async () => {
     try {
