@@ -11,7 +11,7 @@ import {
 } from "react-native-paper";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
@@ -45,9 +45,23 @@ export default function UpgradeScreen() {
   const [pendingDowngrade, setPendingDowngrade] = useState(false);
   const [cancelAt, setCancelAt] = useState<string | null>(null);
 
+  const { canceled } = useLocalSearchParams();
+
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (canceled) {
+      setRedirectingTier(null);
+      Toast.show({
+        type: "info",
+        text1: "Checkout Canceled",
+        text2: "You have not been charged.",
+        position: "top",
+      });
+    }
+  }, [canceled]);
 
   const loadData = async () => {
     try {
@@ -157,10 +171,19 @@ export default function UpgradeScreen() {
 
       setRedirectingTier(tier.id);
 
+      // Generate deep links for return
+      const successUrl = Linking.createURL("/profile");
+      const cancelUrl = Linking.createURL("/upgrade");
+
       const res = await fetch(`${API_URL}/membership/upgrade`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, tier_id: tier.id }),
+        body: JSON.stringify({
+          user_id: user.id,
+          tier_id: tier.id,
+          success_url: successUrl,
+          cancel_url: cancelUrl
+        }),
       });
 
       if (!res.ok) throw new Error(await res.text());

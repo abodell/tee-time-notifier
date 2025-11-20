@@ -11,7 +11,7 @@ import {
   HelperText,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Toast from "react-native-toast-message";
 import FadeSlideTransition from "@/components/FadeSlideTransition";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -36,6 +36,7 @@ interface UserProfile {
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { success } = useLocalSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
@@ -58,6 +59,19 @@ export default function ProfileScreen() {
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // Handle Stripe success redirect
+  useEffect(() => {
+    if (success && session) {
+      Toast.show({
+        type: "success",
+        text1: "Membership Updated",
+        text2: "Thank you for upgrading!",
+        position: "top",
+      });
+      fetchProfile();
+    }
+  }, [success, session]);
 
   // Fetch membership profile ONLY when session exists
   useEffect(() => {
