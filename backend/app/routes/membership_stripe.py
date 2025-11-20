@@ -21,6 +21,8 @@ async def create_checkout_session(request: Request):
         payload = await request.json()
         user_id = payload.get("user_id")
         tier_id = payload.get("tier_id")
+        success_url = payload.get("success_url")
+        cancel_url = payload.get("cancel_url")
 
         if not user_id or not tier_id:
             raise HTTPException(status_code = 400, detail = "Missing required fields")
@@ -60,12 +62,16 @@ async def create_checkout_session(request: Request):
                 {"stripe_customer_id": stripe_customer_id}
             ).eq("id", user_id).execute()
 
+        # Use provided URLs or fallback to env vars (legacy behavior)
+        final_success_url = f"{success_url}?success=true" if success_url else f"{os.getenv('APP_PUBLIC_URL', 'https://google.com')}/profile?success=true"
+        final_cancel_url = f"{cancel_url}?canceled=true" if cancel_url else f"{os.getenv('APP_PUBLIC_URL', 'https://stripe.com')}/upgrade?canceled=true"
+
         session = stripe.checkout.Session.create(
             mode = "subscription",
             customer = stripe_customer_id,
             line_items = [{"price": price_id, "quantity": 1}],
-            success_url=f"{os.getenv('APP_PUBLIC_URL', 'https://google.com')}/profile?success=true",
-            cancel_url=f"{os.getenv('APP_PUBLIC_URL', 'https://stripe.com')}/upgrade?canceled=true",
+            success_url=final_success_url,
+            cancel_url=final_cancel_url,
             allow_promotion_codes=True,
         )
 
