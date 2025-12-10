@@ -35,20 +35,20 @@ const fontConfig = {
 // Surface: Pure White
 const lightColors = {
   ...DefaultLightTheme.colors,
-  primary: "#2F80ED", // Electric Blue
+  primary: "#15803d", // Deep Green (better contrast on white)
   onPrimary: "#FFFFFF",
-  primaryContainer: "#D6E4FF",
-  onPrimaryContainer: "#001D3D",
-  secondary: "#5E5CE6", // Indigo
+  primaryContainer: "#DCFCE7",
+  onPrimaryContainer: "#14532D",
+  secondary: "#166534", // Darker Green
   onSecondary: "#FFFFFF",
-  secondaryContainer: "#E0E0FF",
-  onSecondaryContainer: "#050533",
+  secondaryContainer: "#F0FDF4",
+  onSecondaryContainer: "#14532D",
   background: "#FFFFFF", // Pure White
   surface: "#F5F5F5", // Slight contrast (White Smoke)
   surfaceVariant: "#F1F5F9", // Cool Grey 100
   onSurface: "#1E293B", // Slate 800
   onSurfaceVariant: "#64748B", // Slate 500
-  outline: "rgba(47, 128, 237, 0.15)", // Subtle blueish border
+  outline: "rgba(21, 128, 61, 0.15)", // Subtle green border
   outlineVariant: "rgba(148, 163, 184, 0.2)",
   elevation: {
     level0: "transparent",
@@ -60,25 +60,25 @@ const lightColors = {
   },
 };
 
-// Dark Mode: "Midnight & Neon Cyan"
+// Dark Mode: "Midnight & Neon Green"
 // Background: Pure Black
 // Surface: Dark Grey
 const darkColors = {
   ...DefaultDarkTheme.colors,
-  primary: "#56CCF2", // Neon Cyan
+  primary: "#4ade80", // Neon Green (excellent on dark)
   onPrimary: "#002B36",
-  primaryContainer: "#004E64",
-  onPrimaryContainer: "#E0F7FA",
-  secondary: "#5E5CE6", // Indigo
+  primaryContainer: "#14532D",
+  onPrimaryContainer: "#DCFCE7",
+  secondary: "#22c55e", // Green 500
   onSecondary: "#FFFFFF",
-  secondaryContainer: "#2C2C54",
-  onSecondaryContainer: "#E0E0FF",
+  secondaryContainer: "#14532D",
+  onSecondaryContainer: "#F0FDF4",
   background: "#000000", // Pure Black
   surface: "#1C1C1E", // iOS Dark Surface
   surfaceVariant: "#334155", // Slate 700
   onSurface: "#F8FAFC", // Slate 50
   onSurfaceVariant: "#94A3B8", // Slate 400
-  outline: "rgba(86, 204, 242, 0.2)", // Subtle cyan border
+  outline: "rgba(74, 222, 128, 0.2)", // Subtle neon border
   outlineVariant: "rgba(51, 65, 85, 0.4)",
   elevation: {
     level0: "transparent",
@@ -109,7 +109,7 @@ export const PaperDarkTheme = {
 export const Colors = {
   light: {
     gradients: {
-      primary: ["#2F80ED", "#56CCF2"], // Blue -> Cyan
+      primary: ["#15803d", "#22c55e"], // Deep Green -> Green 500
       success: ["#34C759", "#30D158"],
       danger: ["#FF3B30", "#FF453A"],
       dark: ["#2C3E50", "#4CA1AF"],
@@ -118,7 +118,7 @@ export const Colors = {
   },
   dark: {
     gradients: {
-      primary: ["#0A84FF", "#5E5CE6"], // Blue -> Indigo
+      primary: ["#4ade80", "#22c55e"], // Neon Green -> Green 500
       success: ["#30D158", "#34C759"],
       danger: ["#FF453A", "#FF3B30"],
       dark: ["#1C1C1E", "#2C2C2E"],

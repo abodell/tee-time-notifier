@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "tee-time-notify",
-    "slug": "tee-time-notify",
+    "name": "TeeSignal",
+    "slug": "tee-signal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "teetimenotify",
+    "scheme": "teesignal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

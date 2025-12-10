@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform } from "react-native";
 import {
   Text,
   Button,
@@ -11,29 +11,15 @@ import {
 } from "react-native-paper";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Purchases, { PurchasesPackage } from "react-native-purchases";
+import { MembershipTier, UserProfileResponse } from "@/types/membership";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
-interface MembershipTier {
-  id: number;
-  name: string;
-  description?: string;
-  price_cents?: number;
-  max_alerts?: number;
-  scan_interval_seconds?: number;
-}
-
-interface UserProfileResponse {
-  membership_tier_id: number;
-  membership_tiers?: MembershipTier;
-  pending_downgrade?: boolean;
-  cancel_at?: string;
-}
 
 export default function UpgradeScreen() {
   const theme = useTheme();
@@ -44,24 +30,11 @@ export default function UpgradeScreen() {
   const [userTier, setUserTier] = useState<number | null>(null);
   const [pendingDowngrade, setPendingDowngrade] = useState(false);
   const [cancelAt, setCancelAt] = useState<string | null>(null);
-
-  const { canceled } = useLocalSearchParams();
+  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    if (canceled) {
-      setRedirectingTier(null);
-      Toast.show({
-        type: "info",
-        text1: "Checkout Canceled",
-        text2: "You have not been charged.",
-        position: "top",
-      });
-    }
-  }, [canceled]);
 
   const loadData = async () => {
     try {
@@ -85,6 +58,37 @@ export default function UpgradeScreen() {
       setUserTier(profileData.membership_tier_id);
       setPendingDowngrade(profileData.pending_downgrade || false);
       setCancelAt(profileData.cancel_at || null);
+
+      // Fetch RevenueCat Offerings or Products
+      try {
+        const offerings = await Purchases.getOfferings();
+
+        if (offerings.current && offerings.current.availablePackages.length > 0) {
+          setPackages(offerings.current.availablePackages);
+        } else {
+          // Fallback: Fetch products directly using IDs from our DB
+          const productIds = tierList
+            .map(t => t.revenuecat_entitlement_id)
+            .filter((id): id is string => !!id);
+
+          if (productIds.length > 0) {
+            const products = await Purchases.getProducts(productIds);
+
+            // Wrap products in synthetic packages to match existing state structure
+            const syntheticPackages: any[] = products.map(product => ({
+              identifier: product.identifier,
+              packageType: "CUSTOM",
+              product: product,
+              offeringIdentifier: "fallback"
+            }));
+
+            setPackages(syntheticPackages);
+          }
+        }
+      } catch (e) {
+        console.log("Error fetching offerings/products", e);
+      }
+
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -111,95 +115,61 @@ export default function UpgradeScreen() {
       // 🟡 Downgrade flow: user chooses Free plan
       if (tier.price_cents === 0 && userTier && userTier !== 1) {
         Alert.alert(
-          "Unsubscribe?",
-          "Are you sure you want to cancel your current subscription? " +
-          "Your plan will remain active until the end of this billing period.",
+          "Manage Subscription",
+          "To cancel or downgrade your plan, please manage your subscription in your device settings.",
           [
-            { text: "Keep Current Plan", style: "cancel" },
+            { text: "Cancel", style: "cancel" },
             {
-              text: "Unsubscribe",
-              style: "destructive",
+              text: "Open Settings",
               onPress: async () => {
-                try {
-                  const {
-                    data: { user },
-                  } = await supabase.auth.getUser();
-                  if (!user) throw new Error("Not logged in");
-
-                  const res = await fetch(`${API_URL}/membership/downgrade`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: user.id }),
-                  });
-
-                  if (!res.ok) throw new Error(await res.text());
-                  const data = await res.json();
-
-                  setPendingDowngrade(true);
-                  setCancelAt(
-                    new Date(data.cancel_at * 1000).toISOString()
-                  );
-
-                  Toast.show({
-                    type: "info",
-                    text1: "Downgrade scheduled",
-                    text2: `Plan will end on ${new Date(
-                      data.cancel_at * 1000
-                    ).toLocaleDateString()}`,
-                    position: "top",
-                  });
-                } catch (err: any) {
-                  Toast.show({
-                    type: "error",
-                    text1: "Failed to schedule downgrade",
-                    text2: err.message,
-                    position: "top",
-                  });
+                if (Platform.OS === 'ios') {
+                  Linking.openURL('https://apps.apple.com/account/subscriptions');
+                } else {
+                  Linking.openURL('https://play.google.com/store/account/subscriptions');
                 }
-              },
-            },
+              }
+            }
           ]
         );
         return;
       }
 
-      // 🟢 Regular upgrade flow
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
-
+      // 🟢 Regular upgrade flow (Native IAP)
       setRedirectingTier(tier.id);
 
-      // Generate deep links for return
-      const successUrl = Linking.createURL("/profile");
-      const cancelUrl = Linking.createURL("/upgrade");
+      // Find matching package
+      const packageToBuy = packages.find(
+        (pkg) => pkg.product.identifier === tier.revenuecat_entitlement_id || pkg.identifier === tier.revenuecat_entitlement_id
+      );
 
-      const res = await fetch(`${API_URL}/membership/upgrade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user.id,
-          tier_id: tier.id,
-          success_url: successUrl,
-          cancel_url: cancelUrl
-        }),
-      });
+      if (!packageToBuy) {
+        throw new Error("Product not found in store. Please try again later.");
+      }
 
-      if (!res.ok) throw new Error(await res.text());
+      const { customerInfo } = await Purchases.purchasePackage(packageToBuy);
 
-      const data = await res.json();
-      const checkoutUrl = data.checkout_url;
-      if (!checkoutUrl) throw new Error("Checkout URL missing");
+      // Check if entitlement is active
+      if (customerInfo.entitlements.active[tier.revenuecat_entitlement_id || ""]) {
+        Toast.show({
+          type: "success",
+          text1: "Upgrade Successful",
+          text2: "Your plan has been updated.",
+          position: "top",
+        });
+        // Refresh profile
+        loadData();
+      }
 
-      await Linking.openURL(checkoutUrl);
     } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text1: "Checkout failed",
-        text2: err.message,
-        position: "top",
-      });
+      if (!err.userCancelled) {
+        Toast.show({
+          type: "error",
+          text1: "Purchase Failed",
+          text2: err.message,
+          position: "top",
+        });
+      }
+    } finally {
       setRedirectingTier(null);
     }
   };
@@ -269,8 +239,22 @@ export default function UpgradeScreen() {
         {tiers.map((tier) => {
           const isCurrent = tier.id === userTier;
           const isRedirecting = redirectingTier === tier.id;
-          const price = toPriceText(tier.price_cents);
           const isFree = tier.price_cents === 0;
+
+          // Find matching RevenueCat package
+          const rcPackage = packages.find(
+            (pkg) =>
+              pkg.identifier === tier.revenuecat_entitlement_id ||
+              pkg.product.identifier === tier.revenuecat_entitlement_id
+          );
+
+          // Use RevenueCat price if available, otherwise fallback to DB price
+          const priceDisplay = rcPackage
+            ? rcPackage.product.priceString
+            : toPriceText(tier.price_cents);
+
+          // Disable purchase if not free, not current, and no package found
+          const isUnavailable = !isFree && !isCurrent && !rcPackage;
 
           return (
             <Surface
@@ -314,7 +298,7 @@ export default function UpgradeScreen() {
                   fontSize: 32,
                 }}
               >
-                {price}
+                {priceDisplay}
               </Text>
 
               <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 20 }}>
@@ -362,12 +346,12 @@ export default function UpgradeScreen() {
                 ) : (
                   <TouchableOpacity
                     onPress={() => handleSelectPlan(tier)}
-                    disabled={isRedirecting}
+                    disabled={isRedirecting || isUnavailable}
                     activeOpacity={0.8}
                   >
                     <LinearGradient
                       colors={
-                        (isRedirecting
+                        (isRedirecting || isUnavailable
                           ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
                           : Colors.light.gradients.primary) as [string, string, ...string[]]
                       }
@@ -375,7 +359,7 @@ export default function UpgradeScreen() {
                       end={{ x: 1, y: 0 }}
                       style={[
                         styles.gradientButton,
-                        { opacity: isRedirecting ? 0.7 : 1 },
+                        { opacity: isRedirecting || isUnavailable ? 0.7 : 1 },
                       ]}
                     >
                       <Text
@@ -387,9 +371,11 @@ export default function UpgradeScreen() {
                       >
                         {isRedirecting
                           ? "Processing..."
-                          : isFree
-                            ? "Downgrade to Free"
-                            : "Upgrade Now"}
+                          : isUnavailable
+                            ? "Unavailable"
+                            : isFree
+                              ? "Downgrade to Free"
+                              : "Upgrade Now"}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>

@@ -6,7 +6,7 @@ import {
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -29,6 +29,7 @@ import Toast, { ToastConfig } from "react-native-toast-message";
 import * as Notifications from "expo-notifications";
 import { LinearGradient } from "expo-linear-gradient";
 import { registerForPushNotificationsAsync, setupNotificationHandlers } from "@/lib/notifications";
+import Purchases from "react-native-purchases";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -55,6 +56,7 @@ export default function RootLayout() {
   const systemScheme = useColorScheme();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRevenueCatConfigured, setIsRevenueCatConfigured] = useState(false);
 
   const [loaded] = useFonts({
     // We are using system fonts now, but keeping this hook if we add custom fonts later
@@ -65,6 +67,18 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    // Initialize RevenueCat
+    const apiKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_KEY;
+
+    if (apiKey) {
+      Purchases.configure({ apiKey });
+      setIsRevenueCatConfigured(true);
+    } else {
+      console.warn("RevenueCat API Key not found. IAP will not work.");
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -79,16 +93,25 @@ export default function RootLayout() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Track the last user ID we identified to prevent redundant calls (429 errors)
+  const lastIdentifiedUserId = useRef<string | null>(null);
+
   useEffect(() => {
     let cleanupListeners: (() => void) | undefined;
-    if (session) {
+    if (session && isRevenueCatConfigured) {
+      // Only identify if the user ID has changed
+      if (session.user.id !== lastIdentifiedUserId.current) {
+        Purchases.logIn(session.user.id);
+        lastIdentifiedUserId.current = session.user.id;
+      }
+
       registerForPushNotificationsAsync();
       cleanupListeners = setupNotificationListeners();
     }
     return () => {
       if (cleanupListeners) cleanupListeners();
     };
-  }, [session]);
+  }, [session, isRevenueCatConfigured]);
 
   const theme = systemScheme === "dark" ? PaperDarkTheme : PaperLightTheme;
   const isDark = systemScheme === "dark";
