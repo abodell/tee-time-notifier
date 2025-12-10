@@ -9,6 +9,7 @@ import {
   Linking,
   DeviceEventEmitter,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
   useTheme,
@@ -227,7 +228,7 @@ export default function MyAlertsScreen() {
     );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
         <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
           My Alerts
@@ -323,7 +324,7 @@ export default function MyAlertsScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -3,12 +3,12 @@ import { useFocusEffect } from "expo-router";
 import {
   View,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Platform,
   TouchableOpacity,
   DeviceEventEmitter,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
   TextInput,

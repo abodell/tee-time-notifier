@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
   Button,
@@ -198,7 +199,7 @@ export default function ProfileScreen() {
             <View style={{ alignItems: "center", marginBottom: 32 }}>
               <MaterialCommunityIcons name="golf" size={64} color={theme.colors.primary} />
               <Text variant="headlineMedium" style={{ fontWeight: "700", marginTop: 16, color: theme.colors.onBackground }}>
-                Join Tee Time Snipe
+                Join TeeSignal
               </Text>
               <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant, textAlign: "center", marginTop: 8 }}>
                 Create an account to start tracking open tee times.
@@ -262,8 +263,6 @@ export default function ProfileScreen() {
   }
 
   // -------------------------------------------------------
-  // 🟩 If logged in → Normal PROFILE UI
-  // -------------------------------------------------------
   // -------------------------------------------------------
   // 🟩 If logged in → Normal PROFILE UI
   // -------------------------------------------------------
@@ -276,7 +275,7 @@ export default function ProfileScreen() {
       : "Free";
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
         <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
           Profile
@@ -370,7 +369,7 @@ export default function ProfileScreen() {
           TeeSignal v1.0.0
         </Text>
       </ScrollView>
-    </View >
+    </SafeAreaView>
   );
 }
 
