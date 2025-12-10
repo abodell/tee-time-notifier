@@ -137,6 +137,52 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      "Delete Account?",
+      "This action is permanent and cannot be undone. All your data and alerts will be removed.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) return;
+
+              const res = await fetch(`${API_URL}/auth/delete`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              });
+
+              if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Failed to delete account");
+              }
+
+              // Sign out locally
+              await supabase.auth.signOut();
+              Toast.show({
+                type: "success",
+                text1: "Account Deleted",
+                position: "top",
+              });
+              router.replace("/(auth)/sign-in");
+            } catch (err: any) {
+              Alert.alert("Error", err.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // -------------------------------------------------------
   // 🟥 If NOT logged in → Show SIGN-UP FORM instead of Profile UI
   // -------------------------------------------------------
@@ -311,10 +357,17 @@ export default function ProfileScreen() {
             <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "500" }}>Log Out</Text>
             <MaterialCommunityIcons name="logout" size={20} color={theme.colors.error} />
           </TouchableOpacity>
+
+          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
+
+          <TouchableOpacity style={styles.row} onPress={handleDeleteAccount}>
+            <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "700" }}>Delete Account</Text>
+            <MaterialCommunityIcons name="delete-forever" size={20} color={theme.colors.error} />
+          </TouchableOpacity>
         </View>
 
         <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
-          Tee Time Snipe v1.0.0
+          TeeSignal v1.0.0
         </Text>
       </ScrollView>
     </View >
