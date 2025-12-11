@@ -7,6 +7,7 @@ import {
   Platform,
   TouchableOpacity,
   DeviceEventEmitter,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -16,6 +17,7 @@ import {
   useTheme,
   Surface,
   IconButton,
+  Button,
 } from "react-native-paper";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -44,6 +46,7 @@ export default function CourseSearchScreen() {
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
+  const [debouncing, setDebouncing] = useState(false);
 
   const [tierName, setTierName] = useState<string>("—");
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
@@ -113,13 +116,18 @@ export default function CourseSearchScreen() {
   React.useEffect(() => {
     if (!query.trim() || reachedQuota) {
       setCourses([]);
+      setDebouncing(false);
       return;
     }
-    const t = setTimeout(() => fetchCourses(query), 300);
+    const t = setTimeout(() => {
+      fetchCourses(query);
+      setDebouncing(false);
+    }, 300);
     return () => clearTimeout(t);
   }, [query, reachedQuota]);
 
   const handleSelectCourse = (course: Course) => {
+    Keyboard.dismiss();
     router.push({
       pathname: "/create-details",
       params: { id: course.id, name: course.name },
@@ -190,7 +198,10 @@ export default function CourseSearchScreen() {
           <TextInput
             placeholder="Search courses..."
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(text) => {
+              setQuery(text);
+              setDebouncing(text.trim().length > 0);
+            }}
             mode="outlined"
             left={<TextInput.Icon icon="magnify" color={theme.colors.onSurfaceVariant} />}
             style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
@@ -210,7 +221,7 @@ export default function CourseSearchScreen() {
               Upgrade your plan to track more courses and never miss a tee time.
             </Text>
           </View>
-        ) : loading ? (
+        ) : loading || debouncing ? (
           <View style={styles.center}>
             <ActivityIndicator animating color={theme.colors.primary} />
           </View>
@@ -220,7 +231,7 @@ export default function CourseSearchScreen() {
             keyExtractor={(item) => item.id.toString()}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
-            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.outline, marginLeft: 16 }} />}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.onSurface + "12", marginLeft: 16 }} />}
             renderItem={({ item, index, separators }) => (
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -248,9 +259,42 @@ export default function CourseSearchScreen() {
               </TouchableOpacity>
             )}
             ListEmptyComponent={
-              query.trim() ? (
-                <View style={[styles.center, { marginTop: 40 }]}>
-                  <Text style={{ color: theme.colors.onSurfaceVariant }}>No courses found</Text>
+              <View style={[styles.center, { marginTop: 40 }]}>
+                {query.trim() ? (
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={{ color: theme.colors.onSurfaceVariant, textAlign: "center", marginBottom: 16 }}>
+                      No courses found matching "{query}"
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={{ alignItems: "center", opacity: 0.6 }}>
+                    <MaterialCommunityIcons name="golf" size={48} color={theme.colors.onSurfaceVariant} />
+                    <Text style={{ marginTop: 16, color: theme.colors.onSurfaceVariant }}>
+                      Start typing to search
+                    </Text>
+                  </View>
+                )}
+                <Button
+                  mode="text"
+                  onPress={() => router.push("/request-course")}
+                  style={{ marginTop: 12 }}
+                  textColor={theme.colors.primary}
+                >
+                  Can't find your course?
+                </Button>
+              </View>
+            }
+            ListFooterComponent={
+              courses.length > 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Button
+                    mode="text"
+                    onPress={() => router.push("/request-course")}
+                    textColor={theme.colors.primary}
+                    labelStyle={{ fontSize: 13, opacity: 1 }}
+                  >
+                    Can't find your course?
+                  </Button>
                 </View>
               ) : null
             }
