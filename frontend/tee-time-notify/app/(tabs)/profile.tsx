@@ -71,6 +71,7 @@ export default function ProfileScreen() {
       setLoading(false);
       return;
     }
+    setLoading(true);
     fetchProfile();
   }, [session]);
 
