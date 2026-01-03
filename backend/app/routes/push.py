@@ -18,7 +18,7 @@ async def register_push_token(request: Request):
     if not user_id or not token:
         raise HTTPException(status_code=400, detail="Missing fields")
     
-    supabase.table("user_profiles").update(
+    await supabase.table("user_profiles").update(
         {"expo_push_token": token}
     ).eq("id", user_id).execute()
 
@@ -35,7 +35,7 @@ async def send_test_push(request: Request):
     title = data.get("title", "Tee Time Alert!")
     body = data.get("body", "This is a push test.")
 
-    profile = (
+    profile = await (
         supabase.table("user_profiles")
         .select("expo_push_token")
         .eq("id", user_id)

@@ -13,7 +13,7 @@ async def list_membership_tiers():
         supabase = await create_supabase()
         result = await (
             supabase.table("membership_tiers")
-            .select("id, name, description, price_cents, max_alerts, scan_interval_seconds")
+            .select("id, name, description, price_cents, max_alerts, scan_interval_seconds, revenuecat_entitlement_id")
             .order("id")
             .execute()
         )
