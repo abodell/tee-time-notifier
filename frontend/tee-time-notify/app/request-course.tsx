@@ -1,33 +1,58 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
     View,
     StyleSheet,
-    TouchableWithoutFeedback,
-    Keyboard,
     TouchableOpacity,
     ScrollView,
     KeyboardAvoidingView,
     Platform,
+    Keyboard,
+    FlatList,
 } from "react-native";
 import {
     Text,
     Button,
     useTheme,
-    Surface,
     IconButton,
     ActivityIndicator,
     TextInput as PaperInput,
 } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import { supabase } from "../lib/supabase";
 import Toast from "react-native-toast-message";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-// Use the Expo Public env var for client-side access
-const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+
+// Debounce helper
+function useDebounce<T extends (...args: any[]) => void>(
+    callback: T,
+    delay: number
+): T {
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    return useCallback(
+        ((...args: Parameters<T>) => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+            timeoutRef.current = setTimeout(() => {
+                callback(...args);
+            }, delay);
+        }) as T,
+        [callback, delay]
+    );
+}
+
+interface CourseResult {
+    place_id: string;
+    name: string;
+    address: string;
+    street_address: string;
+    city: string;
+    state: string;
+}
 
 export default function RequestCourseScreen() {
     const theme = useTheme();
@@ -35,13 +60,108 @@ export default function RequestCourseScreen() {
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [searching, setSearching] = useState(false);
+    const [wasRequested, setWasRequested] = useState(false);
 
-    // Form State
+    // Search state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<CourseResult[]>([]);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [hasSelected, setHasSelected] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+
+    // Form State (populated on selection)
     const [name, setName] = useState("");
     const [address, setAddress] = useState("");
     const [city, setCity] = useState("");
     const [state, setState] = useState("");
     const [placeId, setPlaceId] = useState("");
+
+    const searchCourses = async (query: string) => {
+        if (query.length < 2) {
+            setSearchResults([]);
+            setShowDropdown(false);
+            return;
+        }
+
+        setSearching(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error("You must be signed in to search courses.");
+            }
+
+            const res = await fetch(
+                `${API_URL}/courses/search?query=${encodeURIComponent(query)}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                }
+            );
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Failed to search courses.");
+            }
+
+            const data = await res.json();
+            setSearchResults(data.results || []);
+            setShowDropdown(data.results?.length > 0);
+        } catch (err: any) {
+            console.error("Search error:", err);
+            Toast.show({
+                type: "error",
+                text1: "Search Failed",
+                text2: err.message,
+                position: "top",
+            });
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const debouncedSearch = useDebounce(searchCourses, 300);
+
+    const handleSearchChange = (text: string) => {
+        setSearchQuery(text);
+        setHasSelected(false);
+
+        if (text.length >= 2) {
+            debouncedSearch(text);
+        } else {
+            setSearchResults([]);
+            setShowDropdown(false);
+        }
+    };
+
+    const handleSelectCourse = (course: CourseResult) => {
+        // Populate form
+        setName(course.name);
+        setAddress(course.address);
+        setCity(course.city);
+        setState(course.state);
+        setPlaceId(course.place_id);
+
+        // Update search input and hide dropdown
+        setSearchQuery(course.name);
+        setHasSelected(true);
+        setShowDropdown(false);
+        setSearchResults([]);
+        Keyboard.dismiss();
+    };
+
+    const handleClearSelection = () => {
+        setName("");
+        setAddress("");
+        setCity("");
+        setState("");
+        setPlaceId("");
+        setSearchQuery("");
+        setHasSelected(false);
+        setSearchResults([]);
+        setShowDropdown(false);
+    };
 
     const handleSubmit = async () => {
         if (!name || !placeId) {
@@ -81,6 +201,12 @@ export default function RequestCourseScreen() {
                 throw new Error(err.detail || "Failed to submit request.");
             }
 
+            const data = await res.json();
+
+            if (data.was_previously_requested) {
+                setWasRequested(true);
+            }
+
             setSuccess(true);
         } catch (err: any) {
             Toast.show({
@@ -101,11 +227,19 @@ export default function RequestCourseScreen() {
                     <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + "20" }]}>
                         <MaterialCommunityIcons name="check-circle" size={64} color={theme.colors.primary} />
                     </View>
-                    <Text variant="headlineSmall" style={{ fontWeight: "700", marginTop: 24, color: theme.colors.onBackground }}>
-                        Request Received!
+                    <Text variant="headlineSmall" style={{ fontWeight: "700", marginTop: 24, color: theme.colors.onBackground, textAlign: "center" }}>
+                        {wasRequested ? "Suggestion Noted!" : "Request Received!"}
                     </Text>
                     <Text variant="bodyLarge" style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 12, paddingHorizontal: 32 }}>
-                        Thanks for suggesting <Text style={{ fontWeight: "700" }}>{name}</Text>. We'll review it and add it to the platform soon.
+                        {wasRequested ? (
+                            <>
+                                <Text style={{ fontWeight: "700" }}>{name}</Text> has already been requested. We've added your vote to help us prioritize it!
+                            </>
+                        ) : (
+                            <>
+                                Thanks for suggesting <Text style={{ fontWeight: "700" }}>{name}</Text>. We'll review it and add it to the platform soon.
+                            </>
+                        )}
                     </Text>
                     <Button
                         mode="contained"
@@ -143,84 +277,96 @@ export default function RequestCourseScreen() {
                         Can't find your home course? Search for it below and we'll get it added.
                     </Text>
 
-                    <Text style={[styles.label, { color: theme.colors.onSurface }]}>SEARCH & SELECT COURSE</Text>
+                    <Text style={[styles.label, { color: theme.colors.onSurface }]}>SEARCH FOR A GOLF COURSE</Text>
 
-                    {/* Autocomplete sits above the form content */}
+                    {/* Custom Search Input with Dropdown */}
                     <View style={{ zIndex: 10 }}>
-                        <GooglePlacesAutocomplete
-                            placeholder="Search golf courses..."
-                            fetchDetails={true}
-                            onPress={(data, details = null) => {
-                                if (details) {
-                                    setPlaceId(data.place_id);
-                                    setName(data.structured_formatting.main_text);
-                                    setAddress(data.description);
-                                    let foundCity = "";
-                                    let foundState = "";
-                                    details.address_components.forEach(comp => {
-                                        if (comp.types.includes("locality")) foundCity = comp.long_name;
-                                        if (comp.types.includes("administrative_area_level_1")) foundState = comp.short_name;
-                                    });
-                                    setCity(foundCity);
-                                    setState(foundState);
+                        <View style={styles.searchInputContainer}>
+                            <PaperInput
+                                placeholder="Search golf courses..."
+                                value={searchQuery}
+                                onChangeText={handleSearchChange}
+                                onFocus={() => {
+                                    setIsFocused(true);
+                                    if (searchResults.length > 0 && !hasSelected) {
+                                        setShowDropdown(true);
+                                    }
+                                }}
+                                onBlur={() => {
+                                    setIsFocused(false);
+                                    setShowDropdown(false);
+                                }}
+                                mode="outlined"
+                                style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                                outlineStyle={{ borderRadius: 12 }}
+                                right={
+                                    searching ? (
+                                        <PaperInput.Icon icon={() => <ActivityIndicator size={20} />} />
+                                    ) : hasSelected ? (
+                                        <PaperInput.Icon icon="close" onPress={handleClearSelection} />
+                                    ) : (
+                                        <PaperInput.Icon icon="magnify" />
+                                    )
                                 }
-                            }}
-                            query={{
-                                key: GOOGLE_MAPS_API_KEY,
-                                language: "en",
-                                types: "establishment",
-                                components: "country:us",
-                            }}
-                            enablePoweredByContainer={false}
-                            styles={{
-                                container: {
-                                    flex: 0,
-                                    marginBottom: 16,
-                                },
-                                textInput: {
-                                    height: 50,
-                                    backgroundColor: theme.colors.surface,
-                                    borderRadius: 12,
-                                    paddingHorizontal: 16,
-                                    fontSize: 16,
-                                    color: theme.colors.onSurface,
-                                    borderWidth: 1,
-                                    borderColor: theme.colors.outline,
-                                },
-                                listView: {
-                                    backgroundColor: theme.colors.surface,
-                                    borderRadius: 12,
-                                    marginTop: 4,
-                                    borderWidth: 1,
-                                    borderColor: theme.colors.outline,
-                                    position: 'absolute',
-                                    top: 55,
-                                    left: 0,
-                                    right: 0,
-                                    elevation: 5,
-                                    zIndex: 1000,
-                                },
-                                row: {
-                                    backgroundColor: "transparent",
-                                    paddingVertical: 12,
-                                },
-                                description: {
-                                    color: theme.colors.onSurface,
-                                },
-                            }}
-                            textInputProps={{
-                                placeholderTextColor: theme.colors.onSurfaceVariant,
-                            }}
-                        />
+                            />
+                        </View>
+
+                        {/* Dropdown Results */}
+                        {showDropdown && isFocused && searchResults.length > 0 && !hasSelected && (
+                            <View
+                                style={[
+                                    styles.dropdown,
+                                    {
+                                        backgroundColor: theme.colors.surface,
+                                        borderColor: theme.colors.outline,
+                                    },
+                                ]}
+                            >
+                                <FlatList
+                                    data={searchResults}
+                                    keyExtractor={(item) => item.place_id}
+                                    keyboardShouldPersistTaps="handled"
+                                    renderItem={({ item }) => (
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.dropdownItem,
+                                                { borderBottomColor: theme.colors.outlineVariant },
+                                            ]}
+                                            onPressIn={() => handleSelectCourse(item)}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="golf"
+                                                size={20}
+                                                color={theme.colors.primary}
+                                                style={{ marginRight: 12 }}
+                                            />
+                                            <View style={{ flex: 1 }}>
+                                                <Text
+                                                    style={{ fontWeight: "600", color: theme.colors.onSurface }}
+                                                    numberOfLines={2}
+                                                >
+                                                    {item.name}
+                                                </Text>
+                                                <Text
+                                                    style={{ fontSize: 13, color: theme.colors.onSurfaceVariant, marginTop: 2 }}
+                                                    numberOfLines={2}
+                                                >
+                                                    {item.city}{item.city && item.state ? ", " : ""}{item.state}
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    )}
+                                />
+                            </View>
+                        )}
                     </View>
 
-                    {/* Scrollable form content sits below/behind */}
+                    {/* Form Fields (shown after selection) */}
                     <ScrollView
-                        style={{ flex: 1, zIndex: 1 }}
+                        style={{ flex: 1, zIndex: 1, marginTop: 16 }}
                         contentContainerStyle={{ paddingBottom: 40 }}
                         keyboardShouldPersistTaps="handled"
                     >
-                        {/* Read Only Preview */}
                         <View style={{ opacity: name ? 1 : 0.5 }}>
                             <PaperInput
                                 label="Course Name"
@@ -297,5 +443,31 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         justifyContent: "center",
         alignItems: "center",
+    },
+    searchInputContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    dropdown: {
+        position: "absolute",
+        top: 60,
+        left: 0,
+        right: 0,
+        maxHeight: 300,
+        borderRadius: 12,
+        borderWidth: 1,
+        elevation: 5,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        zIndex: 1000,
+    },
+    dropdownItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
     },
 });
