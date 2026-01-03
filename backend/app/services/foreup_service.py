@@ -11,31 +11,41 @@ from app.models.tee_time import TeeTime
 
 http_client = AsyncClient()
 
-async def get_foreup_courses():
-    """ Fetch foreup courses that are attached to alerts that we should scan """
-    # Get all course IDs referenced in active alerts
+async def get_active_foreup_targets():
+    """ 
+    Return a list of unique (course, date_str) tuples that need scanning 
+    based on active alerts.
+    """
     supabase = await create_supabase()
+    
+    # 1. Get all active alerts
     alerts_res = await (
         supabase.table("alerts")
-        .select("course_id")
+        .select("date_from, date_to, courses!alerts_course_id_fkey(id, name, provider, time_zone)")
         .eq("active", True)
+        .eq("courses.provider", "ForeUp")
         .execute()
     )
-    alert_course_ids = {a["course_id"] for a in (alerts_res.data or [])}
-
-    if not alert_course_ids:
-        print(f"[ForeUp] No active alerts - skipping scan.")
-        return []
     
-    courses_res = await (
-        supabase.table("courses")
-        .select("*")
-        .eq("provider", "ForeUp")
-        .in_("id", list(alert_course_ids))
-        .execute()
-    )
+    targets = {} # {(course_id, date_str): course_obj}
+    
+    alerts = alerts_res.data or []
+    for a in alerts:
+        course = a["courses"]
+        # Parse date range
+        try:
+            # Simple handling: assume date_from is enough for now
+            start_dt = datetime.fromisoformat(a["date_from"].replace("Z", "+00:00"))
+            date_str = start_dt.strftime("%m-%d-%Y") # ForeUp format mm-dd-yyyy
+            
+            # Use tuple key to ensure uniqueness
+            key = (course["id"], date_str)
+            targets[key] = course
+        except Exception as e:
+            print(f"Error parsing alert date {a}: {e}")
+            continue
 
-    return courses_res.data or []
+    return targets
 
 async def get_provider_configs(course_id: int) -> dict:
     """ Fetch key/value pairs for provider configs """
@@ -88,7 +98,8 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
     tee_times: List[TeeTime] = []
     supabase = await create_supabase()
 
-    local_tz = tz.gettz(course.get("timezone")) or tz.tzutc()
+    # Updated to use time_zone instead of timezone
+    local_tz = tz.gettz(course.get("time_zone")) or tz.tzutc()
     utc_tz = tz.tzutc()
 
     for item in raw_data:
@@ -138,13 +149,25 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
         payload = [t.to_dict() for t in tee_times]
         await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
     print("Inserted to availability table...")
+
+async def run_foreup_scan():
+    """
+    Scans ForeUp courses for all dates requested in active alerts.
+    """
+    print("[ForeUp] Starting smart scan...")
+    targets = await get_active_foreup_targets()
     
-async def run_foreup_scan(date_str: str, holes: Union[str, int] = "all"):
-    courses = await get_foreup_courses()
-    for c in courses:
+    if not targets:
+        print("[ForeUp] No active alerts found.")
+        return
+
+    print(f"[ForeUp] Found {len(targets)} unique (course, date) pairs to scan.")
+    
+    for (course_id, date_str), course in targets.items():
         try:
-            cfgs = await get_provider_configs(c["id"])
-            data = await fetch_foreup_times(c, cfgs, date_str, holes)
-            await normalize_and_store(c, data, holes)
+            cfgs = await get_provider_configs(course_id)
+            # ForeUp API requires explicit date format
+            data = await fetch_foreup_times(course, cfgs, date_str, "all")
+            await normalize_and_store(course, data, "all")
         except Exception as e:
-            print(f"Error scanning {c['name']}: {e}")
+            print(f"Error scanning {course['name']} for {date_str}: {e}")

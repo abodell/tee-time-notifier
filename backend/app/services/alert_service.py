@@ -6,14 +6,6 @@ from app.services.push_service import send_push_notification
 ALERT_COOLDOWN_MINUTES = 30
 
 
-def within_time_window(tee_time_str: str, start_str: str, end_str: str):
-    """ Return True if tee_time.time() within user window. """
-    tee_dt = datetime.fromisoformat(tee_time_str)
-    start_t = datetime.fromisoformat(start_str).time()
-    end_t = datetime.fromisoformat(end_str).time()
-
-    return start_t <= tee_dt.time() <= end_t
-
 def notify_user(user_id, course_id, tee_time, method="push"):
     """ Placeholder for notifications. """
     print(
@@ -33,6 +25,7 @@ async def run_alert_engine(tier_id: int | None = None):
 
     query_execute = await query.execute()
     alerts = query_execute.data or []
+    print(f"[AlertEngine] Found {len(alerts)} alerts")
 
     if tier_id is not None:
         alerts = [
@@ -65,13 +58,9 @@ async def run_alert_engine(tier_id: int | None = None):
             print(f"[AlertEngine] Skipping alert {alert_id} (cooldown active)")
             continue
         # User selected day in UTC
-        base_date = datetime.fromisoformat(alert['date_from']).astimezone(timezone.utc)
-        
-        start_t = datetime.fromisoformat(alert['start_time']).time()
-        end_t = datetime.fromisoformat(alert['end_time']).time()
-
-        start_dt = datetime.combine(base_date.date(), start_t, tzinfo=timezone.utc)
-        end_dt = datetime.combine(base_date.date(), end_t, tzinfo=timezone.utc)
+        # We use the direct timestamps from the DB which are already correct
+        start_dt = datetime.fromisoformat(alert['start_time']).astimezone(timezone.utc)
+        end_dt = datetime.fromisoformat(alert['end_time']).astimezone(timezone.utc)
 
         tee_times_execute = await (
             supabase.table("availability")
@@ -84,15 +73,12 @@ async def run_alert_engine(tier_id: int | None = None):
         )
 
         tee_times = tee_times_execute.data
+        print(f'TEE TIMES: {tee_times}')
 
         new_ids = []
         for tee in tee_times or []:
-            tee_time_str = tee["tee_time"]
-            if not within_time_window(
-                tee_time_str, alert["start_time"], alert["end_time"]
-            ):
-                continue
-
+            # Since we filter in SQL, we know these are valid times
+            
             existing_execute = await (
                 supabase.table("alert_notifications")
                 .select("id")
