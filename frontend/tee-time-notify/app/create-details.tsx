@@ -36,7 +36,7 @@ function combinedDateAndTime(date: Date, time: Date) {
 }
 
 export default function CreateDetailsScreen() {
-  const { name } = useLocalSearchParams();
+  const { id, name } = useLocalSearchParams();
   const router = useRouter();
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -64,10 +64,14 @@ export default function CreateDetailsScreen() {
       const combinedEnd =
         date && endTime ? combinedDateAndTime(date, endTime) : null;
 
+      // Parse course ID from params
+      const courseId = Array.isArray(id) ? parseInt(id[0]) : parseInt(id || "0");
+      if (!courseId) throw new Error("Invalid course ID");
+
       const alertPayload = {
         user_id: data.session.user.id,
         holes: parseInt(holes),
-        course_id: 1, // TODO: dynamic course ID
+        course_id: courseId,
         date_from: date?.toISOString(),
         date_to: date?.toISOString(),
         start_time: combinedStart?.toISOString(),
