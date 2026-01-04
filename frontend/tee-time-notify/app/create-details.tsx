@@ -25,14 +25,17 @@ import DatePickerField from "../components/DatePickerField";
 import TimePickerField from "../components/TimePickerField";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 
-function combinedDateAndTime(date: Date, time: Date) {
-  const combined = new Date(date);
-  combined.setHours(time.getHours());
-  combined.setMinutes(time.getMinutes());
-  combined.setSeconds(time.getSeconds());
-  combined.setMilliseconds(0);
-  return combined;
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+function combinedDateAndTime(date: Date, time: Date, tz: string) {
+  const datePart = dayjs(date).format("YYYY-MM-DD");
+  const timePart = dayjs(time).format("HH:mm:ss");
+  return dayjs.tz(`${datePart} ${timePart}`, tz);
 }
 
 export default function CreateDetailsScreen() {
@@ -45,9 +48,25 @@ export default function CreateDetailsScreen() {
   const [date, setDate] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
+  const [course, setCourse] = useState<any>(null);
   const [startValid, setStartValid] = useState(false);
   const [endValid, setEndValid] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    const fetchCourse = async () => {
+      const courseId = Array.isArray(id) ? parseInt(id[0]) : parseInt(id || "0");
+      if (courseId) {
+        const { data } = await supabase
+          .from("courses")
+          .select("time_zone")
+          .eq("id", courseId)
+          .single();
+        if (data) setCourse(data);
+      }
+    };
+    fetchCourse();
+  }, [id]);
 
   const handleSubmit = async () => {
     const { data } = await supabase.auth.getSession();
@@ -59,10 +78,13 @@ export default function CreateDetailsScreen() {
     try {
       setSubmitting(true);
       // Combine the selected date with the chosen times
+      // Use the course's timezone or fallback to local guess
+      const tz = course?.time_zone || dayjs.tz.guess();
+
       const combinedStart =
-        date && startTime ? combinedDateAndTime(date, startTime) : null;
+        date && startTime ? combinedDateAndTime(date, startTime, tz) : null;
       const combinedEnd =
-        date && endTime ? combinedDateAndTime(date, endTime) : null;
+        date && endTime ? combinedDateAndTime(date, endTime, tz) : null;
 
       // Parse course ID from params
       const courseId = Array.isArray(id) ? parseInt(id[0]) : parseInt(id || "0");
@@ -72,12 +94,11 @@ export default function CreateDetailsScreen() {
         user_id: data.session.user.id,
         holes: parseInt(holes),
         course_id: courseId,
-        date_from: date?.toISOString(),
-        date_to: date?.toISOString(),
+        date_from: combinedStart?.startOf("day").toISOString(),
+        date_to: combinedEnd?.startOf("day").toISOString(),
         start_time: combinedStart?.toISOString(),
         end_time: combinedEnd?.toISOString(),
       };
-
       await createAlert(alertPayload);
 
       Toast.show({

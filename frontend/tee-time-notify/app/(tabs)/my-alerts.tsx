@@ -27,6 +27,36 @@ import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+/**
+ * Robustly format a UTC ISO string into a specific timezone's local time string.
+ * Uses native Intl.DateTimeFormat which is more reliable in React Native than dayjs.tz()
+ * for conversion if polyfills are missing.
+ */
+function formatInTimeZone(utcString: string | undefined, tz: string, formatStr: string = "h:mm A") {
+  if (!utcString) return "";
+  try {
+    // We can use Intl.DateTimeFormat to get the parts and format them,
+    // or just use dayjs with the date shifted by Intl if needed.
+    // However, simplest is dayjs.utc(utcString).tz(tz).format(formatStr)
+    // BUT since that is failing for the user, let's use a more direct method:
+    const date = new Date(utcString);
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    }).format(date);
+  } catch (e) {
+    console.warn(`Timezone conversion failed for ${tz}:`, e);
+    return dayjs.utc(utcString).format(formatStr); // Fallback to UTC display
+  }
+}
 
 export default function MyAlertsScreen() {
   const theme = useTheme();
@@ -112,20 +142,18 @@ export default function MyAlertsScreen() {
     });
   };
 
-  const handleBookNow = (url: string | undefined, date: string) => {
+  const handleBookNow = (url: string | undefined, date: string, tz?: string) => {
     if (!url) {
       Toast.show({ type: "error", text1: "No booking URL available" });
       return;
     }
-    // Construct ForeUp URL with date parameter
-    // Assuming date is ISO string, extract YYYY-MM-DD
-    const dateStr = dayjs(date).format("MM-DD-YYYY");
+    // Construct ForeUp URL with date parameter in course local time
+    const dateStr = dayjs(date).tz(tz || "UTC").format("MM-DD-YYYY");
     const bookingUrl = `${url}?date=${dateStr}`;
     Linking.openURL(bookingUrl).catch((err) =>
       Toast.show({ type: "error", text1: "Could not open link", text2: err.message })
     );
   };
-
   const atQuota = maxAlerts !== null && alerts.length >= (maxAlerts || 0);
 
   const renderItem = ({ item, index }: { item: AlertType; index: number }) => {
@@ -133,6 +161,7 @@ export default function MyAlertsScreen() {
     const isExpanded = item.id ? expandedIds.has(item.id) : false;
     const notifications = item.alert_notifications || [];
     const hasNotifications = notifications.length > 0;
+    const itemTz = course.time_zone || "UTC";
 
     return (
       <Animated.View layout={Layout.springify()}>
@@ -157,7 +186,7 @@ export default function MyAlertsScreen() {
                 {dayjs(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
               </Text>
               <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
-                {dayjs(item.start_time).format("h:mm A")} - {dayjs(item.end_time).format("h:mm A")}
+                {formatInTimeZone(item.start_time, itemTz)} - {formatInTimeZone(item.end_time, itemTz)}
               </Text>
             </View>
 
@@ -196,13 +225,13 @@ export default function MyAlertsScreen() {
                       <View style={{ flexDirection: "row", alignItems: "center" }}>
                         <MaterialCommunityIcons name="golf" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
                         <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                          {dayjs(teeTime).format("h:mm A")}
+                          {formatInTimeZone(teeTime, itemTz)}
                         </Text>
                       </View>
                       <Button
                         mode="contained"
                         compact
-                        onPress={() => handleBookNow(course.provider_url, teeTime)}
+                        onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
                         style={{ borderRadius: 8 }}
                         labelStyle={{ fontSize: 12, marginHorizontal: 8, marginVertical: 4 }}
                         contentStyle={{ height: 32 }}

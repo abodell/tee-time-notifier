@@ -3,6 +3,7 @@ export interface Course {
   city?: string;
   state?: string;
   provider_url?: string;
+  time_zone?: string;
 }
 
 export interface Availability {
