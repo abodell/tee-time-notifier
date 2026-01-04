@@ -36,25 +36,22 @@ dayjs.extend(timezone);
 /**
  * Robustly format a UTC ISO string into a specific timezone's local time string.
  * Uses native Intl.DateTimeFormat which is more reliable in React Native than dayjs.tz()
- * for conversion if polyfills are missing.
  */
-function formatInTimeZone(utcString: string | undefined, tz: string, formatStr: string = "h:mm A") {
+function formatInTimeZone(
+  utcString: string | undefined,
+  tz: string,
+  options: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "numeric", hour12: true }
+) {
   if (!utcString) return "";
   try {
-    // We can use Intl.DateTimeFormat to get the parts and format them,
-    // or just use dayjs with the date shifted by Intl if needed.
-    // However, simplest is dayjs.utc(utcString).tz(tz).format(formatStr)
-    // BUT since that is failing for the user, let's use a more direct method:
     const date = new Date(utcString);
     return new Intl.DateTimeFormat("en-US", {
       timeZone: tz,
-      hour: "numeric",
-      minute: "numeric",
-      hour12: true,
+      ...options,
     }).format(date);
   } catch (e) {
     console.warn(`Timezone conversion failed for ${tz}:`, e);
-    return dayjs.utc(utcString).format(formatStr); // Fallback to UTC display
+    return dayjs.utc(utcString).format("h:mm A"); // Fallback
   }
 }
 
@@ -183,7 +180,7 @@ export default function MyAlertsScreen() {
                 {course.name || `Course #${item.course_id}`}
               </Text>
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
-                {dayjs(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
+                {dayjs.utc(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
               </Text>
               <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
                 {formatInTimeZone(item.start_time, itemTz)} - {formatInTimeZone(item.end_time, itemTz)}
