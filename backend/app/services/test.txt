@@ -1,0 +1,4 @@
+# What we generated
+https://foreupsoftware.com/index.php/api/booking/times?time=all&date=01-05-2026&holes=all&players=0&booking_class=9944&schedule_id=7868&schedule_ids%5B%5D=7868&schedule_ids%5B%5D=7869&schedule_ids%5B%5D=7870&schedule_ids%5B%5D=7871&specials_only=0&api_key=no_limits
+# What the site actually uses
+https://foreupsoftware.com/index.php/api/booking/times?time=all&date=01-05-2026&holes=9&players=1&booking_class=false&schedule_id=7869&schedule_ids%5B%5D=7868&schedule_ids%5B%5D=7869&schedule_ids%5B%5D=7870&schedule_ids%5B%5D=7871&specials_only=0&api_key=no_limits

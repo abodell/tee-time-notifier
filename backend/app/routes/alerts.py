@@ -75,7 +75,7 @@ async def get_user_alerts(user_id: str):
         supabase.table("alerts")
         .select(
             "*, "
-            "courses!alerts_course_id_fkey(name, city, state, provider_url), "
+            "courses!alerts_course_id_fkey(name, city, state, provider_url, time_zone), "
             "alert_notifications(id, sent_at, availability(tee_time))"
         )
         .eq("user_id", user_id)

@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Top Shots Golf",
+    "address": "370 Rothsay Ave, Saint John, NB E2J 2C4",
+    "city": "Saint John",
+    "state": "NB",
+    "website": "https://www.topshotsgolf.ca/",
+    "phone": "506-566-1387",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "21441",
+      "schedule_id": "7868",
+      "schedule_ids": "[7868, 7869, 7870, 7871]",
+      "booking_class": "9944",
+      "api_key": "no_limits",
+      "timezone": "America/Glace_Bay"
+    }
+  }
+]

@@ -29,7 +29,7 @@ async def start_scheduler(app: FastAPI):
 
     scheduler.add_job(
         scan_foreup_job,
-        trigger=IntervalTrigger(seconds=60),
+        trigger=IntervalTrigger(seconds=61),
         name="ForeUp_GLOBAL_scan",
     )
 

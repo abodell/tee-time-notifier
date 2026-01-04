@@ -87,7 +87,7 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
     }
 
     full_url = f"{base_url}?{urlencode(params, doseq=True)}"
-    print(f"Fetching {course['name']} | holes={holes} | date={date_str}...")
+    print(f"[Fetch ForeUp Times] Fetching {course['name']} | holes={holes} | date={date_str}...")
     resp = await http_client.get(full_url, timeout = 10)
     resp.raise_for_status()
 
