@@ -9,8 +9,6 @@ from urllib.parse import urlencode
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
 
-http_client = AsyncClient()
-
 async def get_active_foreup_targets():
     """ 
     Return a list of unique (course, date_str) tuples that need scanning 
@@ -88,8 +86,9 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
 
     full_url = f"{base_url}?{urlencode(params, doseq=True)}"
     print(f"[Fetch ForeUp Times] Fetching {course['name']} | holes={holes} | date={date_str}...")
-    resp = await http_client.get(full_url, timeout = 10)
-    resp.raise_for_status()
+    async with AsyncClient(headers={"User-Agent": "Mozilla/5.0"}) as client:
+        resp = await client.get(full_url)
+        resp.raise_for_status()
 
     return resp.json()
 
