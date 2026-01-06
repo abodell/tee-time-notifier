@@ -3,8 +3,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI
 from .jobs import (
     scan_foreup_job,
-    run_alert_engine_for_tier,
-    cleanup_old_availability_job
+    run_alert_engine_for_tier
 )
 from app.db import create_supabase
 from app.config import settings
@@ -31,12 +30,6 @@ async def start_scheduler(app: FastAPI):
         scan_foreup_job,
         trigger=IntervalTrigger(seconds=61),
         name="ForeUp_GLOBAL_scan",
-    )
-
-    scheduler.add_job(
-        cleanup_old_availability_job,
-        trigger=IntervalTrigger(hours=24),
-        name="Cleanup_Old_Availability",
     )
 
     for tier in tiers:

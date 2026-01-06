@@ -16,22 +16,6 @@ async def scan_foreup_job():
     except Exception as e:
         print(f"[Scheduler] Error during ForeUp scan: ", e)
 
-async def cleanup_old_availability_job():
-    """
-    Deletes availability records where tee_time is in the past.
-    Runs periodically (e.g. daily or hourly).
-    """
-    now = datetime.now(timezone.utc).isoformat()
-    print(f"[Scheduler] Running availability cleanup at {now}")
-    supabase = await create_supabase()
-    
-    try:
-        # Delete entries where tee_time < now
-        # Note: tee_time in DB is timestamptz
-        await supabase.table("availability").delete().lt("tee_time", now).execute()
-        print("[Scheduler] Cleanup completed.")
-    except Exception as e:
-        print(f"[Scheduler] Error during cleanup: {e}")
 
 async def get_all_tiers():
     """
