@@ -1,5 +1,4 @@
 import json
-import requests
 from httpx import AsyncClient
 from typing import List, Union
 from datetime import datetime
@@ -71,7 +70,6 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
     base_url = (
         "https://foreupsoftware.com/index.php/api/booking/times"
     )
-
     params = {
         "time": "all",
         "date": date_str,
@@ -119,30 +117,28 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
         available = not item.get("booked") and not item.get("locked")
         raw_holes = str(item.get("holes", "")).strip()
 
+        # Handle '9/18' by creating two separate tee time entries
+        actual_holes_to_store = []
         if raw_holes == "9/18":
-            if holes_requested == 9:
-                normalized_holes = 9
-            elif holes_requested == 18:
-                normalized_holes = 18
-            else:
-                normalized_holes = 18
+            actual_holes_to_store = [9, 18]
         else:
             try:
-                normalized_holes = int(raw_holes)
+                actual_holes_to_store = [int(raw_holes)]
             except ValueError:
-                normalized_holes = 18
+                actual_holes_to_store = [18]
 
-        tee_times.append(
-            TeeTime(
-                course_id = course['id'],
-                tee_time = dt_utc,
-                price = price,
-                holes = normalized_holes,
-                available = available,
-                source = "ForeUp",
-                raw = item,
+        for num_holes in actual_holes_to_store:
+            tee_times.append(
+                TeeTime(
+                    course_id = course['id'],
+                    tee_time = dt_utc,
+                    price = price,
+                    holes = num_holes,
+                    available = available,
+                    source = "ForeUp",
+                    raw = item,
+                )
             )
-        )
 
     if tee_times:
         payload = [t.to_dict() for t in tee_times]

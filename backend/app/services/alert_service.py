@@ -61,7 +61,6 @@ async def run_alert_engine(tier_id: int | None = None):
         # We use the direct timestamps from the DB which are already correct
         start_dt = datetime.fromisoformat(alert['start_time']).astimezone(timezone.utc)
         end_dt = datetime.fromisoformat(alert['end_time']).astimezone(timezone.utc)
-
         tee_times_execute = await (
             supabase.table("availability")
             .select("id, course_id, tee_time, holes")
@@ -73,7 +72,7 @@ async def run_alert_engine(tier_id: int | None = None):
         )
 
         tee_times = tee_times_execute.data
-        print(f'TEE TIMES: {tee_times}')
+        print(f"[AlertEngine] Found {len(tee_times)} tee times for alert {alert_id}: {tee_times}")
 
         new_ids = []
         for tee in tee_times or []:
