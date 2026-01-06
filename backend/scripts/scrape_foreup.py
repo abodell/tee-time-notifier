@@ -21,6 +21,9 @@ geolocator = Nominatim(user_agent="tee-time-notifier-scraper")
 tf = TimezoneFinder()
 TIMEZONE_CACHE_FILE = "backend/seeds/timezone_cache.json"
 timezone_cache = {}
+TZ_MAPPING = {
+    "Etc/GMT+10": "Pacific/Honolulu"
+}
 
 def load_timezone_cache():
     global timezone_cache
@@ -82,7 +85,7 @@ def get_real_timezone(city: str, state: str, default_tz: str) -> str:
 
     # Fallback - DO NOT CACHE FAILURE
     # timezone_cache[key] = default_tz 
-    return default_tz
+    return TZ_MAPPING.get(default_tz, default_tz)
 
 
 async def fetch_booking_page(client: httpx.AsyncClient, course_id: int) -> Optional[str]:
