@@ -1,6 +1,7 @@
 import json
-from httpx import AsyncClient
-from typing import List, Union
+import asyncio
+from httpx import AsyncClient, Limits
+from typing import List, Union, Dict, Optional
 from datetime import datetime
 from dateutil import tz
 from urllib.parse import urlencode
@@ -44,9 +45,8 @@ async def get_active_foreup_targets():
 
     return targets
 
-async def get_provider_configs(course_id: int) -> dict:
+async def get_provider_configs(supabase, course_id: int) -> dict:
     """ Fetch key/value pairs for provider configs """
-    supabase = await create_supabase()
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
@@ -145,11 +145,27 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
         await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
     print("Inserted to availability table...")
 
+async def process_single_target(supabase, client, course, date_str, sem):
+    """ Worker for concurrent scanning """
+    async with sem:
+        try:
+            course_id = course["id"]
+            cfgs = await get_provider_configs(supabase, course_id)
+            data = await fetch_foreup_times(course, cfgs, date_str, "all")
+            await normalize_and_store(course, data, "all")
+            return True
+        except Exception as e:
+            print(f"[ForeUp] Error scanning {course.get('name')} for {date_str}: {e}")
+            return False
+
 async def run_foreup_scan():
     """
     Scans ForeUp courses for all dates requested in active alerts.
+    Utilizes concurrency with rate limiting.
     """
-    print("[ForeUp] Starting smart scan...")
+    start_time = datetime.now()
+    print(f"[ForeUp] Starting smart scan at {start_time.isoformat()}...")
+    
     targets = await get_active_foreup_targets()
     
     if not targets:
@@ -158,11 +174,21 @@ async def run_foreup_scan():
 
     print(f"[ForeUp] Found {len(targets)} unique (course, date) pairs to scan.")
     
-    for (course_id, date_str), course in targets.items():
-        try:
-            cfgs = await get_provider_configs(course_id)
-            # ForeUp API requires explicit date format
-            data = await fetch_foreup_times(course, cfgs, date_str, "all")
-            await normalize_and_store(course, data, "all")
-        except Exception as e:
-            print(f"Error scanning {course['name']} for {date_str}: {e}")
+    supabase = await create_supabase()
+    sem = asyncio.Semaphore(10) # Limit concurrency
+    
+    async with AsyncClient(
+        headers={"User-Agent": "Mozilla/5.0"},
+        limits=Limits(max_connections=20, max_keepalive_connections=10)
+    ) as client:
+        tasks = []
+        for (course_id, date_str), course in targets.items():
+            tasks.append(process_single_target(supabase, client, course, date_str, sem))
+        
+        results = await asyncio.gather(*tasks)
+    
+    end_time = datetime.now()
+    duration = (end_time - start_time).total_seconds()
+    success_count = sum(1 for r in results if r)
+    
+    print(f"[ForeUp] Scan completed in {duration:.2f}s. Success: {success_count}/{len(targets)}")
