@@ -175,7 +175,7 @@ export default function UpgradeScreen() {
   };
 
   const toPriceText = (cents?: number) =>
-    !cents || cents === 0 ? "Free" : `$${(cents / 100).toFixed(2)}/mo`;
+    !cents || cents === 0 ? "$0.00" : `$${(cents / 100).toFixed(2)}`;
 
   if (loading) {
     return (
@@ -299,6 +299,16 @@ export default function UpgradeScreen() {
                 }}
               >
                 {priceDisplay}
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: theme.colors.onSurfaceVariant,
+                    lineHeight: 32, // Helps with alignment since we don't have true superscript support in RN easily
+                  }}
+                >
+                  {" /mo"}
+                </Text>
               </Text>
 
               <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 20 }}>
@@ -373,9 +383,7 @@ export default function UpgradeScreen() {
                           ? "Processing..."
                           : isUnavailable
                             ? "Unavailable"
-                            : isFree
-                              ? "Downgrade to Free"
-                              : "Upgrade Now"}
+                            : `Switch to ${tier.name}`}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>
