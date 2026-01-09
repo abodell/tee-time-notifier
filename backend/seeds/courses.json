@@ -734,7 +734,7 @@
       "schedule_ids": "[10778]",
       "booking_class": "48894",
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24116,7 +24116,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24134,7 +24134,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24152,7 +24152,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24170,7 +24170,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24188,7 +24188,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24224,7 +24224,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24242,7 +24242,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -24260,7 +24260,7 @@
       "schedule_ids": "[]",
       "booking_class": null,
       "api_key": "no_limits",
-      "timezone": "Etc/GMT+10"
+      "timezone": "Pacific/Honolulu"
     }
   },
   {
@@ -25197,6 +25197,744 @@
       "booking_class": null,
       "api_key": "no_limits",
       "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Crane Field Golf Course",
+    "address": "3648 W CraneField Rd. (2650 N.), Clinton, UT 84015",
+    "city": "Clinton",
+    "state": "UT",
+    "website": "www.cranefieldgolf.com",
+    "phone": "801-779-3800",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "1",
+      "schedule_id": "1",
+      "schedule_ids": "[1]",
+      "booking_class": "6420",
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Cumberland Lake Golf Course",
+    "address": "2150 Cumberland Lake Dr, PInson, AL 35126",
+    "city": "PInson",
+    "state": "AL",
+    "website": "cumberlandlakegolf.com",
+    "phone": "2056804653",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "345",
+      "schedule_id": "220",
+      "schedule_ids": "[220, 10661]",
+      "booking_class": "14925",
+      "api_key": "no_limits",
+      "timezone": "America/Chicago"
+    }
+  },
+  {
+    "name": "Dothan National Golf Club and Hotel",
+    "address": "7410 US Hwy 231 S, Dothan, AL 36301",
+    "city": "Dothan",
+    "state": "AL",
+    "website": "www.dothannationalgolfclubandhotel.com",
+    "phone": "(334) 677-3321",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "553",
+      "schedule_id": "202",
+      "schedule_ids": "[202, 203]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Chicago"
+    }
+  },
+  {
+    "name": "Deer Run Golf Course (Duplicate)",
+    "address": "8151 Pineview Drive, Mancelona, MI 49659",
+    "city": "Mancelona",
+    "state": "MI",
+    "website": "",
+    "phone": "(231) 585-6800",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "796",
+      "schedule_id": "262",
+      "schedule_ids": "[262]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Detroit"
+    }
+  },
+  {
+    "name": "Green Oaks Golf Course",
+    "address": "1775 E Clark Rd, Ypsilanti, MI 48198",
+    "city": "Ypsilanti",
+    "state": "MI",
+    "website": "http://golfgreenoaks.com",
+    "phone": "(734) 485-0881",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "1094",
+      "schedule_id": "1420",
+      "schedule_ids": "[1420]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Detroit"
+    }
+  },
+  {
+    "name": "Ruston Country Club",
+    "address": "P.O. Box 459, Ruston, LA 71273",
+    "city": "Ruston",
+    "state": "LA",
+    "website": "golfruston.com",
+    "phone": "(318) 255-1307",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "1225",
+      "schedule_id": "257",
+      "schedule_ids": "[257]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Chicago"
+    }
+  },
+  {
+    "name": "Snowflake Municipal Golf Course",
+    "address": "90 N Country Club Dr, Snowflake, AZ 85937",
+    "city": "Snowflake",
+    "state": "AZ",
+    "website": "snowflakegolfcourse.com",
+    "phone": "928) 536-7233",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "1858",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Phoenix"
+    }
+  },
+  {
+    "name": "Medford Lakes Country Club (Cancelled)",
+    "address": "Oak Dr, Medford Lakes, NJ 08055",
+    "city": "Medford Lakes",
+    "state": "NJ",
+    "website": "http://medfordlakescountryclub.com/",
+    "phone": "(609) 654-5108",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "2317",
+      "schedule_id": "247",
+      "schedule_ids": "[247]",
+      "booking_class": "1659",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Mohawk Valley Country Club",
+    "address": "Route 5, Herkimer, NY 13350",
+    "city": "Herkimer",
+    "state": "NY",
+    "website": "",
+    "phone": "315-823-0330",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "3040",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Stadium Golf Club",
+    "address": "333 Jackson Ave, SCHENECTADY, NY 12304",
+    "city": "SCHENECTADY",
+    "state": "NY",
+    "website": "http://www.stadiumgolfclub.com",
+    "phone": "5183749104",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "3332",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Tokatee Golf Club",
+    "address": "54947 McKenzie Hwy, McKenzie Bridge, OR 97413",
+    "city": "McKenzie Bridge",
+    "state": "OR",
+    "website": "www.Tokatee.com",
+    "phone": "(541) 822-3220",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "3734",
+      "schedule_id": "240",
+      "schedule_ids": "[240]",
+      "booking_class": "4324",
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Laurel Hill Golf Course",
+    "address": "9450 Old Stage Rd., Central Point, OR 97502",
+    "city": "Central Point",
+    "state": "OR",
+    "website": "www.laurelhillgolf.com",
+    "phone": "541-855-7965",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "3742",
+      "schedule_id": "67",
+      "schedule_ids": "[67]",
+      "booking_class": "14847",
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Forest Hills Golf Course",
+    "address": "36260 SW Tongue Ln, Cornelius, OR 97113",
+    "city": "Cornelius",
+    "state": "OR",
+    "website": "www.golfforesthills.com",
+    "phone": "5035474193",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "3749",
+      "schedule_id": "246",
+      "schedule_ids": "[246]",
+      "booking_class": "49374",
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Trysting Tree Golf Club",
+    "address": "34028 NE Electric Rd, Corvallis, OR 97333",
+    "city": "Corvallis",
+    "state": "OR",
+    "website": "http://www.trystingtree.com/",
+    "phone": "(541) 713-4653",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "3753",
+      "schedule_id": "73",
+      "schedule_ids": "[73]",
+      "booking_class": "4514",
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Gresham Golf Course",
+    "address": "2155 NE Division St, Gresham, OR 97030",
+    "city": "Gresham",
+    "state": "OR",
+    "website": "http://greshamgolf.com/",
+    "phone": "503-665-3352",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "3784",
+      "schedule_id": "172",
+      "schedule_ids": "[172]",
+      "booking_class": "14509",
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Tamer Win Golf & C.C.",
+    "address": "3020 Niles Cortland Rd NE, Cortland, OH 44410",
+    "city": "Cortland",
+    "state": "OH",
+    "website": "www.tamerwin.com",
+    "phone": "(330) 637-2881",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "4750",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Potters Park Golf Course",
+    "address": "417 New London Rd, Hamilton, OH 45013",
+    "city": "Hamilton",
+    "state": "OH",
+    "website": "www.potterparkgolf.com",
+    "phone": "(513) 868-5983",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "4857",
+      "schedule_id": "251",
+      "schedule_ids": "[251]",
+      "booking_class": "5355",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Twin Run Golf Course",
+    "address": "2505 Eaton Rd, Hamilton, OH 45013",
+    "city": "Hamilton",
+    "state": "OH",
+    "website": "www.twinrungolf.com",
+    "phone": "(513) 868-5833",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "4858",
+      "schedule_id": "249",
+      "schedule_ids": "[249]",
+      "booking_class": "5353",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Skyland Golf Course",
+    "address": "2085 Center Rd, Hinckley, OH 44233",
+    "city": "Hinckley",
+    "state": "OH",
+    "website": "www.SkylandGolfCourse.com",
+    "phone": "(330) 225-5698",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "4879",
+      "schedule_id": "282",
+      "schedule_ids": "[282]",
+      "booking_class": "161",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Thunderbird Hills Golf Course",
+    "address": "1316 Mudbrook Rd, Huron, OH 44839",
+    "city": "Huron",
+    "state": "OH",
+    "website": "http://www.thunderbirdgolfcourses.com/",
+    "phone": "(419) 433-4552",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "4896",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Valleywood Golf Club",
+    "address": "13502 Airport Hwy, Swanton, OH 43558",
+    "city": "Swanton",
+    "state": "OH",
+    "website": "",
+    "phone": "(419) 826-3991",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "5158",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Nashville National Golf Links",
+    "address": "1725 New Hope Rd, Joelton, TN 37080",
+    "city": "Joelton",
+    "state": "TN",
+    "website": "www.nashvillenational.golf",
+    "phone": "(615) 746-0400",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "5313",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Chicago"
+    }
+  },
+  {
+    "name": "Penny Branch Golf Club",
+    "address": "400 Penny Branch Trail, Estill, SC 29918",
+    "city": "Estill",
+    "state": "SC",
+    "website": "www.pennybranchgolfclub.com",
+    "phone": "(803) 625-0222",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "5416",
+      "schedule_id": "1161",
+      "schedule_ids": "[1161]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Ocean Shores Golf Course",
+    "address": "500 Canal Dr NE, Ocean Shores, WA 98569",
+    "city": "Ocean Shores",
+    "state": "WA",
+    "website": "oceanshoresgolf.com",
+    "phone": "(360) 289-3357",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "5975",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Snohomish Golf Course",
+    "address": "7805 147th Ave SE, Snohomish, WA 98290",
+    "city": "Snohomish",
+    "state": "WA",
+    "website": "snohomishgolfcourse.com",
+    "phone": "(360) 568-2676",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6047",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Sunset View Golf Course",
+    "address": "1800 N Hwy 6, Delta, UT 84624",
+    "city": "Delta",
+    "state": "UT",
+    "website": "http://sunsetviewgc.com/",
+    "phone": "(435) 864-2508",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6231",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Remuda Golf Course",
+    "address": "2600 W 3500 N, Farr West, UT 84404",
+    "city": "Farr West",
+    "state": "UT",
+    "website": "www.remudagolf.com",
+    "phone": "8017317200",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6238",
+      "schedule_id": "44",
+      "schedule_ids": "[44]",
+      "booking_class": "8993",
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Murray Parkway Golf Course",
+    "address": "6345 Murray Pkwy Ave, Murray, UT 84123",
+    "city": "Murray",
+    "state": "UT",
+    "website": "www.parkwaygolf.org",
+    "phone": "(801) 262-4653",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6263",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Ben Lomond Golf Course",
+    "address": "1800 N Hwy 89, Ogden, UT 84404",
+    "city": "Ogden",
+    "state": "UT",
+    "website": "www.benlomondgolf.com",
+    "phone": "(801) 782-7754",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6266",
+      "schedule_id": "47",
+      "schedule_ids": "[47]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "EMV Test Course",
+    "address": "a, , n/a",
+    "city": "",
+    "state": "n/a",
+    "website": "",
+    "phone": "",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6270",
+      "schedule_id": "1218",
+      "schedule_ids": "[1218, 8344]",
+      "booking_class": "9999",
+      "api_key": "no_limits",
+      "timezone": "America/Chicago"
+    }
+  },
+  {
+    "name": "Belmont Springs Park",
+    "address": "Silding, Plymouth, UT 84311",
+    "city": "Plymouth",
+    "state": "UT",
+    "website": "",
+    "phone": "(435) 458-3200",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6277",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Timpanogos Golf Club",
+    "address": "380 East Lakeview Parkway, Provo, UT 84606",
+    "city": "Provo",
+    "state": "UT",
+    "website": "timpanogosgolf.com",
+    "phone": "8018527529",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6279",
+      "schedule_id": "49",
+      "schedule_ids": "[49, 1973, 7542]",
+      "booking_class": "14927",
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Roosevelt Golf Course",
+    "address": "1155 Club House Dr, Roosevelt, UT 84066",
+    "city": "Roosevelt",
+    "state": "UT",
+    "website": "golfrooseveltcity.com",
+    "phone": "4357229644",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6285",
+      "schedule_id": "82",
+      "schedule_ids": "[82, 11539]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Stansbury Park Golf Course",
+    "address": "1 Country Club Dr, Stansbury Park, UT 84074",
+    "city": "Stansbury Park",
+    "state": "UT",
+    "website": "stansburygolf.com",
+    "phone": "(435)882-4162",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6315",
+      "schedule_id": "51",
+      "schedule_ids": "[51, 11292]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Village Green Golf Course (WI)",
+    "address": "302 Riverdale Dr, Green Bay, WI 54313",
+    "city": "Green Bay",
+    "state": "WI",
+    "website": "http://www.howardgolf.com",
+    "phone": "(920) 434-3939",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "6767",
+      "schedule_id": "296",
+      "schedule_ids": "[296]",
+      "booking_class": "15001",
+      "api_key": "no_limits",
+      "timezone": "America/Chicago"
+    }
+  },
+  {
+    "name": "Crane Meadows Golf Course",
+    "address": "8103 Zinser St, Weston, WI 54476",
+    "city": "Weston",
+    "state": "WI",
+    "website": "http://www.golfcranemeadows.com/",
+    "phone": "(715) 355-1264",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "7077",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Chicago"
+    }
+  },
+  {
+    "name": "Lander Golf Course",
+    "address": "1 Golf Course Dr, P.O. Box 417, Lander, WY 82520",
+    "city": "Lander",
+    "state": "WY",
+    "website": "www.landergolfcourse.com",
+    "phone": "(307) 332-4653",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "7118",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
+    }
+  },
+  {
+    "name": "Cayacoa",
+    "address": "10401 Warner Ave, Fountain Valley, CA 85213",
+    "city": "Fountain Valley",
+    "state": "CA",
+    "website": "http://www.foreUPgolf.com",
+    "phone": "714-545-7106",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "7566",
+      "schedule_id": "1806",
+      "schedule_ids": "[1253, 1806, 1911, 2192, 2255, 2394, 2395, 2396, 2419, 2420, 2422, 2426, 2451, 2452, 2453, 2454, 3375, 3851, 4722, 4791, 4803, 4807, 4808, 4809, 5117, 5286, 5434, 5438, 5523, 5995, 6077, 6078, 6079, 6081, 6082, 6083, 6084, 6085, 6086, 6087, 6089, 6090, 6091, 6092, 6093, 6094, 6095, 6096, 6729, 6840, 7384, 7812, 7974, 8114, 8776, 8907, 8979, 9055, 9313, 9605, 9665, 9666, 9667, 9776, 9805, 9870, 9871, 11035]",
+      "booking_class": "6361",
+      "api_key": "no_limits",
+      "timezone": "America/Los_Angeles"
+    }
+  },
+  {
+    "name": "Grand Falls Golf Club",
+    "address": "803 Main St., Grand Falls, NB 04785",
+    "city": "Grand Falls",
+    "state": "NB",
+    "website": "www.grandgolf.ca",
+    "phone": "(506) 473-4494",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "7729",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/Glace_Bay"
+    }
+  },
+  {
+    "name": "Caughnawaga Golf Club",
+    "address": "QC J0L, Kahnawake, QC J0L 1B0",
+    "city": "Kahnawake",
+    "state": "QC",
+    "website": "caughnawagagolfclub.ca",
+    "phone": "(450) 632-7163",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "8116",
+      "schedule_id": null,
+      "schedule_ids": "[]",
+      "booking_class": null,
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "foreUP Golf Links ",
+    "address": "387 S 520 W, Lindon, UT 84042",
+    "city": "Lindon",
+    "state": "UT",
+    "website": "",
+    "phone": "1(623)-692-317",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "9039",
+      "schedule_id": "1806",
+      "schedule_ids": "[1253, 1806, 1911, 2192, 2255, 2394, 2395, 2396, 2419, 2420, 2422, 2426, 2451, 2452, 2453, 2454, 3375, 3851, 4722, 4791, 4803, 4807, 4808, 4809, 5117, 5286, 5434, 5438, 5523, 5995, 6077, 6078, 6079, 6081, 6082, 6083, 6084, 6085, 6086, 6087, 6089, 6090, 6091, 6092, 6093, 6094, 6095, 6096, 6729, 6840, 7384, 7812, 7974, 8114, 8776, 8907, 8979, 9055, 9313, 9605, 9665, 9666, 9667, 9776, 9805, 9870, 9871, 11035]",
+      "booking_class": "6361",
+      "api_key": "no_limits",
+      "timezone": "America/Denver"
     }
   }
 ]

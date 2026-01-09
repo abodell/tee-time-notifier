@@ -2,6 +2,9 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# Ensure logs are visible in real-time
+ENV PYTHONUNBUFFERED=1
+
 # Install system dependencies if needed (e.g. for building headers)
 # RUN apt-get update && apt-get install -y build-essential
 
