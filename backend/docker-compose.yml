@@ -5,7 +5,7 @@ services:
     build: .
     container_name: tee-time-backend
     ports:
-      - "8000:8000"
+      - "80:8000"
     env_file:
       - .env
     restart: unless-stopped
