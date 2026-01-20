@@ -55,6 +55,23 @@ function formatInTimeZone(
   }
 }
 
+/**
+ * Helper to construct the true expiration time by merging:
+ * - Date from `date_from` (User's target date)
+ * - Time from `end_time` (User's target end time, in UTC)
+ */
+function getExpirationTime(alert: AlertType) {
+  const datePart = dayjs.utc(alert.date_from);
+  const timePart = dayjs.utc(alert.end_time);
+
+  // Combine them into a single UTC datetime
+  return datePart
+    .hour(timePart.hour())
+    .minute(timePart.minute())
+    .second(timePart.second())
+    .millisecond(0);
+}
+
 export default function MyAlertsScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -77,6 +94,15 @@ export default function MyAlertsScreen() {
       const user = data.session?.user;
       if (!user) return;
       const result = await getUserAlerts(user.id);
+
+      // Sort: Active first, Expired last
+      result.sort((a: AlertType, b: AlertType) => {
+        const aExpired = dayjs.utc().isAfter(dayjs.utc(a.end_time));
+        const bExpired = dayjs.utc().isAfter(dayjs.utc(b.end_time));
+        if (aExpired === bExpired) return 0;
+        return aExpired ? 1 : -1;
+      });
+
       setAlerts(result);
     } catch (err: any) {
       Toast.show({
@@ -160,6 +186,9 @@ export default function MyAlertsScreen() {
     const hasNotifications = notifications.length > 0;
     const itemTz = course.time_zone || "UTC";
 
+    // Check expiration using UTC comparison
+    const isExpired = dayjs.utc().isAfter(dayjs.utc(item.end_time));
+
     return (
       <Animated.View layout={Layout.springify()}>
         <Surface
@@ -168,8 +197,9 @@ export default function MyAlertsScreen() {
             {
               backgroundColor: theme.colors.surface,
               borderRadius: 12,
-              marginBottom: 12, // Add spacing between items
+              marginBottom: 12,
               elevation: 1,
+              opacity: isExpired ? 0.6 : 1, // Dim expired alerts
             },
           ]}
           elevation={1}
@@ -178,6 +208,11 @@ export default function MyAlertsScreen() {
             <View style={{ flex: 1 }}>
               <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
                 {course.name || `Course #${item.course_id}`}
+                {isExpired && (
+                  <Text style={{ color: theme.colors.error, fontWeight: "800", fontSize: 12 }}>
+                    {"  "}EXPIRED
+                  </Text>
+                )}
               </Text>
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
                 {dayjs.utc(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
@@ -188,12 +223,14 @@ export default function MyAlertsScreen() {
             </View>
 
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <IconButton
-                icon={isExpanded ? "chevron-up" : "chevron-down"}
-                size={20}
-                onPress={() => item.id && toggleExpand(item.id)}
-                iconColor={theme.colors.onSurfaceVariant}
-              />
+              {!isExpired && (
+                <IconButton
+                  icon={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  onPress={() => item.id && toggleExpand(item.id)}
+                  iconColor={theme.colors.onSurfaceVariant}
+                />
+              )}
               <TouchableOpacity
                 onPress={() => deleteConfirm(item.id!)}
                 style={{ padding: 8 }}
@@ -317,6 +354,24 @@ export default function MyAlertsScreen() {
             tintColor={theme.colors.primary}
           />
         }
+        ListFooterComponent={
+          alerts.length > 0 ? (
+            <View style={styles.footerContainer}>
+              <Surface
+                style={[styles.footerAction, { backgroundColor: theme.colors.surface }]}
+                elevation={1}
+              >
+                <TouchableOpacity
+                  onPress={() => router.push("/")}
+                  style={styles.fullTouch}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="plus" size={32} color={theme.colors.primary} />
+                </TouchableOpacity>
+              </Surface>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.center}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.colors.surface }]}>
@@ -392,6 +447,25 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  footerContainer: {
+    paddingVertical: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerAction: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  fullTouch: {
+    width: "100%",
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
   },
