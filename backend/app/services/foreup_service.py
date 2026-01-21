@@ -90,7 +90,7 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
 
     return resp.json()
 
-async def normalize_and_store(course, raw_data, holes_requested: Union[str, int] = "all"):
+async def normalize_and_store(course, raw_data, date_str: str, holes_requested: Union[str, int] = "all"):
     """ Convert ForeUp response to TeeTime objects and insert into Supabase """
     tee_times: List[TeeTime] = []
     supabase = await create_supabase()
@@ -98,6 +98,30 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
     # Updated to use time_zone instead of timezone
     local_tz = tz.gettz(course.get("time_zone")) or tz.tzutc()
     utc_tz = tz.tzutc()
+
+    # 1. Calculate time range for deletion (start/end of the scanned day in local TZ)
+    try:
+        # date_str is MM-DD-YYYY
+        local_date = datetime.strptime(date_str, "%m-%d-%Y")
+        start_of_day = local_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=local_tz)
+        end_of_day = local_date.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=local_tz)
+        
+        start_utc = start_of_day.astimezone(utc_tz).isoformat()
+        end_utc = end_of_day.astimezone(utc_tz).isoformat()
+        
+        # 2. Delete existing records for this course and date range before upserting
+        # This removes any times that disappeared from the provider (booked/removed)
+        print(f"[ForeUp] Purging old availability for {course['name']} between {start_utc} and {end_utc}...")
+        await (
+            supabase.table("availability")
+            .delete()
+            .eq("course_id", course["id"])
+            .gte("tee_time", start_utc)
+            .lte("tee_time", end_utc)
+            .execute()
+        )
+    except Exception as e:
+        print(f"[ForeUp] Warning: Could not perform targeted deletion for {course['name']} on {date_str}: {e}")
 
     for item in raw_data:
         dt = None
@@ -143,7 +167,9 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
     if tee_times:
         payload = [t.to_dict() for t in tee_times]
         await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
-    print("Inserted to availability table...")
+    else:
+        print(f"[ForeUp] No times to store for {course['name']} on {date_str}.")
+    print("Updated availability table...")
 
 async def process_single_target(supabase, client, course, date_str, sem):
     """ Worker for concurrent scanning """
@@ -152,11 +178,12 @@ async def process_single_target(supabase, client, course, date_str, sem):
             course_id = course["id"]
             cfgs = await get_provider_configs(supabase, course_id)
             data = await fetch_foreup_times(course, cfgs, date_str, "all")
-            await normalize_and_store(course, data, "all")
+            await normalize_and_store(course, data, date_str, "all")
             return True
         except Exception as e:
             print(f"[ForeUp] Error scanning {course.get('name')} for {date_str}: {e}")
             return False
+
 
 async def run_foreup_scan():
     """
