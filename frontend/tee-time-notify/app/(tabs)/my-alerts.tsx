@@ -251,31 +251,38 @@ export default function MyAlertsScreen() {
                   No tee times available currently.
                 </Text>
               ) : (
-                notifications.map((notif) => {
-                  const teeTime = notif.availability?.tee_time;
-                  if (!teeTime) return null;
-                  return (
-                    <View key={notif.id} style={styles.notificationRow}>
-                      <View style={{ flexDirection: "row", alignItems: "center" }}>
-                        <MaterialCommunityIcons name="golf" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                        <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                          {formatInTimeZone(teeTime, itemTz)}
-                        </Text>
+                notifications
+                  .sort((a, b) => {
+                    const timeA = a.availability?.tee_time ? new Date(a.availability.tee_time).getTime() : 0;
+                    const timeB = b.availability?.tee_time ? new Date(b.availability.tee_time).getTime() : 0;
+                    return timeA - timeB;
+                  })
+                  .map((notif) => {
+                    const teeTime = notif.availability?.tee_time;
+                    if (!teeTime) return null;
+                    return (
+                      <View key={notif.id} style={styles.notificationRow}>
+                        <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <MaterialCommunityIcons name="golf" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                          <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                            {formatInTimeZone(teeTime, itemTz)}
+                          </Text>
+                        </View>
+                        <Button
+                          mode="contained"
+                          compact
+                          onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
+                          style={{ borderRadius: 8 }}
+                          labelStyle={{ fontSize: 12, marginHorizontal: 8, marginVertical: 4 }}
+                          contentStyle={{ height: 32 }}
+                        >
+                          Book
+                        </Button>
                       </View>
-                      <Button
-                        mode="contained"
-                        compact
-                        onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
-                        style={{ borderRadius: 8 }}
-                        labelStyle={{ fontSize: 12, marginHorizontal: 8, marginVertical: 4 }}
-                        contentStyle={{ height: 32 }}
-                      >
-                        Book
-                      </Button>
-                    </View>
-                  );
-                })
+                    );
+                  })
               )}
+
             </View>
           )}
         </Surface>
