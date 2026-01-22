@@ -91,7 +91,7 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
     return resp.json()
 
 async def normalize_and_store(course, raw_data, date_str: str, holes_requested: Union[str, int] = "all"):
-    """ Convert ForeUp response to TeeTime objects and insert into Supabase """
+    """ Convert ForeUp response to TeeTime objects and sync with Supabase availability """
     tee_times: List[TeeTime] = []
     supabase = await create_supabase()
 
@@ -99,30 +99,34 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
     local_tz = tz.gettz(course.get("time_zone")) or tz.tzutc()
     utc_tz = tz.tzutc()
 
-    # 1. Calculate time range for deletion (start/end of the scanned day in local TZ)
-    try:
-        # date_str is MM-DD-YYYY
-        local_date = datetime.strptime(date_str, "%m-%d-%Y")
-        start_of_day = local_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=local_tz)
-        end_of_day = local_date.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=local_tz)
-        
-        start_utc = start_of_day.astimezone(utc_tz).isoformat()
-        end_utc = end_of_day.astimezone(utc_tz).isoformat()
-        
-        # 2. Delete existing records for this course and date range before upserting
-        # This removes any times that disappeared from the provider (booked/removed)
-        print(f"[ForeUp] Purging old availability for {course['name']} between {start_utc} and {end_utc}...")
-        await (
-            supabase.table("availability")
-            .delete()
-            .eq("course_id", course["id"])
-            .gte("tee_time", start_utc)
-            .lte("tee_time", end_utc)
-            .execute()
-        )
-    except Exception as e:
-        print(f"[ForeUp] Warning: Could not perform targeted deletion for {course['name']} on {date_str}: {e}")
+    # 1. Calculate time range for the scanned day in UTC
+    test_date = datetime.strptime(date_str, "%m-%d-%Y")
+    start_of_day = test_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=local_tz)
+    end_of_day = test_date.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=local_tz)
+    
+    start_utc = start_of_day.astimezone(utc_tz)
+    end_utc = end_of_day.astimezone(utc_tz)
 
+    # 2. Fetch current availability for this course/date to perform diffing
+    # This identifies what we ALREADY HAVE so we don't clear everything
+    current_res = await (
+        supabase.table("availability")
+        .select("id, tee_time, holes")
+        .eq("course_id", course["id"])
+        .gte("tee_time", start_utc.isoformat())
+        .lte("tee_time", end_utc.isoformat())
+        .execute()
+    )
+    db_records = current_res.data or []
+    
+    # Map existing records by (iso_time, holes) -> id
+    # We use isoformat for stable string comparison
+    db_map = {
+        (datetime.fromisoformat(r['tee_time']).astimezone(utc_tz).isoformat(), int(r['holes'])): r['id']
+        for r in db_records
+    }
+
+    scanned_keys = set()
     for item in raw_data:
         dt = None
         try:
@@ -132,6 +136,7 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
                 dt = datetime.strptime(item["time"], "%Y-%m-%dT%H:%M:%S")
             except Exception:
                 print(f"Skipping invalid time: {item.get('time')}")
+                continue
         
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo = local_tz)
@@ -152,6 +157,9 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
                 actual_holes_to_store = [18]
 
         for num_holes in actual_holes_to_store:
+            # Track scanned keys for diffing
+            scanned_keys.add((dt_utc.isoformat(), num_holes))
+            
             tee_times.append(
                 TeeTime(
                     course_id = course['id'],
@@ -164,12 +172,38 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
                 )
             )
 
+    # 3. IDENTIFY RECORDS TO DELETE (Present in DB but missing from fresh scan)
+    ids_to_remove = []
+    removed_details = []
+    for (tee_time_key, holes_key), db_id in db_map.items():
+        if (tee_time_key, holes_key) not in scanned_keys:
+            ids_to_remove.append(db_id)
+            removed_details.append(f"{tee_time_key} ({holes_key}-hole)")
+
+    if ids_to_remove:
+        print(f"[ForeUp] Diff result: Removing {len(ids_to_remove)} stale tee times for {course['name']} on {date_str}:")
+        for detail in removed_details:
+            print(f"  - Removed: {detail}")
+            
+        # Batch delete by specific IDs
+        # We use .in_ to delete only the specific missing records
+        await (
+            supabase.table("availability")
+            .delete()
+            .in_("id", ids_to_remove)
+            .execute()
+        )
+
+
+    # 4. UPSERT fresh data (updates existing, adds new)
     if tee_times:
         payload = [t.to_dict() for t in tee_times]
         await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
     else:
-        print(f"[ForeUp] No times to store for {course['name']} on {date_str}.")
-    print("Updated availability table...")
+        print(f"[ForeUp] No times found for {course['name']} on {date_str}.")
+    
+    print(f"Sync complete for {course['name']} on {date_str}.")
+
 
 async def process_single_target(supabase, client, course, date_str, sem):
     """ Worker for concurrent scanning """

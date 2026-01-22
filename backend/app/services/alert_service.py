@@ -14,17 +14,12 @@ def notify_user(user_id, course_id, tee_time, method="push"):
         f"tee time {tee_time} via {method}"
     )
 
-async def process_single_alert(supabase, alert, now, cooldown_alert_ids, summaries):
+async def process_single_alert(supabase, alert, now, summaries):
     """ Worker for concurrent alert checking """
     course_id = alert["course_id"]
     holes = alert.get("holes")
     alert_id = alert["id"]
     user_id = alert["user_id"]
-
-    # Cooldown check: skip if we sent a notification for this alert recently
-    if alert_id in cooldown_alert_ids:
-        # print(f"[AlertEngine] Skipping alert {alert_id} (cooldown active)")
-        return
 
     # User selected day in UTC
     start_dt = datetime.fromisoformat(alert['start_time']).astimezone(timezone.utc)
@@ -46,7 +41,9 @@ async def process_single_alert(supabase, alert, now, cooldown_alert_ids, summari
 
     new_ids = []
     for tee in tee_times:
-        # Check for existing notification to avoid spam
+        # Check for existing notification for THIS specific availability record to avoid spam
+        # Since reappearing tee-times (cancellations) get a fresh ID from the scanner,
+        # they will pass this check and trigger a re-notification.
         existing_res = await (
             supabase.table("alert_notifications")
             .select("id")
@@ -94,21 +91,10 @@ async def run_alert_engine(tier_id: int | None = None):
         ]
         print(f"[AlertEngine] Processing tier {tier_id}: {len(alerts)} alerts")
 
-    # Batch fetch recent notifications to determine cooldowns
-    cooldown_threshold = start_time - timedelta(minutes=ALERT_COOLDOWN_MINUTES)
-    
-    recent_notifs_res = await (
-        supabase.table("alert_notifications")
-        .select("alert_id")
-        .gte("sent_at", cooldown_threshold.isoformat())
-        .execute()
-    )
-    
-    cooldown_alert_ids = {row["alert_id"] for row in (recent_notifs_res.data or [])}
-
     # Parallelize alert checks
-    tasks = [process_single_alert(supabase, alert, start_time, cooldown_alert_ids, summaries) for alert in alerts]
+    tasks = [process_single_alert(supabase, alert, start_time, summaries) for alert in alerts]
     await asyncio.gather(*tasks)
+
 
     # Parallelize notification sending
     notif_tasks = []
