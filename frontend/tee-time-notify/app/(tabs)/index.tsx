@@ -153,44 +153,49 @@ export default function CourseSearchScreen() {
           </View>
         ) : (
           <Animated.View entering={FadeIn.duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-            <Surface style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]} elevation={0}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: reachedQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={reachedQuota ? "alert-circle" : "information"}
-                    size={24}
-                    color={reachedQuota ? theme.colors.error : theme.colors.primary}
-                  />
-                </View>
+            <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
+              <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
 
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
-                    {reachedQuota ? (
-                      <>
-                        Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
-                        <Text
-                          style={{ color: theme.colors.primary, fontWeight: "600" }}
-                          onPress={() => router.push("/upgrade")}
-                        >
-                          Upgrade
-                        </Text>
-                      </>
-                    ) : (
-                      <>
-                        Using <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
-                        {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
-                      </>
-                    )}
-                  </Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: reachedQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={reachedQuota ? "alert-circle" : "information"}
+                      size={24}
+                      color={reachedQuota ? theme.colors.error : theme.colors.primary}
+                    />
+                  </View>
+
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
+                      {reachedQuota ? (
+                        <>
+                          Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
+                          <Text
+                            style={{ color: theme.colors.primary, fontWeight: "600" }}
+                            onPress={() => router.push("/upgrade")}
+                          >
+                            Upgrade
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          Using <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
+                          {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
+                        </>
+                      )}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </Surface>
           </Animated.View>
+
+
         )}
 
         {/* Search Bar */}
@@ -301,7 +306,7 @@ export default function CourseSearchScreen() {
           />
         )}
       </View>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
@@ -316,7 +321,6 @@ const styles = StyleSheet.create({
   noticeCard: {
     borderRadius: 12,
     padding: 12,
-    overflow: "hidden",
   },
   iconContainer: {
     width: 36,

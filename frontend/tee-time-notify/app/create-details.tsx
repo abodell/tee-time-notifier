@@ -174,34 +174,34 @@ export default function CreateDetailsScreen() {
             HOLES
           </Text>
           <Surface
-            style={[
-              styles.groupedSurface,
-              { backgroundColor: theme.colors.surface },
-            ]}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
             elevation={0}
           >
-            <SegmentedButtons
-              value={holes}
-              onValueChange={setHoles}
-              buttons={[
-                {
-                  value: "9",
-                  label: "9 Holes",
-                  style: { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-                },
-                {
-                  value: "18",
-                  label: "18 Holes",
-                  style: {
-                    borderTopRightRadius: 12,
-                    borderBottomRightRadius: 12,
+            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface }]}>
+              <SegmentedButtons
+                value={holes}
+                onValueChange={setHoles}
+                buttons={[
+                  {
+                    value: "9",
+                    label: "9 Holes",
+                    style: { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
                   },
-                },
-              ]}
-              style={styles.segmentedBtn}
-              density="medium"
-            />
+                  {
+                    value: "18",
+                    label: "18 Holes",
+                    style: {
+                      borderTopRightRadius: 12,
+                      borderBottomRightRadius: 12,
+                    },
+                  },
+                ]}
+                style={styles.segmentedBtn}
+                density="medium"
+              />
+            </View>
           </Surface>
+
         </View>
 
         {/* Grouped Form: Window */}
@@ -210,38 +210,39 @@ export default function CreateDetailsScreen() {
             TIME WINDOW
           </Text>
           <Surface
-            style={[
-              styles.groupedSurface,
-              { backgroundColor: theme.colors.surface, padding: 16 },
-            ]}
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
             elevation={0}
           >
-            <View style={{ marginBottom: 16 }}>
-              <DatePickerField
-                label="Date"
-                value={date}
-                onChange={setDate}
-              />
-            </View>
-            <Divider style={{ marginBottom: 16, opacity: 0.5 }} />
-            <View style={{ marginBottom: 16 }}>
+            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface, padding: 16 }]}>
+
+              <View style={{ marginBottom: 16 }}>
+                <DatePickerField
+                  label="Date"
+                  value={date}
+                  onChange={setDate}
+                />
+              </View>
+              <Divider style={{ marginBottom: 16, opacity: 0.5 }} />
+              <View style={{ marginBottom: 16 }}>
+                <TimePickerField
+                  label="Start Time"
+                  value={startTime}
+                  onChange={setStartTime}
+                  selectedDate={date}
+                  onValidityChange={setStartValid}
+                />
+              </View>
               <TimePickerField
-                label="Start Time"
-                value={startTime}
-                onChange={setStartTime}
+                label="End Time"
+                value={endTime}
+                onChange={setEndTime}
                 selectedDate={date}
-                onValidityChange={setStartValid}
+                startTime={startTime}
+                onValidityChange={setEndValid}
               />
             </View>
-            <TimePickerField
-              label="End Time"
-              value={endTime}
-              onChange={setEndTime}
-              selectedDate={date}
-              startTime={startTime}
-              onValidityChange={setEndValid}
-            />
           </Surface>
+
         </View>
 
         {/* Gradient Action Button */}
@@ -324,7 +325,6 @@ const styles = StyleSheet.create({
   },
   groupedSurface: {
     borderRadius: 12,
-    overflow: "hidden",
   },
   segmentedBtn: {
     margin: 16,

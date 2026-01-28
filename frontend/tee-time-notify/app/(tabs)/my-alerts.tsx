@@ -193,7 +193,6 @@ export default function MyAlertsScreen() {
       <Animated.View layout={Layout.springify()}>
         <Surface
           style={[
-            styles.listItem,
             {
               backgroundColor: theme.colors.surface,
               borderRadius: 12,
@@ -204,91 +203,95 @@ export default function MyAlertsScreen() {
           ]}
           elevation={1}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
-            <View style={{ flex: 1 }}>
-              <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                {course.name || `Course #${item.course_id}`}
-                {isExpired && (
-                  <Text style={{ color: theme.colors.error, fontWeight: "800", fontSize: 12 }}>
-                    {"  "}EXPIRED
-                  </Text>
-                )}
-              </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
-                {dayjs.utc(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
-              </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
-                {formatInTimeZone(item.start_time, itemTz)} - {formatInTimeZone(item.end_time, itemTz)}
-              </Text>
-            </View>
+          <View style={{ overflow: "hidden", borderRadius: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
 
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              {!isExpired && (
-                <IconButton
-                  icon={isExpanded ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  onPress={() => item.id && toggleExpand(item.id)}
-                  iconColor={theme.colors.onSurfaceVariant}
-                />
-              )}
-              <TouchableOpacity
-                onPress={() => deleteConfirm(item.id!)}
-                style={{ padding: 8 }}
-              >
-                <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.colors.error} style={{ opacity: 0.8 }} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Expanded Notifications Section */}
-          {isExpanded && (
-            <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.outline, padding: 16, backgroundColor: theme.colors.surfaceVariant + "40" }}>
-              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
-                Found Openings
-              </Text>
-              {!hasNotifications ? (
-                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, fontStyle: "italic" }}>
-                  No tee times available currently.
+              <View style={{ flex: 1 }}>
+                <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                  {course.name || `Course #${item.course_id}`}
+                  {isExpired && (
+                    <Text style={{ color: theme.colors.error, fontWeight: "800", fontSize: 12 }}>
+                      {"  "}EXPIRED
+                    </Text>
+                  )}
                 </Text>
-              ) : (
-                notifications
-                  .sort((a, b) => {
-                    const timeA = a.availability?.tee_time ? new Date(a.availability.tee_time).getTime() : 0;
-                    const timeB = b.availability?.tee_time ? new Date(b.availability.tee_time).getTime() : 0;
-                    return timeA - timeB;
-                  })
-                  .map((notif) => {
-                    const teeTime = notif.availability?.tee_time;
-                    if (!teeTime) return null;
-                    return (
-                      <View key={notif.id} style={styles.notificationRow}>
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                          <MaterialCommunityIcons name="golf" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                          <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                            {formatInTimeZone(teeTime, itemTz)}
-                          </Text>
-                        </View>
-                        <Button
-                          mode="contained"
-                          compact
-                          onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
-                          style={{ borderRadius: 8 }}
-                          labelStyle={{ fontSize: 12, marginHorizontal: 8, marginVertical: 4 }}
-                          contentStyle={{ height: 32 }}
-                        >
-                          Book
-                        </Button>
-                      </View>
-                    );
-                  })
-              )}
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
+                  {dayjs.utc(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
+                </Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
+                  {formatInTimeZone(item.start_time, itemTz)} - {formatInTimeZone(item.end_time, itemTz)}
+                </Text>
+              </View>
 
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {!isExpired && (
+                  <IconButton
+                    icon={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    onPress={() => item.id && toggleExpand(item.id)}
+                    iconColor={theme.colors.onSurfaceVariant}
+                  />
+                )}
+                <TouchableOpacity
+                  onPress={() => deleteConfirm(item.id!)}
+                  style={{ padding: 8 }}
+                >
+                  <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.colors.error} style={{ opacity: 0.8 }} />
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
+
+            {/* Expanded Notifications Section */}
+            {isExpanded && (
+              <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.outline, padding: 16, backgroundColor: theme.colors.surfaceVariant + "40" }}>
+                <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+                  Found Openings
+                </Text>
+                {!hasNotifications ? (
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, fontStyle: "italic" }}>
+                    No tee times available currently.
+                  </Text>
+                ) : (
+                  notifications
+                    .sort((a, b) => {
+                      const timeA = a.availability?.tee_time ? new Date(a.availability.tee_time).getTime() : 0;
+                      const timeB = b.availability?.tee_time ? new Date(b.availability.tee_time).getTime() : 0;
+                      return timeA - timeB;
+                    })
+                    .map((notif) => {
+                      const teeTime = notif.availability?.tee_time;
+                      if (!teeTime) return null;
+                      return (
+                        <View key={notif.id} style={styles.notificationRow}>
+                          <View style={{ flexDirection: "row", alignItems: "center" }}>
+                            <MaterialCommunityIcons name="golf" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                            <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                              {formatInTimeZone(teeTime, itemTz)}
+                            </Text>
+                          </View>
+                          <Button
+                            mode="contained"
+                            compact
+                            onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
+                            style={{ borderRadius: 8 }}
+                            labelStyle={{ fontSize: 12, marginHorizontal: 8, marginVertical: 4 }}
+                            contentStyle={{ height: 32 }}
+                          >
+                            Book
+                          </Button>
+                        </View>
+                      );
+                    })
+                )}
+
+              </View>
+            )}
+          </View>
         </Surface>
       </Animated.View>
     );
   };
+
 
   if (loading && !refreshing)
     return (
@@ -307,43 +310,47 @@ export default function MyAlertsScreen() {
 
       {/* Soft notice */}
       <Animated.View entering={FadeIn.duration(600)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <Surface style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]} elevation={0}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: atQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name={atQuota ? "alert-circle" : "information"}
-                size={24}
-                color={atQuota ? theme.colors.error : theme.colors.primary}
-              />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
-                {atQuota ? (
-                  <>
-                    Limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
-                    <Text
-                      style={{ color: theme.colors.primary, fontWeight: "600" }}
-                      onPress={() => router.push("/upgrade")}
-                    >
-                      Upgrade
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    Using <Text style={{ fontWeight: "600" }}>{alerts.length}</Text>
-                    {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
-                  </>
-                )}
-              </Text>
+        <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
+          <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
+
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: atQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={atQuota ? "alert-circle" : "information"}
+                  size={24}
+                  color={atQuota ? theme.colors.error : theme.colors.primary}
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
+                  {atQuota ? (
+                    <>
+                      Limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
+                      <Text
+                        style={{ color: theme.colors.primary, fontWeight: "600" }}
+                        onPress={() => router.push("/upgrade")}
+                      >
+                        Upgrade
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      Using <Text style={{ fontWeight: "600" }}>{alerts.length}</Text>
+                      {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
+                    </>
+                  )}
+                </Text>
+              </View>
             </View>
           </View>
         </Surface>
       </Animated.View>
+
 
       <FlatList
         data={alerts}
@@ -426,7 +433,6 @@ const styles = StyleSheet.create({
   noticeCard: {
     borderRadius: 12,
     padding: 12,
-    overflow: "hidden",
   },
   iconContainer: {
     width: 36,
@@ -436,7 +442,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   listItem: {
-    overflow: "hidden",
   },
   notificationRow: {
     flexDirection: "row",

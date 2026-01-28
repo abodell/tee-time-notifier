@@ -174,39 +174,43 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.guestContainer}>
-          <Surface style={[styles.guestCard, { backgroundColor: "transparent" }]} elevation={0}>
-            <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + "15" }]}>
-              <MaterialCommunityIcons name="account-circle-outline" size={48} color={theme.colors.primary} />
+          <Surface style={{ backgroundColor: "transparent", borderRadius: 24 }} elevation={0}>
+            <View style={[styles.guestCard, { backgroundColor: "transparent" }]}>
+
+              <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + "15" }]}>
+                <MaterialCommunityIcons name="account-circle-outline" size={48} color={theme.colors.primary} />
+              </View>
+
+              <Text variant="titleLarge" style={{ fontWeight: "700", color: theme.colors.onSurface, marginBottom: 8 }}>
+                Welcome to TeeSignal
+              </Text>
+
+              <Text variant="bodyMedium" style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginBottom: 32, paddingHorizontal: 16 }}>
+                Sign in to manage your membership, view your subscription details, and configure your alerts.
+              </Text>
+
+              <Button
+                mode="contained"
+                onPress={() => router.push("/(auth)/sign-in")}
+                style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
+                contentStyle={{ height: 48 }}
+                labelStyle={{ fontWeight: "600", fontSize: 16 }}
+              >
+                Sign In
+              </Button>
+
+              <Button
+                mode="outlined"
+                onPress={() => router.push("/(auth)/sign-up")}
+                style={{ width: "100%", borderRadius: 12, borderColor: theme.colors.outline }}
+                contentStyle={{ height: 48 }}
+                labelStyle={{ fontWeight: "600", fontSize: 16, color: theme.colors.onSurface }}
+              >
+                Create Account
+              </Button>
             </View>
-
-            <Text variant="titleLarge" style={{ fontWeight: "700", color: theme.colors.onSurface, marginBottom: 8 }}>
-              Welcome to TeeSignal
-            </Text>
-
-            <Text variant="bodyMedium" style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginBottom: 32, paddingHorizontal: 16 }}>
-              Sign in to manage your membership, view your subscription details, and configure your alerts.
-            </Text>
-
-            <Button
-              mode="contained"
-              onPress={() => router.push("/(auth)/sign-in")}
-              style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
-              contentStyle={{ height: 48 }}
-              labelStyle={{ fontWeight: "600", fontSize: 16 }}
-            >
-              Sign In
-            </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => router.push("/(auth)/sign-up")}
-              style={{ width: "100%", borderRadius: 12, borderColor: theme.colors.outline }}
-              contentStyle={{ height: 48 }}
-              labelStyle={{ fontWeight: "600", fontSize: 16, color: theme.colors.onSurface }}
-            >
-              Create Account
-            </Button>
           </Surface>
+
 
           <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
             TeeSignal v1.0.0
@@ -347,7 +351,6 @@ const styles = StyleSheet.create({
   },
   sectionContainer: {
     borderRadius: 12,
-    overflow: "hidden",
   },
   row: {
     flexDirection: "row",
