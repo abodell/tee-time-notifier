@@ -4,44 +4,41 @@
     "slug": "tee-signal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon.jpg",
     "scheme": "teesignal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "notification": {
-      "icon": "./assets/images/icon.png",
+      "icon": "./assets/images/icon.jpg",
       "color": "#12B76A"
     },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIViewControllerBasedStatusBarAppearance": true
+        "UIViewControllerBasedStatusBarAppearance": true,
+        "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.anonymous.teetimenotify"
+      "bundleIdentifier": "com.teesignal.app"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#111827",
-        "foregroundImage": "./assets/images/icon.png"
-      },
-      "notification": {
-        "icon": "./assets/images/icon.png",
-        "color": "#12B76A"
+        "foregroundImage": "./assets/images/icon.jpg"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.teetimenotify"
+      "package": "com.teesignal.app"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.jpg"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/icon.png",
+          "image": "./assets/images/icon.jpg",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#111827",
@@ -58,7 +55,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "c6f1ebe8-6dfb-45f0-8e44-e1a12d163058"
+        "projectId": "1a469048-ab4d-4ba3-8ea9-80ff21467836"
       }
     },
     "owner": "abodell"

@@ -73,12 +73,24 @@ export default function RootLayout() {
     const apiKey = process.env.EXPO_PUBLIC_REVENUE_CAT_API_KEY;
 
     if (apiKey) {
-      Purchases.configure({ apiKey });
+      // Platform-specific configuration required for native builds
+      if (Platform.OS === 'ios') {
+        Purchases.configure({
+          apiKey: apiKey,
+        });
+      } else if (Platform.OS === 'android') {
+        Purchases.configure({
+          apiKey: apiKey,
+        });
+      }
       setIsRevenueCatConfigured(true);
     } else {
       console.warn("RevenueCat API Key not found. IAP will not work.");
+      // Still mark as configured to prevent blocking the app
+      setIsRevenueCatConfigured(true);
     }
   }, []);
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
