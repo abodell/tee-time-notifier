@@ -244,7 +244,7 @@ export default function UpgradeScreen() {
           // Find matching RevenueCat package
           const rcPackage = packages.find(
             (pkg) =>
-              pkg.identifier === tier.revenuecat_entitlement_id ||
+              pkg.product.identifier === tier.revenuecat_entitlement_id ||
               pkg.product.identifier === tier.revenuecat_entitlement_id
           );
 
