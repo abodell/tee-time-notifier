@@ -1,21 +1,22 @@
 {
-    "cli": {
-        "version": ">= 10.0.0"
+  "cli": {
+    "version": ">= 10.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
     },
-    "build": {
-        "development": {
-            "developmentClient": true,
-            "distribution": "internal"
-        },
-        "preview": {
-            "distribution": "internal"
-        },
-        "production": {
-            "autoIncrement": true,
-            "distribution": "store"
-        }
+    "preview": {
+      "distribution": "internal"
     },
-    "submit": {
-        "production": {}
+    "production": {
+      "autoIncrement": true,
+      "distribution": "store"
     }
+  },
+  "submit": {
+    "production": {}
+  }
 }
