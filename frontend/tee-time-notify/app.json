@@ -15,9 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "splash": {
-        "image": "./assets/images/appstore.png",
-        "resizeMode": "cover",
-        "backgroundColor": "#202010"
+        "image": "./assets/images/icon1.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#000000"
       },
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": false,
@@ -27,8 +27,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#202010",
-        "foregroundImage": "./assets/images/icon.png"
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/images/icon1.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -43,9 +43,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/appstore.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#202010"
+          "image": "./assets/images/icon1.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#000000"
         }
       ]
     ],

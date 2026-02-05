@@ -22,6 +22,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import FadeSlideTransition from "@/components/FadeSlideTransition";
 import { Colors } from "@/constants/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Linking from "expo-linking";
 
 export default function SignUpScreen() {
   const theme = useTheme();
@@ -39,7 +40,15 @@ export default function SignUpScreen() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    const redirectToUrl = Linking.createURL("profile");
+    console.log("Redirect URL:", redirectToUrl);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectToUrl,
+      },
+    });
 
     setLoading(false);
 
@@ -156,6 +165,15 @@ export default function SignUpScreen() {
                   style={styles.input}
                   outlineStyle={{ borderRadius: 12 }}
                 />
+
+                <TouchableOpacity
+                  onPress={() => router.push("/(auth)/forgot-password" as any)}
+                  style={{ alignSelf: "flex-end", marginTop: 4 }}
+                >
+                  <Text style={{ color: theme.colors.primary, fontWeight: "600" }}>
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
 
                 {error && (
                   <View style={[styles.errorContainer, { backgroundColor: theme.colors.errorContainer }]}>

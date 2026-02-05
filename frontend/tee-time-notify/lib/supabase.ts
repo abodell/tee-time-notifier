@@ -7,6 +7,6 @@ export const supabase = createClient(process.env.EXPO_PUBLIC_SUPABASE_URL!, proc
         storage: AsyncStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false,
+        detectSessionInUrl: true,
     }
 })

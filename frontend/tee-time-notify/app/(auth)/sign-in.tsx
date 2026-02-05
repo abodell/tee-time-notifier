@@ -129,6 +129,15 @@ export default function SignInScreen() {
             />
 
             <TouchableOpacity
+              onPress={() => router.push("/(auth)/forgot-password" as any)}
+              style={{ alignSelf: "flex-end", marginTop: 4 }}
+            >
+              <Text style={{ color: theme.colors.primary, fontWeight: "600" }}>
+                Forgot Password?
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               onPress={handleSignIn}
               disabled={!email || !password || loading}
               activeOpacity={0.8}

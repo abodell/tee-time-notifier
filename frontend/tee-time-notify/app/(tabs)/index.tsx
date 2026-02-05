@@ -63,10 +63,16 @@ export default function CourseSearchScreen() {
 
   // Listen for global alert updates (e.g. from My Alerts deletion)
   React.useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener("alertsUpdated", () => {
+    const sub1 = DeviceEventEmitter.addListener("alertsUpdated", () => {
       loadQuotaData();
     });
-    return () => subscription.remove();
+    const sub2 = DeviceEventEmitter.addListener("membershipUpdated", () => {
+      loadQuotaData();
+    });
+    return () => {
+      sub1.remove();
+      sub2.remove();
+    };
   }, []);
 
   const loadQuotaData = async () => {

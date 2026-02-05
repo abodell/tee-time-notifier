@@ -4,7 +4,7 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState, useRef } from "react";
 import "react-native-reanimated";
@@ -23,11 +23,12 @@ import {
   PaperDarkTheme,
   Colors,
 } from "@/constants/theme";
-import { View, ActivityIndicator, Platform, useColorScheme } from "react-native";
+import { View, ActivityIndicator, Platform, useColorScheme, DeviceEventEmitter } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import Toast, { ToastConfig } from "react-native-toast-message";
 import * as Notifications from "expo-notifications";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Linking from "expo-linking";
 import { registerForPushNotificationsAsync, setupNotificationHandlers } from "@/lib/notifications";
 import Purchases from "react-native-purchases";
 
@@ -40,10 +41,12 @@ setupNotificationHandlers();
 function setupNotificationListeners() {
   const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
     console.log("Notification received:", notification);
+    DeviceEventEmitter.emit("notificationReceived");
   });
 
   const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
     console.log("Notification response:", response);
+    DeviceEventEmitter.emit("notificationReceived");
   });
 
   return () => {
@@ -53,6 +56,7 @@ function setupNotificationListeners() {
 }
 
 export default function RootLayout() {
+  const router = useRouter();
   const systemScheme = useColorScheme();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,13 +97,58 @@ export default function RootLayout() {
 
 
   useEffect(() => {
+    // Handle deep links for password reset and email confirmation
+    const handleDeepLink = async (url: string | null) => {
+      if (!url) return;
+
+      const { queryParams, path } = Linking.parse(url);
+
+      // Supabase sends tokens in the hash (fragment) which expo-linking might put in queryParams
+      // or we might need to parse manually if they are in the fragment
+      const hash = url.split('#')[1];
+      if (hash) {
+        const params = new URLSearchParams(hash);
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        const type = params.get("type");
+
+        if (accessToken && refreshToken) {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (type === "recovery") {
+            router.replace("/reset-password" as any);
+          }
+        }
+      }
+    };
+
+    // Get initial URL if app was closed
+    Linking.getInitialURL().then(handleDeepLink);
+
+    // Listen for new links while app is open
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      handleDeepLink(url);
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, sess) => setSession(sess)
+      (_event, sess) => {
+        setSession(sess);
+        if (_event === "PASSWORD_RECOVERY") {
+          router.replace("/(auth)/reset-password" as any);
+        }
+      }
     );
 
     return () => listener.subscription.unsubscribe();

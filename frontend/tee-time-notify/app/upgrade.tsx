@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform, DeviceEventEmitter } from "react-native";
 import {
   Text,
   Button,
@@ -157,6 +157,7 @@ export default function UpgradeScreen() {
           position: "top",
         });
         // Refresh profile
+        DeviceEventEmitter.emit("membershipUpdated");
         loadData();
       }
 

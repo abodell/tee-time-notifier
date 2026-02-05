@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, DeviceEventEmitter } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
@@ -10,7 +10,7 @@ import {
   Surface,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import Toast from "react-native-toast-message";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
@@ -49,8 +49,25 @@ export default function ProfileScreen() {
       (_event, sess) => setSession(sess)
     );
 
-    return () => listener.subscription.unsubscribe();
+    const membershipSub = DeviceEventEmitter.addListener("membershipUpdated", () => {
+      fetchProfile();
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+      membershipSub.remove();
+    };
   }, []);
+
+  // Fetch profile when coming into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (session) {
+        setLoading(true);
+        fetchProfile();
+      }
+    }, [session])
+  );
 
   // Handle Stripe success redirect
   useEffect(() => {
@@ -64,16 +81,6 @@ export default function ProfileScreen() {
       fetchProfile();
     }
   }, [success, session]);
-
-  // Fetch membership profile ONLY when session exists
-  useEffect(() => {
-    if (!session) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    fetchProfile();
-  }, [session]);
 
   const fetchProfile = async () => {
     try {
@@ -117,8 +124,8 @@ export default function ProfileScreen() {
 
   const handleDeleteAccount = async () => {
     Alert.alert(
-      "Delete Account?",
-      "This action is permanent and cannot be undone. All your data and alerts will be removed.",
+      "Are you sure?",
+      "Deleting your account will permanently remove your alerts and profile.\n\nImportant: This will NOT automatically cancel your active subscription. You must manage your subscription in your iPhone Subscription Settings.",
       [
         { text: "Cancel", style: "cancel" },
         {

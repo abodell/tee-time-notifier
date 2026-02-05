@@ -85,6 +85,19 @@ export default function MyAlertsScreen() {
   useEffect(() => {
     loadAlerts();
     loadTier();
+
+    const sub1 = DeviceEventEmitter.addListener("membershipUpdated", () => {
+      loadTier();
+      loadAlerts();
+    });
+    const sub2 = DeviceEventEmitter.addListener("notificationReceived", () => {
+      loadAlerts();
+    });
+
+    return () => {
+      sub1.remove();
+      sub2.remove();
+    };
   }, []);
 
   const loadAlerts = async () => {
