@@ -8,8 +8,10 @@ from app.services.foreup_service import run_foreup_scan
 from app.services.alert_service import run_alert_engine
 from app.routes import alerts as alert_routes
 from app.routes import membership as membership_routes
-from app.routes import membership_stripe as stripe_routes
+from app.routes import revenuecat
 from app.routes import push
+from app.routes import auth
+from app.routes import courses
 from app.scheduler.scheduler import start_scheduler
 
 @asynccontextmanager
@@ -20,8 +22,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title = "Tee Time Notify API", version = "0.1.0", lifespan=lifespan)
 app.include_router(alert_routes.router)
 app.include_router(membership_routes.router)
-app.include_router(stripe_routes.router)
+app.include_router(revenuecat.router)
 app.include_router(push.router)
+app.include_router(auth.router)
+app.include_router(courses.router, prefix="/courses", tags=["Courses"])
 
 app.add_middleware(
     CORSMiddleware,

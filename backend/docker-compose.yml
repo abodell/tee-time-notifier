@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: tee-time-backend
+    ports:
+      - "127.0.0.1:8080:8000"
+    env_file:
+      - .env
+    restart: unless-stopped

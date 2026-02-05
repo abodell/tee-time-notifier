@@ -3,17 +3,21 @@ import { useFocusEffect } from "expo-router";
 import {
   View,
   FlatList,
-  SafeAreaView,
   StyleSheet,
   Platform,
+  TouchableOpacity,
+  DeviceEventEmitter,
+  Keyboard,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
   TextInput,
-  Card,
   ActivityIndicator,
   useTheme,
   Surface,
+  IconButton,
+  Button,
 } from "react-native-paper";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -42,6 +46,7 @@ export default function CourseSearchScreen() {
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
+  const [debouncing, setDebouncing] = useState(false);
 
   const [tierName, setTierName] = useState<string>("—");
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
@@ -56,11 +61,23 @@ export default function CourseSearchScreen() {
     }, [])
   );
 
+  // Listen for global alert updates (e.g. from My Alerts deletion)
+  React.useEffect(() => {
+    const sub1 = DeviceEventEmitter.addListener("alertsUpdated", () => {
+      loadQuotaData();
+    });
+    const sub2 = DeviceEventEmitter.addListener("membershipUpdated", () => {
+      loadQuotaData();
+    });
+    return () => {
+      sub1.remove();
+      sub2.remove();
+    };
+  }, []);
+
   const loadQuotaData = async () => {
     try {
-      // keep placeholder visible during refreshes
       setFetchingQuota(true);
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -105,13 +122,18 @@ export default function CourseSearchScreen() {
   React.useEffect(() => {
     if (!query.trim() || reachedQuota) {
       setCourses([]);
+      setDebouncing(false);
       return;
     }
-    const t = setTimeout(() => fetchCourses(query), 300);
+    const t = setTimeout(() => {
+      fetchCourses(query);
+      setDebouncing(false);
+    }, 300);
     return () => clearTimeout(t);
   }, [query, reachedQuota]);
 
   const handleSelectCourse = (course: Course) => {
+    Keyboard.dismiss();
     router.push({
       pathname: "/create-details",
       params: { id: course.id, name: course.name },
@@ -121,118 +143,96 @@ export default function CourseSearchScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <View style={styles.container}>
-        <Text
-          variant="bodyMedium"
-          style={{
-            color: theme.colors.onSurfaceVariant,
-            marginBottom: 14,
-            textAlign: "center",
-          }}
-        >
-          Choose a course to monitor for open tee times
-        </Text>
+        <View style={styles.header}>
+          <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+            Find a Course
+          </Text>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
+            Search for a course to start tracking.
+          </Text>
+        </View>
 
-        {/* Quota notification or skeleton */}
+        {/* Quota Banner */}
         {fetchingQuota && !hasData ? (
-          <View style={{ marginBottom: 10 }}>
-            <Skeleton
-              colorMode={isDark ? "dark" : "light"}
-              width="100%"
-              height={50}
-              radius={12}
-            />
+          <View style={{ marginBottom: 16, paddingHorizontal: 16 }}>
+            <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={60} radius={12} />
           </View>
         ) : (
-          <Animated.View entering={FadeIn.duration(400)}>
-            <Surface style={styles.noticeCard} elevation={1}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View
-                  style={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: 24,
-                    width: 26,
-                    marginRight: 8,
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name={
-                      reachedQuota
-                        ? "alert-circle-outline"
-                        : "information-outline"
-                    }
-                    size={22}
-                    color={
-                      reachedQuota
-                        ? theme.colors.primary
-                        : theme.colors.onSurfaceVariant
-                    }
-                  />
-                </View>
+          <Animated.View entering={FadeIn.duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
+              <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
 
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      color: theme.colors.onSurfaceVariant,
-                      fontSize: 14,
-                      lineHeight: 20,
-                    }}
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      { backgroundColor: reachedQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
+                    ]}
                   >
-                    {reachedQuota ? (
-                      <>
-                        You’ve used all alerts on the{" "}
-                        <Text style={{ fontWeight: "600" }}>{tierName}</Text>{" "}
-                        plan.{" "}
-                        <Text
-                          style={{
-                            color: theme.colors.primary,
-                            fontWeight: "600",
-                          }}
-                          onPress={() => router.push("/upgrade")}
-                        >
-                          Upgrade
-                        </Text>{" "}
-                        to track more tee times.
-                      </>
-                    ) : (
-                      <>
-                        You’re using{" "}
-                        <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
-                        {maxAlerts ? ` of ${maxAlerts}` : ""} alerts on your{" "}
-                        <Text style={{ fontWeight: "600" }}>{tierName}</Text> plan.
-                      </>
-                    )}
-                  </Text>
+                    <MaterialCommunityIcons
+                      name={reachedQuota ? "alert-circle" : "information"}
+                      size={24}
+                      color={reachedQuota ? theme.colors.error : theme.colors.primary}
+                    />
+                  </View>
+
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
+                      {reachedQuota ? (
+                        <>
+                          Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
+                          <Text
+                            style={{ color: theme.colors.primary, fontWeight: "600" }}
+                            onPress={() => router.push("/upgrade")}
+                          >
+                            Upgrade
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          Using <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
+                          {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
+                        </>
+                      )}
+                    </Text>
+                  </View>
                 </View>
               </View>
             </Surface>
           </Animated.View>
+
+
         )}
 
-        {/* Search Field */}
-        <TextInput
-          label="Search course"
-          value={query}
-          onChangeText={setQuery}
-          mode="outlined"
-          right={<TextInput.Icon icon="magnify" />}
-          style={[styles.search, { backgroundColor: theme.colors.surface }]}
-          textColor={theme.colors.onSurface}
-          placeholderTextColor={isDark ? "#ccc" : "#666"}
-          disabled={reachedQuota}
-        />
-
-        {reachedQuota ? (
-          <Text
-            style={{
-              textAlign: "center",
-              color: theme.colors.onSurfaceVariant,
-              marginTop: 20,
+        {/* Search Bar */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <TextInput
+            placeholder="Search courses..."
+            value={query}
+            onChangeText={(text) => {
+              setQuery(text);
+              setDebouncing(text.trim().length > 0);
             }}
-          >
-            You’ve reached your alert limit — upgrade to add more.
-          </Text>
-        ) : loading ? (
+            mode="outlined"
+            left={<TextInput.Icon icon="magnify" color={theme.colors.onSurfaceVariant} />}
+            style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
+            outlineStyle={{ borderRadius: 12, borderWidth: 0 }}
+            textColor={theme.colors.onSurface}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+            disabled={reachedQuota}
+            returnKeyType="search"
+          />
+        </View>
+
+        {/* Content */}
+        {reachedQuota ? (
+          <View style={styles.center}>
+            <MaterialCommunityIcons name="lock-outline" size={48} color={theme.colors.onSurfaceVariant} style={{ opacity: 0.5 }} />
+            <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, maxWidth: 250 }}>
+              Upgrade your plan to track more courses and never miss a tee time.
+            </Text>
+          </View>
+        ) : loading || debouncing ? (
           <View style={styles.center}>
             <ActivityIndicator animating color={theme.colors.primary} />
           </View>
@@ -241,63 +241,109 @@ export default function CourseSearchScreen() {
             data={courses}
             keyExtractor={(item) => item.id.toString()}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingVertical: 10 }}
-            renderItem={({ item }) => (
-              <Card
-                mode="elevated"
-                style={[
-                  styles.card,
-                  { backgroundColor: isDark ? theme.colors.surface : "#fff" },
-                ]}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.onSurface + "12", marginLeft: 16 }} />}
+            renderItem={({ item, index, separators }) => (
+              <TouchableOpacity
+                activeOpacity={0.7}
                 onPress={() => handleSelectCourse(item)}
+                style={[
+                  styles.listItem,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderTopLeftRadius: index === 0 ? 12 : 0,
+                    borderTopRightRadius: index === 0 ? 12 : 0,
+                    borderBottomLeftRadius: index === courses.length - 1 ? 12 : 0,
+                    borderBottomRightRadius: index === courses.length - 1 ? 12 : 0,
+                  }
+                ]}
               >
-                <Card.Title
-                  title={item.name}
-                  subtitle={`${item.city}, ${item.state}`}
-                  titleStyle={[
-                    styles.cardTitle,
-                    { color: theme.colors.onSurface },
-                  ]}
-                  subtitleStyle={[
-                    styles.cardSubtitle,
-                    { color: isDark ? "#bbb" : "#555" },
-                  ]}
-                />
-              </Card>
+                <View style={{ flex: 1 }}>
+                  <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                    {item.name}
+                  </Text>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
+                    {item.city}, {item.state}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color={theme.colors.onSurfaceVariant} style={{ opacity: 0.5 }} />
+              </TouchableOpacity>
             )}
+            ListEmptyComponent={
+              <View style={[styles.center, { marginTop: 40 }]}>
+                {query.trim() ? (
+                  <View style={{ alignItems: "center" }}>
+                    <Text style={{ color: theme.colors.onSurfaceVariant, textAlign: "center", marginBottom: 16 }}>
+                      No courses found matching "{query}"
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={{ alignItems: "center", opacity: 0.6 }}>
+                    <MaterialCommunityIcons name="golf" size={48} color={theme.colors.onSurfaceVariant} />
+                    <Text style={{ marginTop: 16, color: theme.colors.onSurfaceVariant }}>
+                      Start typing to search
+                    </Text>
+                  </View>
+                )}
+                <Button
+                  mode="text"
+                  onPress={() => router.push("/request-course")}
+                  style={{ marginTop: 12 }}
+                  textColor={theme.colors.primary}
+                >
+                  Can't find your course?
+                </Button>
+              </View>
+            }
+            ListFooterComponent={
+              courses.length > 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Button
+                    mode="text"
+                    onPress={() => router.push("/request-course")}
+                    textColor={theme.colors.primary}
+                    labelStyle={{ fontSize: 13, opacity: 1 }}
+                  >
+                    Can't find your course?
+                  </Button>
+                </View>
+              ) : null
+            }
           />
         )}
       </View>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 18, paddingTop: 16 },
+  container: { flex: 1 },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+  },
   noticeCard: {
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: "transparent",
-    marginBottom: 10,
+    borderRadius: 12,
+    padding: 12,
   },
-  search: { marginBottom: 12 },
-  card: {
-    marginBottom: 8,
-    borderRadius: 10,
-    overflow: "hidden",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        shadowOffset: { height: 2, width: 0 },
-      },
-      android: { elevation: 1 },
-    }),
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  cardTitle: { fontSize: 16, fontWeight: "600" },
-  cardSubtitle: { fontSize: 13 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  searchBar: {
+    height: 46,
+    fontSize: 16,
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", paddingBottom: 100 },
 });

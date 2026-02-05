@@ -1,7 +1,7 @@
 import json
-import requests
-from httpx import AsyncClient
-from typing import List, Union
+import asyncio
+from httpx import AsyncClient, Limits
+from typing import List, Union, Dict, Optional
 from datetime import datetime
 from dateutil import tz
 from urllib.parse import urlencode
@@ -9,37 +9,44 @@ from urllib.parse import urlencode
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
 
-http_client = AsyncClient()
-
-async def get_foreup_courses():
-    """ Fetch foreup courses that are attached to alerts that we should scan """
-    # Get all course IDs referenced in active alerts
+async def get_active_foreup_targets():
+    """ 
+    Return a list of unique (course, date_str) tuples that need scanning 
+    based on active alerts.
+    """
     supabase = await create_supabase()
+    
+    # 1. Get all active alerts
     alerts_res = await (
         supabase.table("alerts")
-        .select("course_id")
+        .select("date_from, date_to, courses!alerts_course_id_fkey(id, name, provider, time_zone)")
         .eq("active", True)
+        .eq("courses.provider", "ForeUp")
         .execute()
     )
-    alert_course_ids = {a["course_id"] for a in (alerts_res.data or [])}
-
-    if not alert_course_ids:
-        print(f"[ForeUp] No active alerts - skipping scan.")
-        return []
     
-    courses_res = await (
-        supabase.table("courses")
-        .select("*")
-        .eq("provider", "ForeUp")
-        .in_("id", list(alert_course_ids))
-        .execute()
-    )
+    targets = {} # {(course_id, date_str): course_obj}
+    
+    alerts = alerts_res.data or []
+    for a in alerts:
+        course = a["courses"]
+        # Parse date range
+        try:
+            # Simple handling: assume date_from is enough for now
+            start_dt = datetime.fromisoformat(a["date_from"].replace("Z", "+00:00"))
+            date_str = start_dt.strftime("%m-%d-%Y") # ForeUp format mm-dd-yyyy
+            
+            # Use tuple key to ensure uniqueness
+            key = (course["id"], date_str)
+            targets[key] = course
+        except Exception as e:
+            print(f"Error parsing alert date {a}: {e}")
+            continue
 
-    return courses_res.data or []
+    return targets
 
-async def get_provider_configs(course_id: int) -> dict:
+async def get_provider_configs(supabase, course_id: int) -> dict:
     """ Fetch key/value pairs for provider configs """
-    supabase = await create_supabase()
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
@@ -63,7 +70,6 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
     base_url = (
         "https://foreupsoftware.com/index.php/api/booking/times"
     )
-
     params = {
         "time": "all",
         "date": date_str,
@@ -77,20 +83,50 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
     }
 
     full_url = f"{base_url}?{urlencode(params, doseq=True)}"
-    print(f"Fetching {course['name']} | holes={holes} | date={date_str}...")
-    resp = await http_client.get(full_url, timeout = 10)
-    resp.raise_for_status()
+    print(f"[Fetch ForeUp Times] Fetching {course['name']} | holes={holes} | date={date_str}...")
+    async with AsyncClient(headers={"User-Agent": "Mozilla/5.0"}) as client:
+        resp = await client.get(full_url)
+        resp.raise_for_status()
 
     return resp.json()
 
-async def normalize_and_store(course, raw_data, holes_requested: Union[str, int] = "all"):
-    """ Convert ForeUp response to TeeTime objects and insert into Supabase """
+async def normalize_and_store(course, raw_data, date_str: str, holes_requested: Union[str, int] = "all"):
+    """ Convert ForeUp response to TeeTime objects and sync with Supabase availability """
     tee_times: List[TeeTime] = []
     supabase = await create_supabase()
 
-    local_tz = tz.gettz(course.get("timezone")) or tz.tzutc()
+    # Updated to use time_zone instead of timezone
+    local_tz = tz.gettz(course.get("time_zone")) or tz.tzutc()
     utc_tz = tz.tzutc()
 
+    # 1. Calculate time range for the scanned day in UTC
+    test_date = datetime.strptime(date_str, "%m-%d-%Y")
+    start_of_day = test_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=local_tz)
+    end_of_day = test_date.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=local_tz)
+    
+    start_utc = start_of_day.astimezone(utc_tz)
+    end_utc = end_of_day.astimezone(utc_tz)
+
+    # 2. Fetch current availability for this course/date to perform diffing
+    # This identifies what we ALREADY HAVE so we don't clear everything
+    current_res = await (
+        supabase.table("availability")
+        .select("id, tee_time, holes")
+        .eq("course_id", course["id"])
+        .gte("tee_time", start_utc.isoformat())
+        .lte("tee_time", end_utc.isoformat())
+        .execute()
+    )
+    db_records = current_res.data or []
+    
+    # Map existing records by (iso_time, holes) -> id
+    # We use isoformat for stable string comparison
+    db_map = {
+        (datetime.fromisoformat(r['tee_time']).astimezone(utc_tz).isoformat(), int(r['holes'])): r['id']
+        for r in db_records
+    }
+
+    scanned_keys = set()
     for item in raw_data:
         dt = None
         try:
@@ -100,6 +136,7 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
                 dt = datetime.strptime(item["time"], "%Y-%m-%dT%H:%M:%S")
             except Exception:
                 print(f"Skipping invalid time: {item.get('time')}")
+                continue
         
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo = local_tz)
@@ -109,42 +146,110 @@ async def normalize_and_store(course, raw_data, holes_requested: Union[str, int]
         available = not item.get("booked") and not item.get("locked")
         raw_holes = str(item.get("holes", "")).strip()
 
+        # Handle '9/18' by creating two separate tee time entries
+        actual_holes_to_store = []
         if raw_holes == "9/18":
-            if holes_requested == 9:
-                normalized_holes = 9
-            elif holes_requested == 18:
-                normalized_holes = 18
-            else:
-                normalized_holes = 18
+            actual_holes_to_store = [9, 18]
         else:
             try:
-                normalized_holes = int(raw_holes)
+                actual_holes_to_store = [int(raw_holes)]
             except ValueError:
-                normalized_holes = 18
+                actual_holes_to_store = [18]
 
-        tee_times.append(
-            TeeTime(
-                course_id = course['id'],
-                tee_time = dt_utc,
-                price = price,
-                holes = normalized_holes,
-                available = available,
-                source = "ForeUp",
-                raw = item,
+        for num_holes in actual_holes_to_store:
+            # Track scanned keys for diffing
+            scanned_keys.add((dt_utc.isoformat(), num_holes))
+            
+            tee_times.append(
+                TeeTime(
+                    course_id = course['id'],
+                    tee_time = dt_utc,
+                    price = price,
+                    holes = num_holes,
+                    available = available,
+                    source = "ForeUp",
+                    raw = item,
+                )
             )
+
+    # 3. IDENTIFY RECORDS TO DELETE (Present in DB but missing from fresh scan)
+    ids_to_remove = []
+    removed_details = []
+    for (tee_time_key, holes_key), db_id in db_map.items():
+        if (tee_time_key, holes_key) not in scanned_keys:
+            ids_to_remove.append(db_id)
+            removed_details.append(f"{tee_time_key} ({holes_key}-hole)")
+
+    if ids_to_remove:
+        print(f"[ForeUp] Diff result: Removing {len(ids_to_remove)} stale tee times for {course['name']} on {date_str}:")
+        for detail in removed_details:
+            print(f"  - Removed: {detail}")
+            
+        # Batch delete by specific IDs
+        # We use .in_ to delete only the specific missing records
+        await (
+            supabase.table("availability")
+            .delete()
+            .in_("id", ids_to_remove)
+            .execute()
         )
 
+
+    # 4. UPSERT fresh data (updates existing, adds new)
     if tee_times:
         payload = [t.to_dict() for t in tee_times]
         await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
-    print("Inserted to availability table...")
+    else:
+        print(f"[ForeUp] No times found for {course['name']} on {date_str}.")
     
-async def run_foreup_scan(date_str: str, holes: Union[str, int] = "all"):
-    courses = await get_foreup_courses()
-    for c in courses:
+    print(f"Sync complete for {course['name']} on {date_str}.")
+
+
+async def process_single_target(supabase, client, course, date_str, sem):
+    """ Worker for concurrent scanning """
+    async with sem:
         try:
-            cfgs = await get_provider_configs(c["id"])
-            data = await fetch_foreup_times(c, cfgs, date_str, holes)
-            await normalize_and_store(c, data, holes)
+            course_id = course["id"]
+            cfgs = await get_provider_configs(supabase, course_id)
+            data = await fetch_foreup_times(course, cfgs, date_str, "all")
+            await normalize_and_store(course, data, date_str, "all")
+            return True
         except Exception as e:
-            print(f"Error scanning {c['name']}: {e}")
+            print(f"[ForeUp] Error scanning {course.get('name')} for {date_str}: {e}")
+            return False
+
+
+async def run_foreup_scan():
+    """
+    Scans ForeUp courses for all dates requested in active alerts.
+    Utilizes concurrency with rate limiting.
+    """
+    start_time = datetime.now()
+    print(f"[ForeUp] Starting smart scan at {start_time.isoformat()}...")
+    
+    targets = await get_active_foreup_targets()
+    
+    if not targets:
+        print("[ForeUp] No active alerts found.")
+        return
+
+    print(f"[ForeUp] Found {len(targets)} unique (course, date) pairs to scan.")
+    
+    supabase = await create_supabase()
+    sem = asyncio.Semaphore(10) # Limit concurrency
+    
+    async with AsyncClient(
+        headers={"User-Agent": "Mozilla/5.0"},
+        limits=Limits(max_connections=20, max_keepalive_connections=10)
+    ) as client:
+        tasks = []
+        for (course_id, date_str), course in targets.items():
+            tasks.append(process_single_target(supabase, client, course, date_str, sem))
+        
+        results = await asyncio.gather(*tasks)
+    
+    end_time = datetime.now()
+    duration = (end_time - start_time).total_seconds()
+    success_count = sum(1 for r in results if r)
+    
+    print(f"[ForeUp] Scan completed in {duration:.2f}s. Success: {success_count}/{len(targets)}")

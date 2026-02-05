@@ -1,22 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, DeviceEventEmitter } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
   Button,
   useTheme,
   ActivityIndicator,
   IconButton,
-  Card,
-  Divider,
-  TextInput,
-  HelperText,
   Surface,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import Toast from "react-native-toast-message";
-import FadeSlideTransition from "@/components/FadeSlideTransition";
-import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Skeleton } from "moti/skeleton";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -37,16 +34,11 @@ interface UserProfile {
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { success } = useLocalSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
-
-  // For embedded sign-up form (when not authenticated)
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [signupError, setSignupError] = useState<string | null>(null);
-  const [signUpLoading, setSignUpLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -57,40 +49,65 @@ export default function ProfileScreen() {
       (_event, sess) => setSession(sess)
     );
 
-    return () => listener.subscription.unsubscribe();
+    const membershipSub = DeviceEventEmitter.addListener("membershipUpdated", () => {
+      fetchProfile();
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+      membershipSub.remove();
+    };
   }, []);
 
-  // Fetch membership profile ONLY when session exists
+  // Fetch profile when coming into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (session) {
+        setLoading(true);
+        fetchProfile();
+      }
+    }, [session])
+  );
+
+  // Handle Stripe success redirect
   useEffect(() => {
-    if (!session) {
-      setLoading(false);
-      return;
+    if (success && session) {
+      Toast.show({
+        type: "success",
+        text1: "Membership Updated",
+        text2: "Thank you for upgrading!",
+        position: "top",
+      });
+      fetchProfile();
     }
-    fetchProfile();
-  }, [session]);
+  }, [success, session]);
 
   const fetchProfile = async () => {
     try {
       const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      if (!user) throw new Error("No active session");
+      const sessionUser = data.session?.user;
+      if (!sessionUser) throw new Error("No active session");
 
-      const res = await fetch(`${API_URL}/membership/profile/${user.id}`);
+      const res = await fetch(`${API_URL}/membership/profile/${sessionUser.id}`);
       if (!res.ok) throw new Error("Unable to load membership info.");
 
       const membershipData = await res.json();
       setUser({
-        id: user.id,
-        email: user.email,
+        id: sessionUser.id,
+        email: sessionUser.email,
         membership_tiers: membershipData.membership_tiers,
       });
     } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text1: "Failed to load profile",
-        text2: err.message,
-        position: "top",
-      });
+      console.error("Profile fetch error:", err);
+      // Only show toast if it's not a "No active session" error which might happen on logout/switch
+      if (err.message !== "No active session") {
+        Toast.show({
+          type: "error",
+          text1: "Failed to load profile",
+          text2: err.message,
+          position: "top",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -105,120 +122,116 @@ export default function ProfileScreen() {
     router.replace("/(auth)/sign-in");
   };
 
-  const handleSignUp = async () => {
-    setSignUpLoading(true);
-    setSignupError(null);
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      "Are you sure?",
+      "Deleting your account will permanently remove your alerts and profile.\n\nImportant: This will NOT automatically cancel your active subscription. You must manage your subscription in your iPhone Subscription Settings.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) return;
 
-    const { error } = await supabase.auth.signUp({ email, password });
-    setSignUpLoading(false);
+              const res = await fetch(`${API_URL}/auth/delete`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${session.access_token}`,
+                },
+              });
 
-    if (error) {
-      setSignupError(error.message);
-    } else {
-      Toast.show({
-        type: "success",
-        text1: "Check your email to confirm your account",
-        position: "top",
-      });
-      router.replace("/(auth)/sign-in");
-    }
+              if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Failed to delete account");
+              }
+
+              // Sign out locally
+              await supabase.auth.signOut();
+              Toast.show({
+                type: "success",
+                text1: "Account Deleted",
+                position: "top",
+              });
+              router.replace("/(auth)/sign-in");
+            } catch (err: any) {
+              Alert.alert("Error", err.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // -------------------------------------------------------
-  // 🟥 If NOT logged in → Show SIGN-UP FORM instead of Profile UI
+  // 🟥 If NOT logged in → Show GUEST VIEW
   // -------------------------------------------------------
   if (!session) {
-    const isDark = theme.dark;
-
     return (
-      <LinearGradient
-        colors={
-          isDark
-            ? ["#0e1012", "#121416", "#1a1c1f"]
-            : ["#f8f9fa", "#ffffff", "#f2f4f6"]
-        }
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.authContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          <FadeSlideTransition>
-            <Surface style={[styles.authCard, { backgroundColor: theme.colors.surface }]}>
-              <Text
-                variant="headlineMedium"
-                style={[styles.authHeader, { color: theme.colors.onSurface }]}
-              >
-                Create an Account
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+        <View style={styles.header}>
+          <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+            Profile
+          </Text>
+        </View>
+
+        <View style={styles.guestContainer}>
+          <Surface style={{ backgroundColor: "transparent", borderRadius: 24 }} elevation={0}>
+            <View style={[styles.guestCard, { backgroundColor: "transparent" }]}>
+
+              <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + "15" }]}>
+                <MaterialCommunityIcons name="account-circle-outline" size={48} color={theme.colors.primary} />
+              </View>
+
+              <Text variant="titleLarge" style={{ fontWeight: "700", color: theme.colors.onSurface, marginBottom: 8 }}>
+                Welcome to TeeSignal
               </Text>
 
-              <TextInput
-                label="Email"
-                mode="outlined"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-                style={{ marginBottom: 12 }}
-              />
-
-              <TextInput
-                label="Password"
-                mode="outlined"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                style={{ marginBottom: 12 }}
-              />
-
-              {signupError && (
-                <HelperText type="error" visible={!!signupError}>
-                  {signupError}
-                </HelperText>
-              )}
+              <Text variant="bodyMedium" style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginBottom: 32, paddingHorizontal: 16 }}>
+                Sign in to manage your membership, view your subscription details, and configure your alerts.
+              </Text>
 
               <Button
                 mode="contained"
-                onPress={handleSignUp}
-                disabled={!email || !password || signUpLoading}
+                onPress={() => router.push("/(auth)/sign-in")}
+                style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
                 contentStyle={{ height: 48 }}
-                labelStyle={{ fontWeight: "600" }}
+                labelStyle={{ fontWeight: "600", fontSize: 16 }}
               >
-                {signUpLoading ? "Creating..." : "Create Account"}
+                Sign In
               </Button>
 
-              <View style={styles.authFooter}>
-                <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                  Already have an account?
-                </Text>
+              <Button
+                mode="outlined"
+                onPress={() => router.push("/(auth)/sign-up")}
+                style={{ width: "100%", borderRadius: 12, borderColor: theme.colors.outline }}
+                contentStyle={{ height: 48 }}
+                labelStyle={{ fontWeight: "600", fontSize: 16, color: theme.colors.onSurface }}
+              >
+                Create Account
+              </Button>
+            </View>
+          </Surface>
 
-                <Button
-                  onPress={() => router.replace("/(auth)/sign-in")}
-                  compact
-                  textColor={theme.colors.primary}
-                  labelStyle={{ fontWeight: "600" }}
-                >
-                  Sign In
-                </Button>
-              </View>
-            </Surface>
-          </FadeSlideTransition>
-        </ScrollView>
-      </LinearGradient>
+
+          <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
+            TeeSignal v1.0.0
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
+  // -------------------------------------------------------
   // -------------------------------------------------------
   // 🟩 If logged in → Normal PROFILE UI
   // -------------------------------------------------------
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
+  // Removed full screen loading to show Skeleton instead
 
   const tier = user?.membership_tiers;
   const price =
@@ -227,185 +240,166 @@ export default function ProfileScreen() {
       : "Free";
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Tagline / intro */}
-      <View style={{ alignItems: "center", marginBottom: 24 }}>
-        <Text
-          variant="bodyMedium"
-          style={{
-            color: theme.colors.onSurfaceVariant,
-            opacity: 0.8,
-            textAlign: "center",
-          }}
-        >
-          Manage your membership and profile
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+      <View style={styles.header}>
+        <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+          Profile
         </Text>
       </View>
 
-      {/* Membership Plan Card */}
-      <Card
-        mode="elevated"
-        style={[styles.planCard, { backgroundColor: theme.colors.surface }]}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <Card.Content>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <IconButton icon="crown" size={28} iconColor={theme.colors.primary} />
-            <View style={{ flexShrink: 1 }}>
-              <Text
-                variant="titleMedium"
-                style={{
-                  color: theme.colors.onSurface,
-                  fontWeight: "600",
-                }}
-              >
-                {tier?.name || "Free Plan"}
-              </Text>
-              <Text style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
-                {tier?.description ||
-                  "Basic access with limited tee-time alerts per day"}
-              </Text>
+        {/* Membership Section */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>MEMBERSHIP</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.row}>
+            <View style={[styles.iconBox, { backgroundColor: theme.colors.primary + "20" }]}>
+              <MaterialCommunityIcons name="crown" size={22} color={theme.colors.primary} />
             </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              {loading ? (
+                <Skeleton colorMode={theme.dark ? "dark" : "light"} width={120} height={20} />
+              ) : (
+                <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                  {tier?.name}
+                </Text>
+              )}
+              <View style={{ marginTop: 4 }}>
+                {loading ? (
+                  <Skeleton colorMode={theme.dark ? "dark" : "light"} width={180} height={16} />
+                ) : (
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {price} {tier?.max_alerts ? `• ${tier.max_alerts} Active Alerts` : ""}
+                  </Text>
+                )}
+              </View>
+            </View>
+            <Button
+              mode="text"
+              compact
+              textColor={theme.colors.primary}
+              labelStyle={{ fontWeight: "600" }}
+              onPress={() => router.push("/upgrade")}
+            >
+              Manage
+            </Button>
           </View>
 
-          <View style={styles.planDetails}>
-            <Text style={styles.detailText}>
-              Track up to {tier?.max_alerts ?? 3} tee-time alerts simultaneously.
+          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
+
+          <View style={styles.row}>
+            <Text style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
+              Scan Interval
             </Text>
-            <Text style={styles.detailText}>
-              We'll check new availabilities every{" "}
-              {tier?.scan_interval_seconds
-                ? tier.scan_interval_seconds / 60
-                : 10}{" "}
-              minutes to keep you updated.
-            </Text>
+            {loading ? (
+              <Skeleton colorMode={theme.dark ? "dark" : "light"} width={100} height={20} />
+            ) : (
+              <Text style={{ color: theme.colors.onSurface, fontWeight: "500" }}>
+                {tier?.scan_interval_seconds ? `Every ${tier.scan_interval_seconds / 60} mins` : ""}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Account Section */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant, marginTop: 24 }]}>ACCOUNT</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.row}>
+            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Email</Text>
+            {loading ? (
+              <Skeleton colorMode={theme.dark ? "dark" : "light"} width={180} height={20} />
+            ) : (
+              <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 16 }}>{user?.email}</Text>
+            )}
           </View>
 
-          <Text
-            variant="bodyLarge"
-            style={[
-              styles.planPrice,
-              { color: theme.colors.primary, fontWeight: "600" },
-            ]}
-          >
-            {price}
-          </Text>
+          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
 
-          <Button
-            mode="contained"
-            style={{ marginTop: 16, borderRadius: 10 }}
-            contentStyle={{ height: 48 }}
-            labelStyle={{ fontWeight: "600" }}
-            onPress={() => router.push("/upgrade")}
-          >
-            {tier?.price_cents === 0 ? "Explore Upgrade Options" : "Manage Plan"}
-          </Button>
-        </Card.Content>
-      </Card>
+          <TouchableOpacity style={styles.row} onPress={handleLogout}>
+            <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "500" }}>Log Out</Text>
+            <MaterialCommunityIcons name="logout" size={20} color={theme.colors.error} />
+          </TouchableOpacity>
 
-      {/* Account Details */}
-      <View style={[styles.accountContainer]}>
-        <Divider style={{ marginVertical: 8, opacity: 0.15 }} />
-        <Text
-          style={{
-            color: theme.colors.onSurfaceVariant,
-            fontSize: 14,
-            textAlign: "center",
-            marginBottom: 4,
-          }}
-        >
-          Signed in as
+          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
+
+          <TouchableOpacity style={styles.row} onPress={handleDeleteAccount}>
+            <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "700" }}>Delete Account</Text>
+            <MaterialCommunityIcons name="delete-forever" size={20} color={theme.colors.error} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
+          TeeSignal v1.0.0
         </Text>
-        <Text
-          style={{
-            color: theme.colors.onSurface,
-            fontSize: 16,
-            fontWeight: "500",
-            textAlign: "center",
-          }}
-        >
-          {user?.email ?? "—"}
-        </Text>
-
-        <Button
-          mode="text"
-          textColor={theme.colors.error}
-          onPress={handleLogout}
-          style={{ marginTop: 12 }}
-          labelStyle={{ fontWeight: "600", fontSize: 15 }}
-        >
-          Log Out
-        </Button>
-      </View>
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // Auth (unauthenticated) styling
-  authContainer: {
-    flexGrow: 1,
-    justifyContent: "center",
+  container: { flex: 1 },
+  header: {
     paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
-  authCard: {
-    borderRadius: 16,
-    padding: 24,
-    elevation: 3,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
-  authHeader: {
-    marginBottom: 30,
-    textAlign: "center",
-    fontWeight: "700",
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+    marginLeft: 16,
+    letterSpacing: 0.5,
   },
-  authFooter: {
-    marginTop: 28,
+  sectionContainer: {
+    borderRadius: 12,
+  },
+  row: {
     flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    justifyContent: "space-between",
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // Profile (authenticated)
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 60,
+  guestContainer: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  guestCard: {
+    padding: 32,
+    borderRadius: 24,
+    alignItems: "center",
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  planCard: {
-    borderRadius: 14,
-    marginBottom: 32,
-    elevation: 3,
-    paddingVertical: 4,
-  },
-  planDetails: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.15)",
-    marginTop: 12,
-    paddingTop: 10,
-  },
-  detailText: {
-    color: "#a1a1a1",
-    fontSize: 14,
-    marginBottom: 3,
-  },
-  planPrice: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  accountContainer: {
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

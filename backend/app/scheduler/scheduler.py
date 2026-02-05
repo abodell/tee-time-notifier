@@ -1,8 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI
-
-from app.scheduler.jobs import (
+from .jobs import (
     scan_foreup_job,
     run_alert_engine_for_tier
 )
@@ -27,9 +26,15 @@ async def start_scheduler(app: FastAPI):
     query = await supabase.table("membership_tiers").select("*").execute() or []
     tiers = query.data
 
+    from datetime import datetime, timedelta
+
+    # Align to the next clean minute boundary
+    next_minute = (datetime.now() + timedelta(minutes=1)).replace(second=0, microsecond=0)
+    print(f"[Scheduler] Aligning all jobs to start at: {next_minute.isoformat()}")
+
     scheduler.add_job(
         scan_foreup_job,
-        trigger=IntervalTrigger(seconds=60),
+        trigger=IntervalTrigger(seconds=45, start_date=next_minute),
         name="ForeUp_GLOBAL_scan",
     )
 
@@ -39,7 +44,7 @@ async def start_scheduler(app: FastAPI):
 
         scheduler.add_job(
             run_alert_engine_for_tier,
-            trigger=IntervalTrigger(seconds=interval),
+            trigger=IntervalTrigger(seconds=interval, start_date=next_minute),
             args=[tier_id],
             misfire_grace_time=10,
             name=f"AlertEngine_Tier_{tier_id}"
@@ -47,7 +52,7 @@ async def start_scheduler(app: FastAPI):
 
         print(
             f"[Scheduler] Registered alert job for tier {tier['name']} "
-            f"every {interval} seconds"
+            f"every {interval} seconds (aligned to clock)"
         )
     
     scheduler.start()

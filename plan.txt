@@ -57,6 +57,11 @@ Recent Additions (Post-Stripe, Quota, & Notifications Integration):
 ✅ Conditional downgraded messaging logic improved on Upgrade screen  
 ✅ Navigation and authentication flows refactored for clarity and consistency  
 ✅ Fixed async/await usage in ForeUp service and Alert service (bug fixes)  
+✅ **Complete UI Redesign**: Apple-like aesthetic, gradients, modern typography  
+✅ **Alert Notifications**: Displaying found tee times and direct booking links  
+✅ **Stripe Deep Linking**: Seamless redirect back to app after checkout/cancel  
+✅ **Global Refresh**: Instant UI updates across tabs using DeviceEventEmitter  
+✅ **Profile Shimmer**: Polished loading state with no default values  
 
 
 System Capabilities:
@@ -70,6 +75,7 @@ System Capabilities:
 - Expo Push Notification registration and device token storage.  
 - Consistent light/dark mode, modern Material 3-inspired design.  
 - Frictionless UX across all navigation routes.
+- **Deep Linking**: Native handling of external redirects (Stripe, etc.).
 
 
 ---------------------------------------------------------
@@ -150,7 +156,7 @@ Flow Overview:
 7. APScheduler periodically executes tier-based alert checks.  
 8. `alert_service` matches availability vs. alert criteria → inserts `alert_notifications` for new matches.  
 9. Summary push notifications sent to users for new matches (once per alert per cooldown window).  
-10. User receives push → opens app → navigates to “My Alerts.”  
+10. User receives push → opens app → navigates to “My Alerts” → sees tee times & books.  
 
 
 ---------------------------------------------------------
@@ -166,6 +172,9 @@ VI. IMPLEMENTED / VERIFIED
 ✔ Verified push delivery on Expo Go + EAS Dev Builds.  
 ✔ End-to-end alert-matching → notification flow fully operational.  
 ✔ Fallback and manual debug routes for controlled testing.  
+✔ **Stripe Deep Linking**: Verified success/cancel redirects.
+✔ **Global Refresh**: Verified instant quota updates.
+✔ **Shimmer Loading**: Verified smooth loading states.
 
 
 ---------------------------------------------------------
@@ -226,13 +235,14 @@ IX. TODO CHECKLIST
 
 Frontend:
 ---------
-[ ] Test live push delivery via Expo to physical devices.  
-[ ] Add auth-guard logic to Profile (redirect/placeholder if not signed in).  
-[ ] Confirm quota disabling and 403 modal behavior on Create Details.  
-[ ] Refine banner styling for unified upgrade prompts.  
+[x] Test live push delivery via Expo to physical devices.  
+[x] Add auth-guard logic to Profile (redirect/placeholder if not signed in).  
+[x] Confirm quota disabling and 403 modal behavior on Create Details.  
+[x] Refine banner styling for unified upgrade prompts.  
+[x] Final validation on sign-in ↔ sign-up ↔ profile redirects.  
+[x] Validate theme, typography, and color contrast polish.
+[x] **Implement Stripe Deep Linking**.
 [ ] Add favicon & splash assets to finalize app branding.  
-[ ] Final validation on sign-in ↔ sign-up ↔ profile redirects.  
-[ ] Validate theme, typography, and color contrast polish.
 
 Backend:
 --------

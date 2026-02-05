@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support | Tee Signal - Golf Tee Time Alerts</title>
+    <style>
+        :root {
+            --background: #000000;
+            --surface: #1C1C1E;
+            --primary: #4ade80;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --outline: rgba(74, 222, 128, 0.2);
+            --gradient: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        header {
+            width: 100%;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--outline);
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -1px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            letter-spacing: -1px;
+            text-align: center;
+        }
+
+        .hero-text {
+            font-size: 20px;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid var(--outline);
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .contact-email {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 24px 0;
+            display: block;
+        }
+
+        .btn {
+            background: var(--gradient);
+            color: #000;
+            padding: 16px 32px;
+            border-radius: 100px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(74, 222, 128, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(74, 222, 128, 0.4);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background-color: rgba(28, 28, 30, 0.5);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid var(--outline);
+            text-align: left;
+        }
+
+        .feature-card h3 {
+            color: var(--primary);
+            margin-top: 0;
+            font-weight: 700;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 60px 0 40px;
+            width: 100%;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .footer-links {
+            margin-bottom: 20px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            margin: 0 15px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 36px;
+            }
+
+            .card {
+                padding: 32px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container" style="padding: 0;">
+            <a href="index.html" class="logo">
+                TeeSignal
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Need Support?</h1>
+        <p class="hero-text">We're here to help you get the most out of TeeSignal. Whether you have a question about
+            your subscription or need help setting up alerts, we've got you covered.</p>
+
+        <div class="card">
+            <h2>Contact Us</h2>
+            <p>For any issues, feedback, or data deletion requests, please reach out to us via email:</p>
+            <a href="mailto:andybodell9@gmail.com" class="contact-email">andybodell9@gmail.com</a>
+            <p>We typically respond within 24-48 hours.</p>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>Subscription Help</h3>
+                <p>Learn how to manage your Pro membership or restore purchases on a new device.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Alert Frequency</h3>
+                <p>Questions about how often we scan for tee times? Reach out for a breakdown of our search logic.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Account Deletion</h3>
+                <p>Need your data removed? Send us an email and we'll process your request immediately.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="index.html">Support</a>
+                <a href="privacy.html">Privacy Policy</a>
+            </div>
+            <p>&copy; 2026 Andrew Bodell. All rights reserved.</p>
+            <p>TeeSignal is the premier golf tee time notification service.</p>
+        </div>
+    </footer>
+</body>
+
+</html>

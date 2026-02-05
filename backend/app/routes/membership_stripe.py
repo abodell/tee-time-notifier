@@ -21,11 +21,13 @@ async def create_checkout_session(request: Request):
         payload = await request.json()
         user_id = payload.get("user_id")
         tier_id = payload.get("tier_id")
+        success_url = payload.get("success_url")
+        cancel_url = payload.get("cancel_url")
 
         if not user_id or not tier_id:
             raise HTTPException(status_code = 400, detail = "Missing required fields")
         
-        tier = (
+        tier = await (
             supabase.table("membership_tiers")
             .select("id, name, price_id, price_cents")
             .eq("id", tier_id)
@@ -40,7 +42,7 @@ async def create_checkout_session(request: Request):
         if not price_id:
             raise HTTPException(status_code=400, detail = "Tier missing Stripe price ID")
         
-        profile = (
+        profile = await (
             supabase.table("user_profiles")
             .select("stripe_customer_id")
             .eq("id", user_id)
@@ -49,30 +51,34 @@ async def create_checkout_session(request: Request):
         )
 
         stripe_customer_id = profile.data.get("stripe_customer_id")
-        auth_user = supabase.auth.admin.get_user_by_id(user_id)
+        auth_user = await supabase.auth.admin.get_user_by_id(user_id)
 
         if not stripe_customer_id:
             # Create a new customer
             customer = stripe.Customer.create(email = auth_user.user.email, metadata = {"user_id": user_id,})
             stripe_customer_id = customer.id
 
-            supabase.table("user_profiles").update(
+            await supabase.table("user_profiles").update(
                 {"stripe_customer_id": stripe_customer_id}
             ).eq("id", user_id).execute()
+
+        # Use provided URLs or fallback to env vars (legacy behavior)
+        final_success_url = f"{success_url}?success=true" if success_url else f"{os.getenv('APP_PUBLIC_URL', 'https://google.com')}/profile?success=true"
+        final_cancel_url = f"{cancel_url}?canceled=true" if cancel_url else f"{os.getenv('APP_PUBLIC_URL', 'https://stripe.com')}/upgrade?canceled=true"
 
         session = stripe.checkout.Session.create(
             mode = "subscription",
             customer = stripe_customer_id,
             line_items = [{"price": price_id, "quantity": 1}],
-            success_url=f"{os.getenv('APP_PUBLIC_URL', 'https://google.com')}/profile?success=true",
-            cancel_url=f"{os.getenv('APP_PUBLIC_URL', 'https://stripe.com')}/upgrade?canceled=true",
+            success_url=final_success_url,
+            cancel_url=final_cancel_url,
             allow_promotion_codes=True,
         )
 
         return {"checkout_url": session.url}
     
     except Exception as e:
-        print("Strip checkout creation error: ", e)
+        print("Stripe checkout creation error: ", e)
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/webhook")
@@ -111,7 +117,7 @@ async def stripe_webhook(request: Request):
             items = sub['items']['data']
             price_id = items[0]['price']['id']
 
-            tier = (
+            tier = await (
                 supabase.table("membership_tiers")
                 .select("id")
                 .eq("price_id", price_id)
@@ -122,7 +128,7 @@ async def stripe_webhook(request: Request):
             tier_id = tier.data['id'] if tier.data else None
 
             if user_id and tier_id:
-                supabase.table("user_profiles").update(
+                await supabase.table("user_profiles").update(
                     {"membership_tier_id": tier_id}
                 ).eq("id", user_id).execute()
 
@@ -136,7 +142,7 @@ async def stripe_webhook(request: Request):
 
             # downgrade to Free (id=1)
             if user_id:
-                supabase.table("user_profiles").update(
+                await supabase.table("user_profiles").update(
                     {
                         "membership_tier_id": 1,
                         "pending_downgrade": False,
@@ -164,7 +170,7 @@ async def schedule_downgrade(request: Request):
         if not user_id:
             raise HTTPException(status_code=400, detail="Missing user_id")
         
-        profile = (
+        profile = await (
             supabase.table("user_profiles")
             .select("stripe_customer_id")
             .eq("id", user_id)
@@ -186,7 +192,7 @@ async def schedule_downgrade(request: Request):
 
         cancel_date = updated["cancel_at"]
 
-        supabase.table("user_profiles").update(
+        await supabase.table("user_profiles").update(
             {"pending_downgrade": True, "cancel_at": datetime.fromtimestamp(cancel_date, tz=timezone.utc).isoformat()}
         ).eq("id", user_id).execute()
 

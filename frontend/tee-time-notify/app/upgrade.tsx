@@ -1,35 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform, DeviceEventEmitter } from "react-native";
 import {
   Text,
   Button,
   useTheme,
   ActivityIndicator,
-  Card,
   IconButton,
+  Surface,
+  Divider,
 } from "react-native-paper";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "@/constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Purchases, { PurchasesPackage } from "react-native-purchases";
+import { MembershipTier, UserProfileResponse } from "@/types/membership";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-
-interface MembershipTier {
-  id: number;
-  name: string;
-  description?: string;
-  price_cents?: number;
-  max_alerts?: number;
-  scan_interval_seconds?: number;
-}
-
-interface UserProfileResponse {
-  membership_tier_id: number;
-  membership_tiers?: MembershipTier;
-  pending_downgrade?: boolean;
-  cancel_at?: string;
-}
 
 export default function UpgradeScreen() {
   const theme = useTheme();
@@ -40,6 +30,7 @@ export default function UpgradeScreen() {
   const [userTier, setUserTier] = useState<number | null>(null);
   const [pendingDowngrade, setPendingDowngrade] = useState(false);
   const [cancelAt, setCancelAt] = useState<string | null>(null);
+  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
 
   useEffect(() => {
     loadData();
@@ -67,6 +58,37 @@ export default function UpgradeScreen() {
       setUserTier(profileData.membership_tier_id);
       setPendingDowngrade(profileData.pending_downgrade || false);
       setCancelAt(profileData.cancel_at || null);
+
+      // Fetch RevenueCat Offerings or Products
+      try {
+        const offerings = await Purchases.getOfferings();
+
+        if (offerings.current && offerings.current.availablePackages.length > 0) {
+          setPackages(offerings.current.availablePackages);
+        } else {
+          // Fallback: Fetch products directly using IDs from our DB
+          const productIds = tierList
+            .map(t => t.revenuecat_entitlement_id)
+            .filter((id): id is string => !!id);
+
+          if (productIds.length > 0) {
+            const products = await Purchases.getProducts(productIds);
+
+            // Wrap products in synthetic packages to match existing state structure
+            const syntheticPackages: any[] = products.map(product => ({
+              identifier: product.identifier,
+              packageType: "CUSTOM",
+              product: product,
+              offeringIdentifier: "fallback"
+            }));
+
+            setPackages(syntheticPackages);
+          }
+        }
+      } catch (e) {
+        console.log("Error fetching offerings/products", e);
+      }
+
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -93,92 +115,68 @@ export default function UpgradeScreen() {
       // 🟡 Downgrade flow: user chooses Free plan
       if (tier.price_cents === 0 && userTier && userTier !== 1) {
         Alert.alert(
-          "Unsubscribe?",
-          "Are you sure you want to cancel your current subscription? " +
-            "Your plan will remain active until the end of this billing period.",
+          "Manage Subscription",
+          "To cancel or downgrade your plan, please manage your subscription in your device settings.",
           [
-            { text: "Keep Current Plan", style: "cancel" },
+            { text: "Cancel", style: "cancel" },
             {
-              text: "Unsubscribe",
-              style: "destructive",
+              text: "Open Settings",
               onPress: async () => {
-                try {
-                  const {
-                    data: { user },
-                  } = await supabase.auth.getUser();
-                  if (!user) throw new Error("Not logged in");
-
-                  const res = await fetch(`${API_URL}/membership/downgrade`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: user.id }),
-                  });
-
-                  if (!res.ok) throw new Error(await res.text());
-                  const data = await res.json();
-
-                  setPendingDowngrade(true);
-                  setCancelAt(
-                    new Date(data.cancel_at * 1000).toISOString()
-                  );
-
-                  Toast.show({
-                    type: "info",
-                    text1: "Downgrade scheduled",
-                    text2: `Plan will end on ${new Date(
-                      data.cancel_at * 1000
-                    ).toLocaleDateString()}`,
-                    position: "top",
-                  });
-                } catch (err: any) {
-                  Toast.show({
-                    type: "error",
-                    text1: "Failed to schedule downgrade",
-                    text2: err.message,
-                    position: "top",
-                  });
+                if (Platform.OS === 'ios') {
+                  Linking.openURL('https://apps.apple.com/account/subscriptions');
+                } else {
+                  Linking.openURL('https://play.google.com/store/account/subscriptions');
                 }
-              },
-            },
+              }
+            }
           ]
         );
         return;
       }
 
-      // 🟢 Regular upgrade flow
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not logged in");
-
+      // 🟢 Regular upgrade flow (Native IAP)
       setRedirectingTier(tier.id);
 
-      const res = await fetch(`${API_URL}/membership/upgrade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, tier_id: tier.id }),
-      });
+      // Find matching package
+      const packageToBuy = packages.find(
+        (pkg) => pkg.product.identifier === tier.revenuecat_entitlement_id || pkg.identifier === tier.revenuecat_entitlement_id
+      );
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!packageToBuy) {
+        throw new Error("Product not found in store. Please try again later.");
+      }
 
-      const data = await res.json();
-      const checkoutUrl = data.checkout_url;
-      if (!checkoutUrl) throw new Error("Checkout URL missing");
+      const { customerInfo } = await Purchases.purchasePackage(packageToBuy);
 
-      await Linking.openURL(checkoutUrl);
+      // Check if entitlement is active
+      if (customerInfo.entitlements.active[tier.revenuecat_entitlement_id || ""]) {
+        Toast.show({
+          type: "success",
+          text1: "Upgrade Successful",
+          text2: "Your plan has been updated.",
+          position: "top",
+        });
+        // Refresh profile
+        DeviceEventEmitter.emit("membershipUpdated");
+        loadData();
+      }
+
     } catch (err: any) {
-      Toast.show({
-        type: "error",
-        text1: "Checkout failed",
-        text2: err.message,
-        position: "top",
-      });
+      if (!err.userCancelled) {
+        Toast.show({
+          type: "error",
+          text1: "Purchase Failed",
+          text2: err.message,
+          position: "top",
+        });
+      }
+    } finally {
       setRedirectingTier(null);
     }
   };
 
   const toPriceText = (cents?: number) =>
-    !cents || cents === 0 ? "Free" : `$${(cents / 100).toFixed(2)}/mo`;
+    !cents || cents === 0 ? "$0.00" : `$${(cents / 100).toFixed(2)}`;
 
   if (loading) {
     return (
@@ -189,211 +187,262 @@ export default function UpgradeScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.scroll}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Back Button */}
-      <View style={styles.navRow}>
-        <Button
-          icon="arrow-left"
-          mode="text"
-          textColor={theme.colors.primary}
-          labelStyle={{ fontWeight: "500" }}
-          onPress={() => router.back()}
-        >
-          Back
-        </Button>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <IconButton
+            icon="arrow-left"
+            size={24}
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            iconColor={theme.colors.primary}
+          />
+          <View style={{ flex: 1, alignItems: "center" }}>
+            <Text
+              variant="titleMedium"
+              style={{ color: theme.colors.onBackground, fontWeight: "700" }}
+            >
+              Manage Plan
+            </Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
 
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <Text
-          variant="headlineSmall"
-          style={{
-            color: theme.colors.onBackground,
-            fontWeight: "700",
-            textAlign: "center",
-          }}
-        >
-          Manage Your Plan
-        </Text>
-        <Text
-          variant="bodyMedium"
-          style={{
-            color: theme.colors.onSurfaceVariant,
-            opacity: 0.85,
-            textAlign: "center",
-            marginTop: 4,
-          }}
-        >
-          Upgrade or manage your subscription
-        </Text>
-      </View>
-
-      {/* Membership Cards */}
-      {tiers.map((tier) => {
-        const isCurrent = tier.id === userTier;
-        const isRedirecting = redirectingTier === tier.id;
-        const price = toPriceText(tier.price_cents);
-
-        return (
-          <Card
-            key={tier.id}
-            mode="elevated"
-            style={[
-              styles.card,
-              {
-                borderColor: isCurrent
-                  ? theme.colors.primary
-                  : "transparent",
-                borderWidth: isCurrent ? 1 : 0,
-              },
-            ]}
+        <View style={styles.headerContainer}>
+          <Text
+            variant="headlineSmall"
+            style={{
+              color: theme.colors.onBackground,
+              fontWeight: "800",
+              textAlign: "center",
+              marginBottom: 8,
+            }}
           >
-            <Card.Content>
+            Upgrade Your Game
+          </Text>
+          <Text
+            style={{
+              color: theme.colors.secondary,
+              textAlign: "center",
+              fontSize: 16,
+              paddingHorizontal: 20,
+            }}
+          >
+            Unlock faster scans and more alerts to never miss a tee time.
+          </Text>
+        </View>
+
+        {/* Membership Cards */}
+        {tiers.map((tier) => {
+          const isCurrent = tier.id === userTier;
+          const isRedirecting = redirectingTier === tier.id;
+          const isFree = tier.price_cents === 0;
+
+          // Find matching RevenueCat package
+          const rcPackage = packages.find(
+            (pkg) =>
+              pkg.product.identifier === tier.revenuecat_entitlement_id ||
+              pkg.product.identifier === tier.revenuecat_entitlement_id
+          );
+
+          // Use RevenueCat price if available, otherwise fallback to DB price
+          const priceDisplay = rcPackage
+            ? rcPackage.product.priceString
+            : toPriceText(tier.price_cents);
+
+          // Disable purchase if not free, not current, and no package found
+          const isUnavailable = !isFree && !isCurrent && !rcPackage;
+
+          return (
+            <Surface
+              key={tier.id}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: isCurrent ? theme.colors.primary : "transparent",
+                  borderWidth: isCurrent ? 2 : 0,
+                },
+              ]}
+              elevation={isCurrent ? 4 : 1}
+            >
               <View style={styles.cardHeader}>
                 <Text
                   variant="titleLarge"
                   style={{
                     color: theme.colors.onSurface,
-                    fontWeight: "700",
+                    fontWeight: "800",
                   }}
                 >
                   {tier.name}
                 </Text>
+                {isCurrent && (
+                  <View style={[styles.badge, { backgroundColor: theme.colors.primaryContainer }]}>
+                    <Text style={[styles.badgeText, { color: theme.colors.onPrimaryContainer }]}>
+                      Current
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <Text
+                variant="displaySmall"
                 style={{
-                  color: theme.colors.onSurfaceVariant,
-                  marginTop: 6,
-                  fontSize: 15,
+                  color: theme.colors.primary,
+                  marginTop: 12,
+                  marginBottom: 4,
+                  fontWeight: "800",
+                  fontSize: 32,
                 }}
               >
-                {tier.description ||
-                  "Everything you need to find your next tee time."}
+                {priceDisplay}
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: theme.colors.onSurfaceVariant,
+                    lineHeight: 32, // Helps with alignment since we don't have true superscript support in RN easily
+                  }}
+                >
+                  {" /mo"}
+                </Text>
               </Text>
 
-              <View style={styles.dividerLine} />
+              <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 20 }}>
+                {tier.description || "Everything you need to find your next tee time."}
+              </Text>
+
+              <Divider style={{ marginBottom: 20, opacity: 0.5 }} />
 
               {/* Features */}
               <View style={styles.features}>
                 <View style={styles.featureRow}>
-                  <IconButton
-                    icon="bell-outline"
-                    size={20}
-                    iconColor={theme.colors.primary}
-                  />
-                  <Text style={styles.featureText}>
-                    Track up to{" "}
-                    <Text style={styles.highlight}>
-                      {tier.max_alerts ?? 3}
-                    </Text>{" "}
-                    active alerts
+                  <Text style={{ fontSize: 18, marginRight: 12 }}>🔔</Text>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                    <Text style={{ fontWeight: "700" }}>{tier.max_alerts ?? 3}</Text> active alerts
                   </Text>
                 </View>
 
                 <View style={styles.featureRow}>
-                  <IconButton
-                    icon="update"
-                    size={20}
-                    iconColor={theme.colors.primary}
-                  />
-                  <Text style={styles.featureText}>
+                  <Text style={{ fontSize: 18, marginRight: 12 }}>⚡️</Text>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
                     Refreshes every{" "}
-                    <Text style={styles.highlight}>
+                    <Text style={{ fontWeight: "700" }}>
                       {tier.scan_interval_seconds
                         ? tier.scan_interval_seconds / 60
                         : 10}
                       {" min"}
-                    </Text>{" "}
-                    for new openings
+                    </Text>
                   </Text>
                 </View>
               </View>
 
-              <Text
-                variant="titleMedium"
-                style={{
-                  color: theme.colors.primary,
-                  marginTop: 10,
-                  marginBottom: 4,
-                  fontWeight: "600",
-                }}
-              >
-                {price}
-              </Text>
-
-              <Button
-                mode={isCurrent ? "outlined" : "contained"}
-                disabled={isRedirecting}
-                style={{
-                  marginTop: 10,
-                  borderRadius: 10,
-                  opacity: isRedirecting ? 0.85 : 1,
-                }}
-                contentStyle={{ height: 46 }}
-                labelStyle={{ fontWeight: "600" }}
-                onPress={() => handleSelectPlan(tier)}
-              >
-                {isRedirecting
-                  ? "Redirecting to Stripe..."
-                  : isCurrent
-                  ? pendingDowngrade && cancelAt && userTier !== 1
-                    ? `Downgrade scheduled — ends ${new Date(cancelAt).toLocaleDateString()}`
-                    : "Current Plan"
-                  : tier.price_cents === 0 && userTier && userTier !== 1
-                  ? "Switch to Free"
-                  : "Choose Plan"}
-              </Button>
-            </Card.Content>
-          </Card>
-        );
-      })}
-    </ScrollView>
+              {/* Action Button */}
+              <View style={{ marginTop: 24 }}>
+                {isCurrent ? (
+                  <Button
+                    mode="outlined"
+                    disabled={true}
+                    style={{ borderRadius: 12, borderColor: theme.colors.outline }}
+                    labelStyle={{ color: theme.colors.onSurfaceDisabled }}
+                  >
+                    {pendingDowngrade && cancelAt && userTier !== 1
+                      ? `Ends ${new Date(cancelAt).toLocaleDateString()}`
+                      : "Active Plan"}
+                  </Button>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => handleSelectPlan(tier)}
+                    disabled={isRedirecting || isUnavailable}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={
+                        (isRedirecting || isUnavailable
+                          ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
+                          : Colors.light.gradients.primary) as [string, string, ...string[]]
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[
+                        styles.gradientButton,
+                        { opacity: isRedirecting || isUnavailable ? 0.7 : 1 },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: "#FFF",
+                          fontWeight: "700",
+                          fontSize: 16,
+                        }}
+                      >
+                        {isRedirecting
+                          ? "Processing..."
+                          : isUnavailable
+                            ? "Unavailable"
+                            : `Switch to ${tier.name}`}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Surface>
+          );
+        })}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 80,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  navRow: {
-    marginTop: 24,
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
-    marginLeft: -4,
+    justifyContent: "space-between",
+  },
+  backBtn: {
+    margin: 0,
   },
   headerContainer: {
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 32,
+    marginTop: 10,
   },
   card: {
-    borderRadius: 16,
-    paddingVertical: 2,
-    marginBottom: 22,
-    elevation: 3,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 20,
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  dividerLine: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    marginVertical: 12,
+  badge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
   },
   features: {
-    gap: 4,
+    gap: 16,
   },
   featureRow: {
     flexDirection: "row",
@@ -401,10 +450,16 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 15,
-    flexShrink: 1,
-    color: "rgba(255,255,255,0.85)",
   },
-  highlight: {
-    fontWeight: "600",
+  gradientButton: {
+    height: 50,
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#2F80ED",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });
