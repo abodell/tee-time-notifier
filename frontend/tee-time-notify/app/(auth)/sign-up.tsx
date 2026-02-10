@@ -183,6 +183,25 @@ export default function SignUpScreen() {
                   </View>
                 )}
 
+                <View style={{ marginTop: 24, paddingHorizontal: 4 }}>
+                  <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, fontSize: 13, lineHeight: 18 }}>
+                    By signing up, you agree to our{" "}
+                    <Text
+                      style={{ color: theme.colors.primary, fontWeight: "600" }}
+                      onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}
+                    >
+                      Terms of Use
+                    </Text>{" "}
+                    and{" "}
+                    <Text
+                      style={{ color: theme.colors.primary, fontWeight: "600" }}
+                      onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}
+                    >
+                      Privacy Policy
+                    </Text>.
+                  </Text>
+                </View>
+
                 <TouchableOpacity
                   onPress={handleSignUp}
                   disabled={!email || !password || loading}

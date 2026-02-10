@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import Toast from "react-native-toast-message";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
+import * as Linking from "expo-linking";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -219,7 +220,17 @@ export default function ProfileScreen() {
           </Surface>
 
 
-          <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
+          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24, gap: 16 }}>
+            <TouchableOpacity onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}>
+              <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: "600" }}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 12, opacity: 0.5 }}>•</Text>
+            <TouchableOpacity onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}>
+              <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: "600" }}>Terms of Use</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, opacity: 0.5, fontSize: 12 }}>
             TeeSignal v1.0.0
           </Text>
         </View>
@@ -327,6 +338,28 @@ export default function ProfileScreen() {
           <TouchableOpacity style={styles.row} onPress={handleDeleteAccount}>
             <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "700" }}>Delete Account</Text>
             <MaterialCommunityIcons name="delete-forever" size={20} color={theme.colors.error} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Legal Section */}
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant, marginTop: 24 }]}>LEGAL</Text>
+        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}
+          >
+            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Privacy Policy</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
+          </TouchableOpacity>
+
+          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
+
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}
+          >
+            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Terms of Use (EULA)</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
           </TouchableOpacity>
         </View>
 
