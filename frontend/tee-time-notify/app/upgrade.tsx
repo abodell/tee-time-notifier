@@ -175,6 +175,42 @@ export default function UpgradeScreen() {
     }
   };
 
+  const handleRestorePurchases = async () => {
+    try {
+      setLoading(true);
+      const customerInfo = await Purchases.restorePurchases();
+
+      // improvements: check if active entitlements exist and sync with DB if needed
+      // For now, just show success message as per requirement
+      if (Object.keys(customerInfo.entitlements.active).length > 0) {
+        Toast.show({
+          type: "success",
+          text1: "Purchases Restored",
+          text2: "Your subscription has been restored.",
+          position: "top",
+        });
+        DeviceEventEmitter.emit("membershipUpdated");
+        loadData();
+      } else {
+        Toast.show({
+          type: "info",
+          text1: "No Active Subscriptions",
+          text2: "We didn't find any active subscriptions to restore.",
+          position: "top",
+        });
+      }
+    } catch (e: any) {
+      Toast.show({
+        type: "error",
+        text1: "Restore Failed",
+        text2: e.message,
+        position: "top",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toPriceText = (cents?: number) =>
     !cents || cents === 0 ? "$0.00" : `$${(cents / 100).toFixed(2)}`;
 
@@ -299,18 +335,26 @@ export default function UpgradeScreen() {
                   fontSize: 32,
                 }}
               >
-                {priceDisplay}
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "600",
-                    color: theme.colors.onSurfaceVariant,
-                    lineHeight: 32, // Helps with alignment since we don't have true superscript support in RN easily
-                  }}
-                >
-                  {" /mo"}
-                </Text>
+                {isFree ? "Free" : priceDisplay}
+                {!isFree && (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "600",
+                      color: theme.colors.onSurfaceVariant,
+                      lineHeight: 32,
+                    }}
+                  >
+                    {" /mo"}
+                  </Text>
+                )}
               </Text>
+
+              {!isFree && (
+                <Text style={{ fontSize: 12, color: theme.colors.onSurfaceVariant, marginBottom: 16, fontWeight: "500" }}>
+                  Auto-renewable subscription, billed monthly
+                </Text>
+              )}
 
               <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 20 }}>
                 {tier.description || "Everything you need to find your next tee time."}
@@ -393,6 +437,36 @@ export default function UpgradeScreen() {
             </Surface>
           );
         })}
+
+        {/* Legal & Compliance Footer */}
+        <View style={styles.footer}>
+
+          <Button
+            mode="text"
+            onPress={handleRestorePurchases}
+            textColor={theme.colors.secondary}
+            style={{ marginBottom: 24 }}
+          >
+            Restore Purchases
+          </Button>
+
+          <View style={styles.legalLinks}>
+            <TouchableOpacity onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}>
+              <Text style={[styles.legalText, { color: theme.colors.primary }]}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={[styles.legalText, { color: theme.colors.outline }]}> • </Text>
+            <TouchableOpacity onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}>
+              <Text style={[styles.legalText, { color: theme.colors.primary }]}>Terms of Use</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.disclaimer, { color: theme.colors.onSurfaceVariant }]}>
+            Payment will be charged to your Apple ID account at the confirmation of purchase.
+            Subscription automatically renews unless it is canceled at least 24 hours before the end of the current period.
+            Your account will be charged for renewal within 24 hours prior to the end of the current period.
+            You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase.
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -461,5 +535,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  footer: {
+    marginTop: 20,
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  legalLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  legalText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  disclaimer: {
+    fontSize: 11,
+    textAlign: "center",
+    lineHeight: 16,
+    opacity: 0.6,
   },
 });
