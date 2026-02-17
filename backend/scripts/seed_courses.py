@@ -2,14 +2,18 @@ import asyncio
 import json
 import os
 import sys
+from typing import Optional
 
 # Add the parent directory to sys.path so we can import app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+import argparse
 from app.db import create_supabase
 
-async def seed_courses(json_file: str):
+async def seed_courses(json_file: str, filter_id: Optional[str] = None):
     print(f"Seeding courses from {json_file}...")
+    if filter_id:
+        print(f"Filtering for Course ID: {filter_id}")
     
     try:
         with open(json_file, "r") as f:
@@ -23,6 +27,12 @@ async def seed_courses(json_file: str):
     count = 0
     skipped = 0
     for course_item in courses_data:
+        configs = course_item.get("configs", {})
+        course_id_raw = configs.get("course_id")
+
+        if filter_id and str(course_id_raw) != str(filter_id):
+            continue
+
         # Validate critical configs
         configs = course_item.get("configs", {})
         schedule_id = configs.get("schedule_id")
@@ -108,9 +118,10 @@ async def seed_courses(json_file: str):
     print(f"Seeding complete. Processed {count} courses.")
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        json_file = sys.argv[1]
-    else:
-        json_file = "backend/seeds/courses.json"
-        
-    asyncio.run(seed_courses(json_file))
+    parser = argparse.ArgumentParser(description="Seed courses from JSON to Supabase")
+    parser.add_argument("file", nargs="?", default="backend/seeds/courses.json", help="JSON file to seed")
+    parser.add_argument("--id", help="Only seed course with this provider course ID")
+    
+    args = parser.parse_args()
+    
+    asyncio.run(seed_courses(args.file, args.id))

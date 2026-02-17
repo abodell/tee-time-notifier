@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Rock Hill Golf & Country Club",
+    "address": "105 Clancy Rd, Manorville, NY 1949",
+    "city": "Manorville",
+    "state": "NY",
+    "website": "https://rockhillgolfclub.com/",
+    "phone": "(631) 878 - 2250",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "20662",
+      "schedule_id": "5270",
+      "schedule_ids": "[5270]",
+      "booking_class": "5743",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  }
+]
