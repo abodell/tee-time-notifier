@@ -1,0 +1,50 @@
+[
+  {
+    "name": "The Golf Club at Wescott Plantation - Wescott Course #1",
+    "city": "Summerville",
+    "state": "South Carolina",
+    "website": "http://www.wescottgolfclub.com",
+    "phone": "(843) 871-2135",
+    "provider": "ChronoGolf",
+    "active": true,
+    "configs": {
+      "club_id": "13011",
+      "course_id": "14916",
+      "affiliation_id": "52866",
+      "nb_holes": "18",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "The Golf Club at Wescott Plantation - Wescott Course #2",
+    "city": "Summerville",
+    "state": "South Carolina",
+    "website": "http://www.wescottgolfclub.com",
+    "phone": "(843) 871-2135",
+    "provider": "ChronoGolf",
+    "active": true,
+    "configs": {
+      "club_id": "13011",
+      "course_id": "14918",
+      "affiliation_id": "52866",
+      "nb_holes": "18",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "The Golf Club at Wescott Plantation - Wescott Course #3",
+    "city": "Summerville",
+    "state": "South Carolina",
+    "website": "http://www.wescottgolfclub.com",
+    "phone": "(843) 871-2135",
+    "provider": "ChronoGolf",
+    "active": true,
+    "configs": {
+      "club_id": "13011",
+      "course_id": "14917",
+      "affiliation_id": "52866",
+      "nb_holes": "18",
+      "timezone": "America/New_York"
+    }
+  }
+]

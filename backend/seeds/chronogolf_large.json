@@ -1,0 +1,2234 @@
+[
+  {
+    "name": "The Golf Club at Wescott Plantation - Wescott Course #1",
+    "city": "Summerville",
+    "state": "South Carolina",
+    "website": "http://www.wescottgolfclub.com",
+    "phone": "(843) 871-2135",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-golf-club-at-wescott-plantation",
+    "configs": {
+      "club_id": "13011",
+      "course_id": "14916",
+      "affiliation_id": "52866",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "the-golf-club-at-wescott-plantation"
+    }
+  },
+  {
+    "name": "The Golf Club at Wescott Plantation - Wescott Course #2",
+    "city": "Summerville",
+    "state": "South Carolina",
+    "website": "http://www.wescottgolfclub.com",
+    "phone": "(843) 871-2135",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-golf-club-at-wescott-plantation",
+    "configs": {
+      "club_id": "13011",
+      "course_id": "14918",
+      "affiliation_id": "52866",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "the-golf-club-at-wescott-plantation"
+    }
+  },
+  {
+    "name": "The Golf Club at Wescott Plantation - Wescott Course #3",
+    "city": "Summerville",
+    "state": "South Carolina",
+    "website": "http://www.wescottgolfclub.com",
+    "phone": "(843) 871-2135",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-golf-club-at-wescott-plantation",
+    "configs": {
+      "club_id": "13011",
+      "course_id": "14917",
+      "affiliation_id": "52866",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "the-golf-club-at-wescott-plantation"
+    }
+  },
+  {
+    "name": "Brandon Golf Course - Brandon Golf Course",
+    "city": "Brandon",
+    "state": "South Dakota",
+    "website": "https://www.brandongc.com",
+    "phone": "(605) 582-7100",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/brandon-golf-club",
+    "configs": {
+      "club_id": "13069",
+      "course_id": "14992",
+      "affiliation_id": "53098",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "brandon-golf-club"
+    }
+  },
+  {
+    "name": "Dakota Dunes Country Club - Dakota Dunes",
+    "city": "Dakota Dunes",
+    "state": "South Dakota",
+    "website": "http://www.dakotadunescountryclub.com",
+    "phone": "(605) 232-3000",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/dakota-dunes-country-club",
+    "configs": {
+      "club_id": "13079",
+      "course_id": "15002",
+      "affiliation_id": "53138",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "dakota-dunes-country-club"
+    }
+  },
+  {
+    "name": "Elmwood Golf Course - East 9",
+    "city": "Sioux Falls",
+    "state": "South Dakota",
+    "website": "https://siouxfallsgolf.com/",
+    "phone": "(605) 367-7092",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/elmwood-park-golf-club",
+    "configs": {
+      "club_id": "13083",
+      "course_id": "15007",
+      "affiliation_id": "53154",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "elmwood-park-golf-club"
+    }
+  },
+  {
+    "name": "Elmwood Golf Course - Championship",
+    "city": "Sioux Falls",
+    "state": "South Dakota",
+    "website": "https://siouxfallsgolf.com/",
+    "phone": "(605) 367-7092",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/elmwood-park-golf-club",
+    "configs": {
+      "club_id": "13083",
+      "course_id": "15006",
+      "affiliation_id": "53154",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "elmwood-park-golf-club"
+    }
+  },
+  {
+    "name": "Huron Country Club - Huron",
+    "city": "Huron",
+    "state": "South Dakota",
+    "website": "http://huroncountryclub.com",
+    "phone": "(605) 352-3354",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/huron-country-club",
+    "configs": {
+      "club_id": "13097",
+      "course_id": "15021",
+      "affiliation_id": "53210",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "huron-country-club"
+    }
+  },
+  {
+    "name": "Kuehn Park Golf Course - Kuehn Park",
+    "city": "Sioux Falls",
+    "state": "South Dakota",
+    "website": "https://siouxfallsgolf.com/",
+    "phone": "(605) 367-7162",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/kuehn-park-golf-course",
+    "configs": {
+      "club_id": "13098",
+      "course_id": "15022",
+      "affiliation_id": "53214",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "kuehn-park-golf-course"
+    }
+  },
+  {
+    "name": "Lee Park Golf Course - South Simulator",
+    "city": "Aberdeen",
+    "state": "South Dakota",
+    "website": "https://www.aberdeen.sd.us/148/Lee-Park-Golf-Course",
+    "phone": "(605) 626-7092",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/lee-park-golf-course",
+    "configs": {
+      "club_id": "13105",
+      "course_id": "23628",
+      "affiliation_id": "53242",
+      "nb_holes": "1",
+      "timezone": "America/Chicago",
+      "slug": "lee-park-golf-course"
+    }
+  },
+  {
+    "name": "Lee Park Golf Course - North Simulator",
+    "city": "Aberdeen",
+    "state": "South Dakota",
+    "website": "https://www.aberdeen.sd.us/148/Lee-Park-Golf-Course",
+    "phone": "(605) 626-7092",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/lee-park-golf-course",
+    "configs": {
+      "club_id": "13105",
+      "course_id": "24097",
+      "affiliation_id": "53242",
+      "nb_holes": "1",
+      "timezone": "America/Chicago",
+      "slug": "lee-park-golf-course"
+    }
+  },
+  {
+    "name": "Prairie Green Golf Course - Prairie Green",
+    "city": "Sioux Falls",
+    "state": "South Dakota",
+    "website": "https://siouxfallsgolf.com/",
+    "phone": "(605) 367-6076",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/prairie-green-golf-course",
+    "configs": {
+      "club_id": "13117",
+      "course_id": "15041",
+      "affiliation_id": "53290",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "prairie-green-golf-course"
+    }
+  },
+  {
+    "name": "Prairie Green Golf Course - Prairie Green 9 Hole",
+    "city": "Sioux Falls",
+    "state": "South Dakota",
+    "website": "https://siouxfallsgolf.com/",
+    "phone": "(605) 367-6076",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/prairie-green-golf-course",
+    "configs": {
+      "club_id": "13117",
+      "course_id": "22823",
+      "affiliation_id": "53290",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "prairie-green-golf-course"
+    }
+  },
+  {
+    "name": "Southern Hills Golf Course - Southern Hills",
+    "city": "Hot Springs",
+    "state": "South Dakota",
+    "website": "http://hotspringssdgolf.com",
+    "phone": "605-745-6400",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/southern-hills-golf-course-south-dakota",
+    "configs": {
+      "club_id": "13128",
+      "course_id": "15052",
+      "affiliation_id": "53334",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "southern-hills-golf-course-south-dakota"
+    }
+  },
+  {
+    "name": "Spring Creek Country Club - Spring Creek Country Club",
+    "city": "Harrisburg",
+    "state": "South Dakota",
+    "website": "http://www.springcreekcountryclub.com",
+    "phone": "(605) 743-2000",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/spring-creek-country-club-south-dakota",
+    "configs": {
+      "club_id": "13130",
+      "course_id": "15054",
+      "affiliation_id": "53342",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "spring-creek-country-club-south-dakota"
+    }
+  },
+  {
+    "name": "Bent Creek Golf Resort - Bent Creek",
+    "city": "Gatlinburg",
+    "state": "Tennessee",
+    "website": "https://www.bentcreekgolf.com/",
+    "phone": "865-436-3947",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/bent-creek-golf-resort",
+    "configs": {
+      "club_id": "13156",
+      "course_id": "15080",
+      "affiliation_id": "53446",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "bent-creek-golf-resort"
+    }
+  },
+  {
+    "name": "Honky Tonk National - Honky Tonk National",
+    "city": "Sparta",
+    "state": "Tennessee",
+    "website": "https://www.honkytonknationalgolf.com/",
+    "phone": "(931) 761-8124",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/riverwatch-golf-club",
+    "configs": {
+      "club_id": "13328",
+      "course_id": "15268",
+      "affiliation_id": "54134",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "riverwatch-golf-club"
+    }
+  },
+  {
+    "name": "Shiloh Falls Golf Club  - Shiloh Falls",
+    "city": "Counce",
+    "state": "Tennessee",
+    "website": "",
+    "phone": "(731)689-2009",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/shiloh-falls-golf-club",
+    "configs": {
+      "club_id": "13340",
+      "course_id": "15280",
+      "affiliation_id": "54182",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "shiloh-falls-golf-club"
+    }
+  },
+  {
+    "name": "Shiloh Falls Golf Club  - Simulator bay 1",
+    "city": "Counce",
+    "state": "Tennessee",
+    "website": "",
+    "phone": "(731)689-2009",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/shiloh-falls-golf-club",
+    "configs": {
+      "club_id": "13340",
+      "course_id": "27964",
+      "affiliation_id": "54182",
+      "nb_holes": "1",
+      "timezone": "America/Chicago",
+      "slug": "shiloh-falls-golf-club"
+    }
+  },
+  {
+    "name": "Shiloh Falls Golf Club  - Simulator bay 2",
+    "city": "Counce",
+    "state": "Tennessee",
+    "website": "",
+    "phone": "(731)689-2009",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/shiloh-falls-golf-club",
+    "configs": {
+      "club_id": "13340",
+      "course_id": "27965",
+      "affiliation_id": "54182",
+      "nb_holes": "1",
+      "timezone": "America/Chicago",
+      "slug": "shiloh-falls-golf-club"
+    }
+  },
+  {
+    "name": "Valleybrook Golf & Country Club - Valleybrook",
+    "city": "Hixson",
+    "state": "Tennessee",
+    "website": "https://valleybrookclub.com/",
+    "phone": "(423) 842-4646",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/valleybrook-golf-country-club",
+    "configs": {
+      "club_id": "13391",
+      "course_id": "15335",
+      "affiliation_id": "139987",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "valleybrook-golf-country-club"
+    }
+  },
+  {
+    "name": "Wynridge Golf Club - Wynridge Golf Course",
+    "city": "Troy",
+    "state": "Tennessee",
+    "website": "https://www.facebook.com/WynridgeGolfClub/",
+    "phone": "(731) 536-5565",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/wynridge-greens-golf-club",
+    "configs": {
+      "club_id": "13407",
+      "course_id": "15353",
+      "affiliation_id": "54450",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "wynridge-greens-golf-club"
+    }
+  },
+  {
+    "name": "Battle Lake Golf Course - Battle Lake",
+    "city": "Mart",
+    "state": "Texas",
+    "website": "http://www.battlelakegolf.com",
+    "phone": "(254) 876-2837",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/battle-lake-golf-course",
+    "configs": {
+      "club_id": "13434",
+      "course_id": "15393",
+      "affiliation_id": "54558",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "battle-lake-golf-course"
+    }
+  },
+  {
+    "name": "Bridlewood Golf Club - Bridlewood",
+    "city": "Flower Mound",
+    "state": "Texas",
+    "website": "http://www.bridlewoodgolf.com",
+    "phone": "(972) 355-4800",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/bridlewood-golf-club",
+    "configs": {
+      "club_id": "13475",
+      "course_id": "15440",
+      "affiliation_id": "54722",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "bridlewood-golf-club"
+    }
+  },
+  {
+    "name": "Buffalo Creek Golf Club - Buffalo Creek",
+    "city": "Rockwall",
+    "state": "Texas",
+    "website": "https://www.buffalocreekgc.com/",
+    "phone": "(972) 771-4003",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/buffalo-creek-golf-club-texas",
+    "configs": {
+      "club_id": "13484",
+      "course_id": "15451",
+      "affiliation_id": "96456",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "buffalo-creek-golf-club-texas"
+    }
+  },
+  {
+    "name": "Canyon West Golf Course - Canyon West Golf Course",
+    "city": "Weatherford",
+    "state": "Texas",
+    "website": "http://www.canyonwestgolf.com",
+    "phone": "(817) 304-2093",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/canyon-west-golf-sports-club",
+    "configs": {
+      "club_id": "13495",
+      "course_id": "15462",
+      "affiliation_id": "54802",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "canyon-west-golf-sports-club"
+    }
+  },
+  {
+    "name": "Copperas Hollow Country Club - Copperas Hollow Country Club",
+    "city": "Caldwell",
+    "state": "Texas",
+    "website": "http://www.copperashollow.com",
+    "phone": "(979) 567-4422",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/copperas-hollow-country-club",
+    "configs": {
+      "club_id": "13530",
+      "course_id": "15501",
+      "affiliation_id": "54942",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "copperas-hollow-country-club"
+    }
+  },
+  {
+    "name": "Delaware Springs Golf Course - Delaware Springs",
+    "city": "Burnet",
+    "state": "Texas",
+    "website": "http://www.golfclubsusa.com/delsprings",
+    "phone": "5127568471",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/delaware-springs-golf-course",
+    "configs": {
+      "club_id": "13560",
+      "course_id": "15534",
+      "affiliation_id": "55062",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "delaware-springs-golf-course"
+    }
+  },
+  {
+    "name": "Flying L Ranch Golf Course - Flying L Golf Course",
+    "city": "Bandera",
+    "state": "Texas",
+    "website": "http://www.flyingl.com",
+    "phone": "(830) 796-8466",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/flying-l-guest-ranch-golf-club",
+    "configs": {
+      "club_id": "13599",
+      "course_id": "15578",
+      "affiliation_id": "55218",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "flying-l-guest-ranch-golf-club"
+    }
+  },
+  {
+    "name": "Forest Creek Golf Club - Forest Creek",
+    "city": "Round Rock",
+    "state": "Texas",
+    "website": "http://www.forestcreek.com",
+    "phone": "(512) 388-2874",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/forest-creek-golf-club-texas",
+    "configs": {
+      "club_id": "13600",
+      "course_id": "15579",
+      "affiliation_id": "139028",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "forest-creek-golf-club-texas"
+    }
+  },
+  {
+    "name": "Gleannloch Golf Club - Pines/Gleann",
+    "city": "Spring",
+    "state": "Texas",
+    "website": "https://www.gleannlochgolf.com",
+    "phone": "(281) 225-1200",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/gleannloch-pines-golf-club",
+    "configs": {
+      "club_id": "13621",
+      "course_id": "15603",
+      "affiliation_id": "140640",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "gleannloch-pines-golf-club"
+    }
+  },
+  {
+    "name": "Gleannloch Golf Club - Gleann/Loch",
+    "city": "Spring",
+    "state": "Texas",
+    "website": "https://www.gleannlochgolf.com",
+    "phone": "(281) 225-1200",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/gleannloch-pines-golf-club",
+    "configs": {
+      "club_id": "13621",
+      "course_id": "15601",
+      "affiliation_id": "140640",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "gleannloch-pines-golf-club"
+    }
+  },
+  {
+    "name": "Gleannloch Golf Club - Loch/Pines",
+    "city": "Spring",
+    "state": "Texas",
+    "website": "https://www.gleannlochgolf.com",
+    "phone": "(281) 225-1200",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/gleannloch-pines-golf-club",
+    "configs": {
+      "club_id": "13621",
+      "course_id": "15602",
+      "affiliation_id": "140640",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "gleannloch-pines-golf-club"
+    }
+  },
+  {
+    "name": "Grand Oaks Golf Club - Grand Oaks",
+    "city": "Grand Prairie",
+    "state": "Texas",
+    "website": "http://www.grandoaksgc.com",
+    "phone": "(972) 264-2974",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/grand-oaks-golf-club",
+    "configs": {
+      "club_id": "13635",
+      "course_id": "15618",
+      "affiliation_id": "55362",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "grand-oaks-golf-club"
+    }
+  },
+  {
+    "name": "Hermann Park Golf Course - Hermann Park",
+    "city": "Houston",
+    "state": "Texas",
+    "website": "http://www.hermannparkgc.com",
+    "phone": "(713) 526-0077",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/hermann-park-golf-course",
+    "configs": {
+      "club_id": "13660",
+      "course_id": "15657",
+      "affiliation_id": "55462",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "hermann-park-golf-course"
+    }
+  },
+  {
+    "name": "Iron Horse Golf Course - Iron Horse",
+    "city": "North Richland Hills",
+    "state": "Texas",
+    "website": "https://www.ironhorsetx.com",
+    "phone": "(817) 485-6666",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/iron-horse-golf-course",
+    "configs": {
+      "club_id": "13699",
+      "course_id": "15706",
+      "affiliation_id": "131653",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "iron-horse-golf-course"
+    }
+  },
+  {
+    "name": "Llano Grande Golf Course - Llano Grande Golf Course",
+    "city": "Mercedes",
+    "state": "Texas",
+    "website": "https://www.llanogranderesort.com/golfing/",
+    "phone": "(956) 284-6100",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/llano-grande-golf-course",
+    "configs": {
+      "club_id": "13751",
+      "course_id": "24027",
+      "affiliation_id": "126778",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "llano-grande-golf-course"
+    }
+  },
+  {
+    "name": "Monte Cristo Golf & Country Club - Monte Cristo",
+    "city": "Edinburg",
+    "state": "Texas",
+    "website": "http://montecristogcc.com/",
+    "phone": "(956) 381-0964",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/monte-cristo-golf-country-club",
+    "configs": {
+      "club_id": "13798",
+      "course_id": "15816",
+      "affiliation_id": "56014",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "monte-cristo-golf-country-club"
+    }
+  },
+  {
+    "name": "Olney Country Club - Olney",
+    "city": "Olney",
+    "state": "Texas",
+    "website": "https://olneycountryclub.com/",
+    "phone": "(940) 564-2424",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/olney-recreation-association-country-club",
+    "configs": {
+      "club_id": "13839",
+      "course_id": "15862",
+      "affiliation_id": "56178",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "olney-recreation-association-country-club"
+    }
+  },
+  {
+    "name": "Pine Ridge Golf Course - Pine Ridge Golf Course",
+    "city": "Paris",
+    "state": "Texas",
+    "website": "https://www.golfatpineridge.com/",
+    "phone": "(903) 785-8076",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/pine-ridge-golf-course-texas",
+    "configs": {
+      "club_id": "13877",
+      "course_id": "15914",
+      "affiliation_id": "56330",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "pine-ridge-golf-course-texas"
+    }
+  },
+  {
+    "name": "Preston West Golf Course - Preston West Par 3",
+    "city": "Amarillo",
+    "state": "Texas",
+    "website": "https://prestonwestpar3.com",
+    "phone": "(806) 353-7003",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/preston-west-par-3-golf-course",
+    "configs": {
+      "club_id": "13892",
+      "course_id": "15930",
+      "affiliation_id": "56390",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "preston-west-par-3-golf-course"
+    }
+  },
+  {
+    "name": "Rayburn Resort - Rayburn Resort Golf Course",
+    "city": "Brookeland",
+    "state": "Texas",
+    "website": "http://www.rayburnresort.com",
+    "phone": "(409) 698-1014",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/rayburn-resort",
+    "configs": {
+      "club_id": "13907",
+      "course_id": "15947",
+      "affiliation_id": "56450",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "rayburn-resort"
+    }
+  },
+  {
+    "name": "Sky Creek Ranch Golf Club - Sky Creek Ranch",
+    "city": "Keller",
+    "state": "Texas",
+    "website": "http://www.skycreekranch.com",
+    "phone": "(817) 498-1414",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/sky-creek-ranch-golf-club",
+    "configs": {
+      "club_id": "13976",
+      "course_id": "16032",
+      "affiliation_id": "56726",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "sky-creek-ranch-golf-club"
+    }
+  },
+  {
+    "name": "South Padre Island Golf Club - South Padre Island",
+    "city": "Laguna Vista",
+    "state": "Texas",
+    "website": "http://www.SPIgolf.com",
+    "phone": "(956) 943-4653",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/south-padre-island-golf-club",
+    "configs": {
+      "club_id": "13979",
+      "course_id": "16035",
+      "affiliation_id": "56738",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "south-padre-island-golf-club"
+    }
+  },
+  {
+    "name": "The Wilderness at Lake Jackson - The Wilderness at Lake Jackson",
+    "city": "Lake Jackson",
+    "state": "Texas",
+    "website": "http://www.thewildernessgc.com",
+    "phone": "(979) -297-4653",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-wilderness-at-lake-jackson",
+    "configs": {
+      "club_id": "14066",
+      "course_id": "16139",
+      "affiliation_id": "57086",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "the-wilderness-at-lake-jackson"
+    }
+  },
+  {
+    "name": "Turtle Hill Golf Course - Turtle Hill",
+    "city": "Muenster",
+    "state": "Texas",
+    "website": "http://www.playtheturtle.com/",
+    "phone": "(940) 759-4896",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/turtle-hill-golf-course",
+    "configs": {
+      "club_id": "14088",
+      "course_id": "16169",
+      "affiliation_id": "57174",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "turtle-hill-golf-course"
+    }
+  },
+  {
+    "name": "Westridge Golf Course - Westridge",
+    "city": "McKinney",
+    "state": "Texas",
+    "website": "http://www.westridgegolfcourse.com",
+    "phone": "(972) 346-2212",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/westridge-golf-course-texas",
+    "configs": {
+      "club_id": "14116",
+      "course_id": "16200",
+      "affiliation_id": "57286",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "westridge-golf-course-texas"
+    }
+  },
+  {
+    "name": "Woodbridge Golf Club - Woodbridge",
+    "city": "Wylie",
+    "state": "Texas",
+    "website": "http://www.visitwoodbridge.com",
+    "phone": "(972) 429-5100",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/woodbridge-golf-club-texas",
+    "configs": {
+      "club_id": "14138",
+      "course_id": "16224",
+      "affiliation_id": "105683",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "woodbridge-golf-club-texas"
+    }
+  },
+  {
+    "name": "Yoakum County Golf Club - Yoakum County Golf Club",
+    "city": "Denver City",
+    "state": "Texas",
+    "website": "https://www.yoakumcountygolf.com/",
+    "phone": "(806) 592-2947",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/yoakum-county-golf-club",
+    "configs": {
+      "club_id": "14149",
+      "course_id": "16232",
+      "affiliation_id": "147633",
+      "nb_holes": "18",
+      "timezone": "America/Chicago",
+      "slug": "yoakum-county-golf-club"
+    }
+  },
+  {
+    "name": "Bonneville Golf Course - Bonneville",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com",
+    "phone": "(801) 583-9513",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/bonneville-golf-course",
+    "configs": {
+      "club_id": "14158",
+      "course_id": "16241",
+      "affiliation_id": "57454",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "bonneville-golf-course"
+    }
+  },
+  {
+    "name": "Bonneville Golf Course - Bonneville 10th Tee",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com",
+    "phone": "(801) 583-9513",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/bonneville-golf-course",
+    "configs": {
+      "club_id": "14158",
+      "course_id": "22547",
+      "affiliation_id": "57454",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "bonneville-golf-course"
+    }
+  },
+  {
+    "name": "Forest Dale Golf Course - Forest Dale",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com",
+    "phone": "(801) 483-5420",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/forest-dale-golf-course",
+    "configs": {
+      "club_id": "14180",
+      "course_id": "16263",
+      "affiliation_id": "57542",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "forest-dale-golf-course"
+    }
+  },
+  {
+    "name": "Glendale Golf Course - Glendale (9 or 18 Holes)",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com/glendale.html",
+    "phone": "(801) 974-2403",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/glendale-golf-course",
+    "configs": {
+      "club_id": "14185",
+      "course_id": "16268",
+      "affiliation_id": "57562",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "glendale-golf-course"
+    }
+  },
+  {
+    "name": "Glendale Golf Course - Glendale Back 9 (10th Tee)",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com/glendale.html",
+    "phone": "(801) 974-2403",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/glendale-golf-course",
+    "configs": {
+      "club_id": "14185",
+      "course_id": "22536",
+      "affiliation_id": "57562",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "glendale-golf-course"
+    }
+  },
+  {
+    "name": "Mountain Dell Golf Course - Lake",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "https://www.slc-golf.com/mountaindell/",
+    "phone": "(801) 582-3812",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/mountain-dell-golf-club",
+    "configs": {
+      "club_id": "14203",
+      "course_id": "16291",
+      "affiliation_id": "57634",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "mountain-dell-golf-club"
+    }
+  },
+  {
+    "name": "Mountain Dell Golf Course - Lake Back 9 (9-Holes ONLY)",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "https://www.slc-golf.com/mountaindell/",
+    "phone": "(801) 582-3812",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/mountain-dell-golf-club",
+    "configs": {
+      "club_id": "14203",
+      "course_id": "21755",
+      "affiliation_id": "57634",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "mountain-dell-golf-club"
+    }
+  },
+  {
+    "name": "Mountain Dell Golf Course - Canyon",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "https://www.slc-golf.com/mountaindell/",
+    "phone": "(801) 582-3812",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/mountain-dell-golf-club",
+    "configs": {
+      "club_id": "14203",
+      "course_id": "16290",
+      "affiliation_id": "57634",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "mountain-dell-golf-club"
+    }
+  },
+  {
+    "name": "Nibley Park Golf Course - Nibley Park",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com",
+    "phone": "(801) 483-5418",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/nibley-park-golf-course",
+    "configs": {
+      "club_id": "14207",
+      "course_id": "16295",
+      "affiliation_id": "57650",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "nibley-park-golf-course"
+    }
+  },
+  {
+    "name": "Rose Park Golf Course - Rose Park GC (18 or 9)",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com",
+    "phone": "(801) 596-5030",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/rose-park-golf-course",
+    "configs": {
+      "club_id": "14222",
+      "course_id": "16310",
+      "affiliation_id": "57710",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "rose-park-golf-course"
+    }
+  },
+  {
+    "name": "Rose Park Golf Course - Rose Park Back 9",
+    "city": "Salt Lake City",
+    "state": "Utah",
+    "website": "http://www.slc-golf.com",
+    "phone": "(801) 596-5030",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/rose-park-golf-course",
+    "configs": {
+      "club_id": "14222",
+      "course_id": "21766",
+      "affiliation_id": "57710",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "rose-park-golf-course"
+    }
+  },
+  {
+    "name": "Round Valley Golf Course - Round Valley (Front)",
+    "city": "Morgan",
+    "state": "Utah",
+    "website": "https://roundvalleygolfcourse.com/contact/contact.html",
+    "phone": "(801) 829-3796",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/round-valley-golf-course",
+    "configs": {
+      "club_id": "14223",
+      "course_id": "16311",
+      "affiliation_id": "57714",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "round-valley-golf-course"
+    }
+  },
+  {
+    "name": "The Golf Course at Sand Hollow Resort - Championship",
+    "city": "Hurricane",
+    "state": "Utah",
+    "website": "https://sandhollowresort.com/",
+    "phone": "(435) 656-4653",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/sand-hollow-resort",
+    "configs": {
+      "club_id": "14225",
+      "course_id": "16313",
+      "affiliation_id": "57722",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "sand-hollow-resort"
+    }
+  },
+  {
+    "name": "The Golf Course at Sand Hollow Resort - The Links",
+    "city": "Hurricane",
+    "state": "Utah",
+    "website": "https://sandhollowresort.com/",
+    "phone": "(435) 656-4653",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/sand-hollow-resort",
+    "configs": {
+      "club_id": "14225",
+      "course_id": "23670",
+      "affiliation_id": "57722",
+      "nb_holes": "9",
+      "timezone": "America/Denver",
+      "slug": "sand-hollow-resort"
+    }
+  },
+  {
+    "name": "The Ledges Golf Club - The Ledges",
+    "city": "St. George",
+    "state": "Utah",
+    "website": "http://www.ledges.com",
+    "phone": "(435) 634-4600",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-ledges-golf-club",
+    "configs": {
+      "club_id": "14257",
+      "course_id": "16351",
+      "affiliation_id": "57850",
+      "nb_holes": "18",
+      "timezone": "America/Denver",
+      "slug": "the-ledges-golf-club"
+    }
+  },
+  {
+    "name": "Ashley Plantation Golf Club - Ashley Plantation",
+    "city": "Daleville",
+    "state": "Virginia",
+    "website": "http://www.ashleyplantation.com/",
+    "phone": "1(540)-600-4653",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/ashley-plantation-golf-club",
+    "configs": {
+      "club_id": "14272",
+      "course_id": "16372",
+      "affiliation_id": "57910",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "ashley-plantation-golf-club"
+    }
+  },
+  {
+    "name": "Belmont Golf Course - Belmont 12 Hole Course",
+    "city": "Richmond",
+    "state": "Virginia",
+    "website": "https://www.playbelmontrva.org/",
+    "phone": "(804) 424-3249",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/belmont-golf-course-virginia",
+    "configs": {
+      "club_id": "14281",
+      "course_id": "16382",
+      "affiliation_id": "118193",
+      "nb_holes": "12",
+      "timezone": "America/New_York",
+      "slug": "belmont-golf-course-virginia"
+    }
+  },
+  {
+    "name": "The Tattersall Youth Development Center - Chesterfield Golf Course",
+    "city": "Richmond",
+    "state": "Virginia",
+    "website": "http://www.thefirstteerichmondchesterfield.org/club/scripts/public/public.asp",
+    "phone": "(804) 275-8050",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/first-tee-of-chesterfield",
+    "configs": {
+      "club_id": "14345",
+      "course_id": "16453",
+      "affiliation_id": "118192",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "first-tee-of-chesterfield"
+    }
+  },
+  {
+    "name": "Fredericksburg Country Club - Fredericksburg Country Club",
+    "city": "Fredericksburg",
+    "state": "Virginia",
+    "website": "https://www.fredclub.org/",
+    "phone": "(540) 373-4171",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/fredericksburg-country-club",
+    "configs": {
+      "club_id": "14353",
+      "course_id": "16466",
+      "affiliation_id": "97409",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "fredericksburg-country-club"
+    }
+  },
+  {
+    "name": "Greene Hills Club - Greene Hills",
+    "city": "Stanardsville",
+    "state": "Virginia",
+    "website": "http://www.greenehillsclub.com/",
+    "phone": "(434) 985-7328",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/greene-hills-golf-club",
+    "configs": {
+      "club_id": "14371",
+      "course_id": "16486",
+      "affiliation_id": "58306",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "greene-hills-golf-club"
+    }
+  },
+  {
+    "name": "Greene Hills Club - Pickleball Court 1",
+    "city": "Stanardsville",
+    "state": "Virginia",
+    "website": "http://www.greenehillsclub.com/",
+    "phone": "(434) 985-7328",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/greene-hills-golf-club",
+    "configs": {
+      "club_id": "14371",
+      "course_id": "26789",
+      "affiliation_id": "58306",
+      "nb_holes": "1",
+      "timezone": "America/New_York",
+      "slug": "greene-hills-golf-club"
+    }
+  },
+  {
+    "name": "Greene Hills Club - Pickleball Court 2",
+    "city": "Stanardsville",
+    "state": "Virginia",
+    "website": "http://www.greenehillsclub.com/",
+    "phone": "(434) 985-7328",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/greene-hills-golf-club",
+    "configs": {
+      "club_id": "14371",
+      "course_id": "26790",
+      "affiliation_id": "58306",
+      "nb_holes": "1",
+      "timezone": "America/New_York",
+      "slug": "greene-hills-golf-club"
+    }
+  },
+  {
+    "name": "Greene Hills Club - Pickleball Court 3",
+    "city": "Stanardsville",
+    "state": "Virginia",
+    "website": "http://www.greenehillsclub.com/",
+    "phone": "(434) 985-7328",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/greene-hills-golf-club",
+    "configs": {
+      "club_id": "14371",
+      "course_id": "26791",
+      "affiliation_id": "58306",
+      "nb_holes": "1",
+      "timezone": "America/New_York",
+      "slug": "greene-hills-golf-club"
+    }
+  },
+  {
+    "name": "Gypsy Hill Golf Course - Gypsy Hill",
+    "city": "Staunton",
+    "state": "Virginia",
+    "website": "https://www.ci.staunton.va.us/departments/parks-recreation/gypsy-hill-golf-club",
+    "phone": "(540) 332-3949",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/gypsy-hill-golf-club",
+    "configs": {
+      "club_id": "14374",
+      "course_id": "16489",
+      "affiliation_id": "58318",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "gypsy-hill-golf-club"
+    }
+  },
+  {
+    "name": "Ivy Hill Golf Club - Ivy Hill",
+    "city": "Forest",
+    "state": "Virginia",
+    "website": "http://ivyhillgc.com/",
+    "phone": "1(434)-525-2680",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/ivy-hill-golf-club",
+    "configs": {
+      "club_id": "14398",
+      "course_id": "16515",
+      "affiliation_id": "58414",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "ivy-hill-golf-club"
+    }
+  },
+  {
+    "name": "Lexington Golf & Country Club - Lexington 9-Holes",
+    "city": "Lexington",
+    "state": "Virginia",
+    "website": "https://www.lexingtongolfandcountryclub.com/",
+    "phone": "(540) 463-4141",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/lexington-golf-country-club",
+    "configs": {
+      "club_id": "14424",
+      "course_id": "23701",
+      "affiliation_id": "120464",
+      "nb_holes": "9",
+      "timezone": "America/New_York",
+      "slug": "lexington-golf-country-club"
+    }
+  },
+  {
+    "name": "Lexington Golf & Country Club - Lexington 18-Holes",
+    "city": "Lexington",
+    "state": "Virginia",
+    "website": "https://www.lexingtongolfandcountryclub.com/",
+    "phone": "(540) 463-4141",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/lexington-golf-country-club",
+    "configs": {
+      "club_id": "14424",
+      "course_id": "16551",
+      "affiliation_id": "120464",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "lexington-golf-country-club"
+    }
+  },
+  {
+    "name": "Lexington Golf & Country Club - The Ranch Practice Course",
+    "city": "Lexington",
+    "state": "Virginia",
+    "website": "https://www.lexingtongolfandcountryclub.com/",
+    "phone": "(540) 463-4141",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/lexington-golf-country-club",
+    "configs": {
+      "club_id": "14424",
+      "course_id": "27927",
+      "affiliation_id": "120464",
+      "nb_holes": "9",
+      "timezone": "America/New_York",
+      "slug": "lexington-golf-country-club"
+    }
+  },
+  {
+    "name": "London Downs Golf Club - London Downs",
+    "city": "Forest",
+    "state": "Virginia",
+    "website": "http://www.londondowns.com/",
+    "phone": "(434) 525-4653",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/london-downs-golf-club",
+    "configs": {
+      "club_id": "14425",
+      "course_id": "16552",
+      "affiliation_id": "123899",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "london-downs-golf-club"
+    }
+  },
+  {
+    "name": "Mariner's Landing Country Club - Mariners Club Golf Course",
+    "city": "Huddleston",
+    "state": "Virginia",
+    "website": "http://mariners.club",
+    "phone": "(540) 297-9393",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/mariners-landing-golf-country-club",
+    "configs": {
+      "club_id": "14433",
+      "course_id": "16561",
+      "affiliation_id": "58554",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "mariners-landing-golf-country-club"
+    }
+  },
+  {
+    "name": "Medal of Honor Golf Course - Medal of Honor",
+    "city": "Quantico",
+    "state": "Virginia",
+    "website": "https://quantico.usmc-mccs.org/recreation-fitness/recreation/outdoor-recreation/golf-course",
+    "phone": "(703) 784-2424",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/medal-of-honor-golf-course",
+    "configs": {
+      "club_id": "14440",
+      "course_id": "16571",
+      "affiliation_id": "58582",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "medal-of-honor-golf-course"
+    }
+  },
+  {
+    "name": "Medal of Honor Golf Course - Simulator Bay",
+    "city": "Quantico",
+    "state": "Virginia",
+    "website": "https://quantico.usmc-mccs.org/recreation-fitness/recreation/outdoor-recreation/golf-course",
+    "phone": "(703) 784-2424",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/medal-of-honor-golf-course",
+    "configs": {
+      "club_id": "14440",
+      "course_id": "23517",
+      "affiliation_id": "58582",
+      "nb_holes": "1",
+      "timezone": "America/New_York",
+      "slug": "medal-of-honor-golf-course"
+    }
+  },
+  {
+    "name": "Penderbrook Golf Club - Penderbrook",
+    "city": "Fairfax",
+    "state": "Virginia",
+    "website": "http://penderbrookgolf.com/sites/courses/layout9.asp?id=1311&page=82254",
+    "phone": "(703) 385-3700",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/penderbrook-golf-club",
+    "configs": {
+      "club_id": "14458",
+      "course_id": "16590",
+      "affiliation_id": "112082",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "penderbrook-golf-club"
+    }
+  },
+  {
+    "name": "Reston National Golf Course - Reston National",
+    "city": "Reston",
+    "state": "Virginia",
+    "website": "http://www.restonnationalgc.com",
+    "phone": "(703) 620-9333",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/reston-national-golf-course",
+    "configs": {
+      "club_id": "14474",
+      "course_id": "16606",
+      "affiliation_id": "58718",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "reston-national-golf-course"
+    }
+  },
+  {
+    "name": "South Wales Golf Course - South Wales",
+    "city": "Jeffersonton",
+    "state": "Virginia",
+    "website": "https://www.southwalesgc.com/",
+    "phone": "(540) 937-3250",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/south-wales-golf-club",
+    "configs": {
+      "club_id": "14502",
+      "course_id": "16646",
+      "affiliation_id": "58830",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "south-wales-golf-club"
+    }
+  },
+  {
+    "name": "Sycamore Creek Golf Course - Sycamore Creek",
+    "city": "Manakin-Sabot",
+    "state": "Virginia",
+    "website": "http://www.creekrva.com",
+    "phone": "(804) 784-3544",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/sycamore-creek-golf-course-virginia",
+    "configs": {
+      "club_id": "14513",
+      "course_id": "16657",
+      "affiliation_id": "58874",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "sycamore-creek-golf-course-virginia"
+    }
+  },
+  {
+    "name": "Brickshire Golf Club - Brickshire",
+    "city": "Providence Forge",
+    "state": "Virginia",
+    "website": "https://www.brickshiregolfclub.com/?utm_source=google&utm_medium=organic&utm_campaign=gmb",
+    "phone": "(804) 966-7888",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-golf-club-at-brickshire",
+    "configs": {
+      "club_id": "14524",
+      "course_id": "16668",
+      "affiliation_id": "58918",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "the-golf-club-at-brickshire"
+    }
+  },
+  {
+    "name": "Lakewood Links Golf Club - Lakewood Links Golf Club",
+    "city": "Alburg",
+    "state": "Vermont",
+    "website": "https://lakewoodlinks.com/",
+    "phone": "(802) 796-3586 Ext 1",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/alburg-golf-links",
+    "configs": {
+      "club_id": "14569",
+      "course_id": "16730",
+      "affiliation_id": "59098",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "alburg-golf-links"
+    }
+  },
+  {
+    "name": "Northfield Country Club - Northfield",
+    "city": "Northfield",
+    "state": "Vermont",
+    "website": "http://northfieldcountryclub.com/",
+    "phone": "(802) 485-4515",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/northfield-country-club",
+    "configs": {
+      "club_id": "14610",
+      "course_id": "16781",
+      "affiliation_id": "59262",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "northfield-country-club"
+    }
+  },
+  {
+    "name": "Northfield Country Club - Northfield Front 9",
+    "city": "Northfield",
+    "state": "Vermont",
+    "website": "http://northfieldcountryclub.com/",
+    "phone": "(802) 485-4515",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/northfield-country-club",
+    "configs": {
+      "club_id": "14610",
+      "course_id": "23288",
+      "affiliation_id": "59262",
+      "nb_holes": "9",
+      "timezone": "America/New_York",
+      "slug": "northfield-country-club"
+    }
+  },
+  {
+    "name": "St Johnsbury Country Club - St Johnsbury",
+    "city": "St. Johnsbury",
+    "state": "Vermont",
+    "website": "https://www.golfstjcc.com/",
+    "phone": "(802) 748-9894",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/st-johnsbury-country-club",
+    "configs": {
+      "club_id": "14618",
+      "course_id": "16789",
+      "affiliation_id": "59294",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "st-johnsbury-country-club"
+    }
+  },
+  {
+    "name": "Birch Bay Village Golf Course - Birch Bay",
+    "city": "Blaine",
+    "state": "Washington",
+    "website": "http://www.bbvcc.com",
+    "phone": "(360) 371-2026",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/birch-bay-golf-club",
+    "configs": {
+      "club_id": "14650",
+      "course_id": "16826",
+      "affiliation_id": "115233",
+      "nb_holes": "9",
+      "timezone": "America/Los_Angeles",
+      "slug": "birch-bay-golf-club"
+    }
+  },
+  {
+    "name": "Camaloch Golf Club - Camaloch",
+    "city": "Camano Island",
+    "state": "Washington",
+    "website": "http://www.camalochgolf.com",
+    "phone": "(360) 387-3084",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/camaloch-golf-club",
+    "configs": {
+      "club_id": "14658",
+      "course_id": "16834",
+      "affiliation_id": "59454",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "camaloch-golf-club"
+    }
+  },
+  {
+    "name": "Capitol City Golf Club - Capitol City",
+    "city": "Olympia",
+    "state": "Washington",
+    "website": "http://www.golfcapitolcity.com/",
+    "phone": "+1 360-491-5111",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/capitol-city-golf-club",
+    "configs": {
+      "club_id": "14662",
+      "course_id": "16838",
+      "affiliation_id": "59470",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "capitol-city-golf-club"
+    }
+  },
+  {
+    "name": "Delphi Golf Course - Delphi",
+    "city": "Olympia",
+    "state": "Washington",
+    "website": "http://www.delphigolfcourse.com/",
+    "phone": "(360) 357-6437",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/delphi-golf-course",
+    "configs": {
+      "club_id": "14679",
+      "course_id": "16856",
+      "affiliation_id": "59538",
+      "nb_holes": "9",
+      "timezone": "America/Los_Angeles",
+      "slug": "delphi-golf-course"
+    }
+  },
+  {
+    "name": "Delphi Golf Course - Delphi  Simulator",
+    "city": "Olympia",
+    "state": "Washington",
+    "website": "http://www.delphigolfcourse.com/",
+    "phone": "(360) 357-6437",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/delphi-golf-course",
+    "configs": {
+      "club_id": "14679",
+      "course_id": "27989",
+      "affiliation_id": "59538",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "delphi-golf-course"
+    }
+  },
+  {
+    "name": "Druids Glen Hotel & Golf Resort - Druids Glen",
+    "city": "Newtown Mount Kennedy",
+    "state": "Wicklow",
+    "website": "http://www.druidsglengolf.com",
+    "phone": "+353 1 287 0800",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/druids-glen-golf-club",
+    "configs": {
+      "club_id": "14686",
+      "course_id": "16863",
+      "affiliation_id": "59566",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "druids-glen-golf-club"
+    }
+  },
+  {
+    "name": "Druids Glen Hotel & Golf Resort - Druids Heath",
+    "city": "Newtown Mount Kennedy",
+    "state": "Wicklow",
+    "website": "http://www.druidsglengolf.com",
+    "phone": "+353 1 287 0800",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/druids-glen-golf-club",
+    "configs": {
+      "club_id": "14686",
+      "course_id": "27612",
+      "affiliation_id": "59566",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "druids-glen-golf-club"
+    }
+  },
+  {
+    "name": "Echo Falls Golf Club - SIMULATOR  -BOOK 4 PLAYERS!!",
+    "city": "Snohomish, WA",
+    "state": "Washington",
+    "website": "http://www.echofallsgolf.com",
+    "phone": "(360) 668-3030",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/echo-falls-country-club",
+    "configs": {
+      "club_id": "14690",
+      "course_id": "22425",
+      "affiliation_id": "59582",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "echo-falls-country-club"
+    }
+  },
+  {
+    "name": "Echo Falls Golf Club - Echo Falls",
+    "city": "Snohomish, WA",
+    "state": "Washington",
+    "website": "http://www.echofallsgolf.com",
+    "phone": "(360) 668-3030",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/echo-falls-country-club",
+    "configs": {
+      "club_id": "14690",
+      "course_id": "16869",
+      "affiliation_id": "59582",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "echo-falls-country-club"
+    }
+  },
+  {
+    "name": "Enumclaw Golf Course - Enumclaw",
+    "city": "Enumclaw",
+    "state": "Washington",
+    "website": "http://www.golftheclaw.com",
+    "phone": "(360) 825-2827",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/enumclaw-golf-course",
+    "configs": {
+      "club_id": "14693",
+      "course_id": "16872",
+      "affiliation_id": "59594",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "enumclaw-golf-course"
+    }
+  },
+  {
+    "name": "The Plains Golf Course - The Plains",
+    "city": "Cheney",
+    "state": "Washington",
+    "website": "https://www.theplains509.com/",
+    "phone": "(509) 747-8418",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/fairways-at-west-terrace",
+    "configs": {
+      "club_id": "14699",
+      "course_id": "23391",
+      "affiliation_id": "59618",
+      "nb_holes": "9",
+      "timezone": "America/Los_Angeles",
+      "slug": "fairways-at-west-terrace"
+    }
+  },
+  {
+    "name": "Gold Mountain Golf Club - CASCADE",
+    "city": "Bremerton",
+    "state": "Washington",
+    "website": "https://goldmountaingolf.com/",
+    "phone": "(360) 415-5432",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/gold-mountain-golf-club",
+    "configs": {
+      "club_id": "14711",
+      "course_id": "16890",
+      "affiliation_id": "59666",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "gold-mountain-golf-club"
+    }
+  },
+  {
+    "name": "Gold Mountain Golf Club - OLYMPIC",
+    "city": "Bremerton",
+    "state": "Washington",
+    "website": "https://goldmountaingolf.com/",
+    "phone": "(360) 415-5432",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/gold-mountain-golf-club",
+    "configs": {
+      "club_id": "14711",
+      "course_id": "16891",
+      "affiliation_id": "59666",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "gold-mountain-golf-club"
+    }
+  },
+  {
+    "name": "The Golf Club at Newcastle - China Creek",
+    "city": "Newcastle",
+    "state": "Washington",
+    "website": "http://www.newcastlegolf.com",
+    "phone": "(425) 793-5566",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/golf-club-at-newcastle",
+    "configs": {
+      "club_id": "14713",
+      "course_id": "16894",
+      "affiliation_id": "59674",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "golf-club-at-newcastle"
+    }
+  },
+  {
+    "name": "The Golf Club at Newcastle - Coal Creek",
+    "city": "Newcastle",
+    "state": "Washington",
+    "website": "http://www.newcastlegolf.com",
+    "phone": "(425) 793-5566",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/golf-club-at-newcastle",
+    "configs": {
+      "club_id": "14713",
+      "course_id": "16895",
+      "affiliation_id": "59674",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "golf-club-at-newcastle"
+    }
+  },
+  {
+    "name": "Harbour Pointe Golf Club - Harbour Pointe",
+    "city": "Mukilteo",
+    "state": "Washington",
+    "website": "https://www.harbourpointegolf.com/",
+    "phone": "(425) 355-6060",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/harbour-pointe-golf-club",
+    "configs": {
+      "club_id": "14719",
+      "course_id": "16901",
+      "affiliation_id": "59698",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "harbour-pointe-golf-club"
+    }
+  },
+  {
+    "name": "Indian Summer Golf & Country Club - Indian Summer",
+    "city": "Olympia",
+    "state": "Washington",
+    "website": "http://www.indiansummergolf.com",
+    "phone": "(360) 923-1075",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/indian-summer-golf-country-club",
+    "configs": {
+      "club_id": "14733",
+      "course_id": "16916",
+      "affiliation_id": "59754",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "indian-summer-golf-country-club"
+    }
+  },
+  {
+    "name": "McCormick Woods Golf Club - McCormick Woods",
+    "city": "Port Orchard",
+    "state": "Washington",
+    "website": "https://www.mccormickwoodsgolf.com/",
+    "phone": "(360) 895-0130",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/mccormick-woods-golf-course",
+    "configs": {
+      "club_id": "14770",
+      "course_id": "16959",
+      "affiliation_id": "59902",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "mccormick-woods-golf-course"
+    }
+  },
+  {
+    "name": "Meadow Park Golf Course - Williams Nine",
+    "city": "Tacoma",
+    "state": "Washington",
+    "website": "https://www.meadowparkgolf.com",
+    "phone": "(253) 473-3033",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/meadow-park-golf-club",
+    "configs": {
+      "club_id": "14771",
+      "course_id": "16961",
+      "affiliation_id": "83423",
+      "nb_holes": "9",
+      "timezone": "America/Los_Angeles",
+      "slug": "meadow-park-golf-club"
+    }
+  },
+  {
+    "name": "Meadow Park Golf Course - Meadow Park 18",
+    "city": "Tacoma",
+    "state": "Washington",
+    "website": "https://www.meadowparkgolf.com",
+    "phone": "(253) 473-3033",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/meadow-park-golf-club",
+    "configs": {
+      "club_id": "14771",
+      "course_id": "16960",
+      "affiliation_id": "83423",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "meadow-park-golf-club"
+    }
+  },
+  {
+    "name": "Meadow Park Golf Course - Glow Golf Nights",
+    "city": "Tacoma",
+    "state": "Washington",
+    "website": "https://www.meadowparkgolf.com",
+    "phone": "(253) 473-3033",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/meadow-park-golf-club",
+    "configs": {
+      "club_id": "14771",
+      "course_id": "21117",
+      "affiliation_id": "83423",
+      "nb_holes": "9",
+      "timezone": "America/Los_Angeles",
+      "slug": "meadow-park-golf-club"
+    }
+  },
+  {
+    "name": "North Bellingham Golf Course - North Bellingham Golf Course",
+    "city": "Bellingham",
+    "state": "Washington",
+    "website": "https://northbellinghamgolf.com/",
+    "phone": "(360) 398-8300",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/north-bellingham-golf-course",
+    "configs": {
+      "club_id": "14786",
+      "course_id": "16978",
+      "affiliation_id": "59966",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "north-bellingham-golf-course"
+    }
+  },
+  {
+    "name": "North Shore Golf Course - North Shore",
+    "city": "Tacoma",
+    "state": "Washington",
+    "website": "https://www.nshoregolf.com/",
+    "phone": "253.927.1375",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/north-shore-golf-club-washington",
+    "configs": {
+      "club_id": "14787",
+      "course_id": "16979",
+      "affiliation_id": "59970",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "north-shore-golf-club-washington"
+    }
+  },
+  {
+    "name": "Quail Ridge Golf Course - Quail Ridge",
+    "city": "Clarkston",
+    "state": "Washington",
+    "website": "https://golfquailridge.com/",
+    "phone": "(509) 758-8501",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/quail-ridge-golf-course-washington",
+    "configs": {
+      "club_id": "14813",
+      "course_id": "17009",
+      "affiliation_id": "60074",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "quail-ridge-golf-course-washington"
+    }
+  },
+  {
+    "name": "Snohomish Golf Course - Snohomish",
+    "city": "Snohomish",
+    "state": "Washington",
+    "website": "https://www.snohomishgolfcourse.com/",
+    "phone": "(360) 568-2676",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/snohomish-public-golf-course",
+    "configs": {
+      "club_id": "14837",
+      "course_id": "17036",
+      "affiliation_id": "60170",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "snohomish-public-golf-course"
+    }
+  },
+  {
+    "name": "Sunland Golf Club - Sunland",
+    "city": "Sequim",
+    "state": "Washington",
+    "website": "https://sunlandgolf.com/",
+    "phone": "(360) 683-6800",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/sunland-golf-club",
+    "configs": {
+      "club_id": "14848",
+      "course_id": "17047",
+      "affiliation_id": "60214",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "sunland-golf-club"
+    }
+  },
+  {
+    "name": "The Golf Club at Hawks Prairie  - Links",
+    "city": "Lacey",
+    "state": "Washington",
+    "website": "http://www.hawksprairiegolf.com",
+    "phone": "(360) 455-8383",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-golf-club-at-hawks-prairie",
+    "configs": {
+      "club_id": "14859",
+      "course_id": "17058",
+      "affiliation_id": "60258",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "the-golf-club-at-hawks-prairie"
+    }
+  },
+  {
+    "name": "The Golf Club at Hawks Prairie  - Woodlands",
+    "city": "Lacey",
+    "state": "Washington",
+    "website": "http://www.hawksprairiegolf.com",
+    "phone": "(360) 455-8383",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-golf-club-at-hawks-prairie",
+    "configs": {
+      "club_id": "14859",
+      "course_id": "17059",
+      "affiliation_id": "60258",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "the-golf-club-at-hawks-prairie"
+    }
+  },
+  {
+    "name": "The Plateau Club - The Plateau",
+    "city": "Sammamish",
+    "state": "Washington",
+    "website": "http://www.plateauclub.com",
+    "phone": "(425) 836-4653",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/the-plateau-club",
+    "configs": {
+      "club_id": "14864",
+      "course_id": "17064",
+      "affiliation_id": "60278",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "the-plateau-club"
+    }
+  },
+  {
+    "name": "The Golf Club at Redmond Ridge - Redmond Ridge",
+    "city": "Redmond",
+    "state": "Washington",
+    "website": "https://redmondridgegolf.com/",
+    "phone": "(425) 836-1510",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/trilogy-at-redmond-ridge",
+    "configs": {
+      "club_id": "14871",
+      "course_id": "17071",
+      "affiliation_id": "60306",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "trilogy-at-redmond-ridge"
+    }
+  },
+  {
+    "name": "Trophy Lake Golf and Casting Club - Trophy Lake",
+    "city": "Port Orchard",
+    "state": "Washington",
+    "website": "http://www.trophylakegolf.com",
+    "phone": "(360) 874-8337",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/trophy-lake-golf-casting-club",
+    "configs": {
+      "club_id": "14872",
+      "course_id": "17072",
+      "affiliation_id": "60310",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "trophy-lake-golf-casting-club"
+    }
+  },
+  {
+    "name": "Washington National Golf Club - Washington National",
+    "city": "Auburn",
+    "state": "Washington",
+    "website": "https://washingtonnationalgolf.com/",
+    "phone": "(253) 333-5000",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/washington-national-golf-club",
+    "configs": {
+      "club_id": "14885",
+      "course_id": "17085",
+      "affiliation_id": "60362",
+      "nb_holes": "18",
+      "timezone": "America/Los_Angeles",
+      "slug": "washington-national-golf-club"
+    }
+  },
+  {
+    "name": "Big Stone Golf Course - Big Stone",
+    "city": "Three Lakes",
+    "state": "Wisconsin",
+    "website": "https://bigstonegolfcourse.com/",
+    "phone": "(715) 546-2100",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/big-stone-golf-sports-bar",
+    "configs": {
+      "club_id": "14924",
+      "course_id": "17140",
+      "affiliation_id": "111665",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "big-stone-golf-sports-bar"
+    }
+  },
+  {
+    "name": "Darlington Country Club - Darlington",
+    "city": "Darlington",
+    "state": "Wisconsin",
+    "website": "https://www.darlingtongolfandcountryclub.com/",
+    "phone": "(608) 776-3377",
+    "provider": "ChronoGolf",
+    "active": true,
+    "booking_link": "https://www.chronogolf.com/club/darlington-country-club-wisconsin",
+    "configs": {
+      "club_id": "14981",
+      "course_id": "17204",
+      "affiliation_id": "60746",
+      "nb_holes": "9",
+      "timezone": "America/Chicago",
+      "slug": "darlington-country-club-wisconsin"
+    }
+  }
+]

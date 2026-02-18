@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 from app.services.foreup_service import run_foreup_scan
+from app.services.chronogolf_service import run_chronogolf_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
 
@@ -16,6 +17,20 @@ async def scan_foreup_job():
         print("[Scheduler] ForeUp scan completed!")
     except Exception as e:
         print(f"[Scheduler] Error during ForeUp scan: {e}")
+
+
+async def scan_chronogolf_job():
+    """
+    Global ChronoGolf availability scan
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running ChronoGolf scan at {now}")
+
+    try:
+        await run_chronogolf_scan()
+        print("[Scheduler] ChronoGolf scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during ChronoGolf scan: {e}")
 
 
 async def get_all_tiers():

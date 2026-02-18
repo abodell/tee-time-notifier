@@ -34,30 +34,37 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             continue
 
         # Validate critical configs
-        configs = course_item.get("configs", {})
-        schedule_id = configs.get("schedule_id")
-        booking_class = configs.get("booking_class")
+        provider = course_item.get("provider", "ForeUp")
         
-        if "demo" in course_item["name"].lower():
-            print(f"Skipping {course_item['name']} - Demo course")
-            skipped += 1
-            continue
-
-        if not schedule_id or not booking_class:
-            print(f"Skipping {course_item['name']} - Missing schedule_id or booking_class")
-            skipped += 1
-            continue
+        if provider == "ForeUp":
+            if not configs.get("schedule_id") or not configs.get("booking_class"):
+                print(f"Skipping {course_item['name']} - Missing schedule_id or booking_class")
+                skipped += 1
+                continue
+        elif provider == "ChronoGolf":
+            if not configs.get("club_id") or not configs.get("course_id"):
+                print(f"Skipping {course_item['name']} - Missing club_id or course_id")
+                skipped += 1
+                continue
             
-        # 1. Upsert Course
+        provider_url = ""
+        if provider == "ForeUp":
+            provider_url = f"https://foreupsoftware.com/index.php/booking/{configs['course_id']}"
+        elif provider == "ChronoGolf":
+            slug = configs.get("slug")
+            if slug:
+                provider_url = f"https://www.chronogolf.com/club/{slug}#/teetimes?course_id={configs['course_id']}"
+            else:
+                provider_url = f"https://www.chronogolf.com/marketplace/clubs/{configs['club_id']}/teetimes?course_id={configs['course_id']}"
+
         course_payload = {
             "name": course_item["name"],
-            # address column doesn't exist in courses table
             "city": course_item["city"],
             "state": course_item["state"],
-            "country": "USA", # Defaulting to USA as ForeUp is primarily US
-            "provider": course_item["provider"],
+            "country": "USA",
+            "provider": provider,
             "provider_course_id": configs["course_id"],
-            "provider_url": f"https://foreupsoftware.com/index.php/booking/{configs['course_id']}",
+            "provider_url": provider_url,
             "time_zone": configs.get("timezone"),
             "active": course_item.get("active", True)
         }
@@ -71,7 +78,7 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
         existing = await supabase.table("courses") \
             .select("id") \
             .eq("name", course_item["name"]) \
-            .eq("provider", "ForeUp") \
+            .eq("provider", provider) \
             .execute()
         
         if existing.data:
@@ -89,7 +96,10 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             
         # 2. Upsert Configs
         configs = course_item.get("configs", {})
-        ALLOWED_CONFIG_KEYS = {"booking_class", "schedule_id", "schedule_ids", "api_key"}
+        ALLOWED_CONFIG_KEYS = {
+            "booking_class", "schedule_id", "schedule_ids", "api_key", # ForeUp
+            "club_id", "course_id", "affiliation_id", "nb_holes", "timezone", "slug" # ChronoGolf
+        }
         
         if configs:
             config_rows = []
@@ -101,7 +111,7 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
                     
                 config_rows.append({
                     "course_id": course_id,
-                    "provider": "ForeUp",
+                    "provider": provider,
                     "key": key,
                     "value": str(value)
                 })
