@@ -41,7 +41,7 @@ async def start_scheduler(app: FastAPI):
 
     scheduler.add_job(
         scan_chronogolf_job,
-        trigger=IntervalTrigger(seconds=60, start_date=next_minute),
+        trigger=IntervalTrigger(seconds=45, start_date=next_minute),
         name="ChronoGolf_GLOBAL_scan",
     )
 
