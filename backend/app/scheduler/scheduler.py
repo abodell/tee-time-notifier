@@ -3,6 +3,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI
 from .jobs import (
     scan_foreup_job,
+    scan_chronogolf_job,
     run_alert_engine_for_tier
 )
 from app.db import create_supabase
@@ -36,6 +37,12 @@ async def start_scheduler(app: FastAPI):
         scan_foreup_job,
         trigger=IntervalTrigger(seconds=45, start_date=next_minute),
         name="ForeUp_GLOBAL_scan",
+    )
+
+    scheduler.add_job(
+        scan_chronogolf_job,
+        trigger=IntervalTrigger(seconds=45, start_date=next_minute),
+        name="ChronoGolf_GLOBAL_scan",
     )
 
     for tier in tiers:

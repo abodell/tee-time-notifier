@@ -1,0 +1,2483 @@
+1. Seed all Chrono Courses using URL like this
+- https://www.chronogolf.com/marketplace/organizations/{organization_id}
+- Example response:
+{
+    "type": "Club",
+    "club_ids": [
+        13011
+    ],
+    "id": 13011,
+    "uuid": "4c88c29c-31d1-4f99-b33f-15a7557cdba2",
+    "name": "The Golf Club at Wescott Plantation",
+    "address_one": "5000 Wescott Club Drive",
+    "address_two": null,
+    "city": "Summerville",
+    "postcode": "29485",
+    "province_name": "South Carolina",
+    "country_name": "United States",
+    "currency_code": "USD",
+    "slug": "the-golf-club-at-wescott-plantation",
+    "description": "\u003ch4\u003eThe Golf Club at Wescott Plantation\u003c/h4\u003e\u003cp\u003e\u003cbr\u003e\u003c/p\u003e\u003cp\u003eLocated in the heart of the South Carolina Lowcountry \u0026#8211; within minutes of the Charleston International Airport, centuries-old plantations and gardens, sun-splashed Atlantic beaches and, of course, all the beauty and charm of Charleston\u0026#8217;s historic district \u0026#8211; Wescott Golf Club is the area\u0026#8217;s largest and most diverse daily-fee golf facility. With three distinct nines, Wescott gives players a chance to play three different 18-hole layouts.\u003c/p\u003e\u003cp\u003e\u003cbr\u003e\u003c/p\u003e\u003cp\u003eWith resort class service, premier course conditions and an award-winning staff, Wescott Golf Club is one of the top public facilities on the East Coast.  We invite you to experience the Lowcountry\u0026#8217;s only 27-hole facility for yourself and see just how good \u0026#8211; and affordable \u0026#8211; golf can be.\u003c/p\u003e",
+    "directions": "\u003ch3\u003e\u003cb\u003eFrom I-95:\u003c/b\u003e\u003c/h3\u003e\u003cp\u003eExit off I-95 to I-26. Take I-26 toward Charleston. Remain on I-26 until Exit 209 (Ashley Phosphate Road). Exit at 209 and turn right onto Ashley Phosphate Road. Remain on Ashley Phosphate Road approximately 5 miles. Turn right at the traffic light on to Dorchester Road. Landmarks leading up to this intersection include an Applebee's Restaurant on the right, a Burger King on the left; The 76 Gas Station and a McDonald's will be at the intersection of Ashley Phosphate and Dorchester Road. Proceed on Dorchester Road follow along through three traffic lights and turn right at the fourth light. You will see a Marshall's and a Harris Teeter. Turn right onto Wescott Boulevard. Proceed 1/2 mile to a traffic circle and turn right onto the first street. This will lead directly to the clubhouse.\u003c/p\u003e\u003cp\u003e\u003cbr\u003e\u003c/p\u003e\u003ch3\u003e\u003cb\u003eFrom Downtown Charleston, South Carolina:\u003c/b\u003e\u003c/h3\u003e\u003cp\u003eTake I-26 from Charleston toward Columbia. Remain on I-26 until Exit 209 (Ashley Phosphate Road). Exit at 209 and the end of the exit ramp turn left onto Ashley Phosphate Road. Remain on Ashley Phosphate Road approximately 5 miles. Turn right at the traffic light on to Dorchester Road. Landmarks leading up to this intersection include an Applebee's Restaurant on the right, a Burger King on the left; The 76 Gas Station and a McDonald's will be at the intersection of Ashley Phosphate and Dorchester Road. Proceed on Dorchester Road follow along through three traffic lights and turn right at the fourth light. You will see a Marshall's and a Harris Teeter. Turn right onto Wescott Boulevard. Proceed 1/2 mile to a traffic circle and turn right onto the first street. This will lead directly to the clubhouse.\u003c/p\u003e",
+    "location": {
+        "lat": 32.945586,
+        "lon": -80.138197
+    },
+    "phone_number": "(843) 871-2135",
+    "website": "http://www.wescottgolfclub.com",
+    "rules": null,
+    "news": "",
+    "state": "published",
+    "policy": "",
+    "online_booking_enabled": true,
+    "seller": true,
+    "management_company_ids": [
+        17211,
+        18132
+    ],
+    "has_online_deals": false,
+    "weekday_price": 52.0,
+    "weekend_price": 62.0,
+    "settings": {
+        "add_on_branded_app_enabled": "true",
+        "add_on_dynamic_pricing_enabled": "true",
+        "autobilling_strategy": "consolidated",
+        "bi_enabled": "true",
+        "bi_tier": "default",
+        "booking_flow_v2_enabled": "true",
+        "booking_overlap_restriction_hours_range": "5",
+        "branded_app_app_store_id": "1558479624",
+        "branded_app_play_store_id": "com.chronogolf.booking.wescott",
+        "cancel_reservation_time_range": "24",
+        "credit_accounts_enabled": "true",
+        "credit_accounts_publicly_visible": "true",
+        "default_affiliation_type_id": "52866",
+        "default_affiliation_type_uuid": "dffeaf33-1ef2-4e90-95b2-28f0bcf3b22d",
+        "facebook_page_id": "wescottgolfclub",
+        "google_analytics4_id": "G-ZW2HYCBC5T",
+        "google_book_online_enabled": "true",
+        "google_book_online_feature_flag_enabled": "true",
+        "hide_turn_teetime_activated": "true",
+        "house_account_golfer_statement_ready_notification_enabled": "true",
+        "house_accounts_billing_cycle_day": 1,
+        "house_accounts_detailled_balance_on_customer_dashboard": "true",
+        "ls_e_commerce_enabled": "true",
+        "members_identification_enabled": "true",
+        "merchant_employee_account_creation": false,
+        "message_by_sms_enabled": "true",
+        "multi_course_tee_time_search_enabled": "true",
+        "online_booking_note_enabled": "true",
+        "online_booking_payment_option": "at_course",
+        "product_kits_enabled": "true",
+        "proshop_default_affiliation_type_id": "52866",
+        "push_notification_project_id": "ls-infra-golf-firebase-2-prd",
+        "rainchecks_enabled": "true",
+        "rainchecks_tax_compliant": "true",
+        "report_reservation_online_payment_to_pos": "true",
+        "schedule_mark_as_paid_worker_from_pub_sub": false,
+        "scheduling_enabled": "true",
+        "single_player_restriction_activated": "true",
+        "stripe_payment_gateway_enabled": "true",
+        "subscription_bundles_enabled": "true",
+        "subscriptions_enabled": "true",
+        "sync_all_l_series_customers": "true",
+        "teetime_freezing_enabled": "true",
+        "vouchers_enabled": "true"
+    },
+    "terms_and_conditions_url": null,
+    "courses_holes": [
+        18,
+        18,
+        18
+    ],
+    "tax_inclusive": false,
+    "active": true,
+    "photos": [
+        {
+            "id": 50567,
+            "url": "https://cdn2.chronogolf.com/nx2s9q5lxm3pm1vud89mlbb9dnri",
+            "file_name": "download_(1).jpeg",
+            "file_size": 139539,
+            "content_type": "image/jpeg",
+            "club_id": 13011,
+            "record_id": 13011,
+            "record_type": "Organization",
+            "type": "Image::Photo",
+            "sizes": {
+                "w384": "https://cdn2.chronogolf.com/7puz96w38d1kdn0x779x40iuvt87",
+                "w768": "https://cdn2.chronogolf.com/iziryq0nrpevqyhv76pkz3d1w8gw",
+                "w1152": "https://cdn2.chronogolf.com/hw19mpmjtfwi55mhvx5jeinox5o8",
+                "w1536": "https://cdn2.chronogolf.com/koa5cxmn5kux7op7ukuf8mhhut1g",
+                "w1920": "https://cdn2.chronogolf.com/m18ojfe6p4wi4qnashzqignzj32s"
+            }
+        },
+        {
+            "id": 50566,
+            "url": "https://cdn2.chronogolf.com/gfi6qzj62ff4n33d5q37zdl008ou",
+            "file_name": "download.jpeg",
+            "file_size": 110944,
+            "content_type": "image/jpeg",
+            "club_id": 13011,
+            "record_id": 13011,
+            "record_type": "Organization",
+            "type": "Image::Photo",
+            "sizes": {
+                "w384": "https://cdn2.chronogolf.com/wk5vejsdisn3lllcmdkhaj3rg5wf",
+                "w768": "https://cdn2.chronogolf.com/rwiz7ddkjiazttmg1ucd2sot26jh",
+                "w1152": "https://cdn2.chronogolf.com/7d7hq3qbawmdcp2bh4h0t3yrpte0",
+                "w1536": "https://cdn2.chronogolf.com/9dsokkdezlwtwcyahniiktypslrm",
+                "w1920": "https://cdn2.chronogolf.com/9ed4ubyiul7tb5c0z221ymem5iig"
+            }
+        },
+        {
+            "id": 50565,
+            "url": "https://cdn2.chronogolf.com/ackftmjgu4ek8mq89xbvgsv2rknm",
+            "file_name": "westcott.jpg",
+            "file_size": 179742,
+            "content_type": "image/jpeg",
+            "club_id": 13011,
+            "record_id": 13011,
+            "record_type": "Organization",
+            "type": "Image::Photo",
+            "sizes": {
+                "w384": "https://cdn2.chronogolf.com/f9eepaahe2m9wuu8bp3lwmanusw4",
+                "w768": "https://cdn2.chronogolf.com/fwwt13i0ebgpee9bz0bk22jburja",
+                "w1152": "https://cdn2.chronogolf.com/w5yznv1vyvtahhnwblxr9u2fnwuk",
+                "w1536": "https://cdn2.chronogolf.com/7wqp3og44v9zkjqppjjif60ca2ko",
+                "w1920": "https://cdn2.chronogolf.com/c30ol1uffnvaioww2fj6yhl0a2hs"
+            }
+        }
+    ],
+    "logo": {
+        "id": 545030,
+        "url": "https://cdn2.chronogolf.com/w7lgfqe7u5e8f9fc5fzpqey8a048",
+        "file_name": "logo.png",
+        "file_size": 5376,
+        "content_type": "image/png",
+        "club_id": 13011,
+        "record_id": 13011,
+        "record_type": "Organization",
+        "type": "Image::Logo",
+        "sizes": {
+            "medium": "https://cdn2.chronogolf.com/3pwz0n276vnli8tej75l6a1tml0z"
+        }
+    },
+    "placeholder": {
+        "id": 545031,
+        "url": "https://cdn2.chronogolf.com/m7q3ljo5ct2qv5hcazdtaew2dzq0",
+        "file_name": "fe21563e85ccee540f0658fdb3c023a7c5095165.",
+        "file_size": 29107,
+        "content_type": "image/png",
+        "club_id": 13011,
+        "record_id": 13011,
+        "record_type": "Organization",
+        "type": "Image::Placeholder",
+        "sizes": {
+            "w384": "https://cdn2.chronogolf.com/wy6fcpjns3qlzsuxg2hzfvrq86um",
+            "w768": "https://cdn2.chronogolf.com/jlvjesrfqhmlz9ho5oy95xpchkah",
+            "w1152": "https://cdn2.chronogolf.com/mpkf3he4wjzr9doqks1f4l20p8h6",
+            "w1536": "https://cdn2.chronogolf.com/778bx97i8vo21ekvcht2fwaucr0a",
+            "w1920": "https://cdn2.chronogolf.com/xn1vc2fo9dnvymzifned51d378ct"
+        }
+    },
+    "timezone": "America/New_York",
+    "management_companies": [
+        {
+            "id": 17211,
+            "name": "Chronogolf"
+        },
+        {
+            "id": 18132,
+            "name": "Chronopitch"
+        }
+    ],
+    "country": {
+        "id": 3,
+        "code": "US",
+        "name": "United States"
+    },
+    "province": {
+        "id": 75,
+        "code": "SC",
+        "name": "South Carolina"
+    },
+    "region": {
+        "id": 636,
+        "code": null,
+        "name": "N/A"
+    },
+    "currency": {
+        "id": 2,
+        "code": "USD",
+        "name": "US Dollar"
+    }
+}
+
+
+2. Next we get the courses at that organization using this URL
+- https://www.chronogolf.com/marketplace/clubs/{organization_id}/courses
+- Example Response:
+[
+    {
+        "id": 14916,
+        "club_id": 13011,
+        "courses_products": [
+            {
+                "product_id": 14203,
+                "round_duration": 16200
+            },
+            {
+                "product_id": 27801,
+                "round_duration": 8100
+            },
+            {
+                "product_id": 27928,
+                "round_duration": null
+            },
+            {
+                "product_id": 27929,
+                "round_duration": null
+            },
+            {
+                "product_id": 45805,
+                "round_duration": null
+            },
+            {
+                "product_id": 45806,
+                "round_duration": null
+            },
+            {
+                "product_id": 45808,
+                "round_duration": null
+            },
+            {
+                "product_id": 45809,
+                "round_duration": null
+            },
+            {
+                "product_id": 46668,
+                "round_duration": null
+            }
+        ],
+        "default_product_id": 14203,
+        "distance": null,
+        "holes": 18,
+        "name": "Wescott Course #1",
+        "online_booking_enabled": true,
+        "par": null,
+        "position": 1,
+        "scorecard_id": null,
+        "settings": {
+            "color": "#001040",
+            "cart_mandatory": "true",
+            "front_duration": "10",
+            "front_starting_hole": "1"
+        },
+        "return_course_id": 14916
+    },
+    {
+        "id": 14918,
+        "club_id": 13011,
+        "courses_products": [
+            {
+                "product_id": 14203,
+                "round_duration": 16200
+            },
+            {
+                "product_id": 27801,
+                "round_duration": 8100
+            },
+            {
+                "product_id": 27928,
+                "round_duration": null
+            },
+            {
+                "product_id": 27929,
+                "round_duration": null
+            },
+            {
+                "product_id": 45805,
+                "round_duration": null
+            },
+            {
+                "product_id": 45806,
+                "round_duration": null
+            },
+            {
+                "product_id": 45808,
+                "round_duration": null
+            },
+            {
+                "product_id": 45809,
+                "round_duration": null
+            },
+            {
+                "product_id": 46668,
+                "round_duration": null
+            }
+        ],
+        "default_product_id": 14203,
+        "distance": null,
+        "holes": 18,
+        "name": "Wescott Course #2",
+        "online_booking_enabled": true,
+        "par": null,
+        "position": 1,
+        "scorecard_id": null,
+        "settings": {
+            "color": "#007b04",
+            "cart_mandatory": "true",
+            "front_duration": "10",
+            "front_starting_hole": "1"
+        },
+        "return_course_id": 14918
+    },
+    {
+        "id": 14917,
+        "club_id": 13011,
+        "courses_products": [
+            {
+                "product_id": 14203,
+                "round_duration": 16200
+            },
+            {
+                "product_id": 27801,
+                "round_duration": 8100
+            },
+            {
+                "product_id": 27928,
+                "round_duration": null
+            },
+            {
+                "product_id": 27929,
+                "round_duration": null
+            },
+            {
+                "product_id": 45805,
+                "round_duration": null
+            },
+            {
+                "product_id": 45806,
+                "round_duration": null
+            },
+            {
+                "product_id": 45808,
+                "round_duration": null
+            },
+            {
+                "product_id": 45809,
+                "round_duration": null
+            },
+            {
+                "product_id": 46668,
+                "round_duration": null
+            }
+        ],
+        "default_product_id": 14203,
+        "distance": null,
+        "holes": 18,
+        "name": "Wescott Course #3",
+        "online_booking_enabled": true,
+        "par": null,
+        "position": 1,
+        "scorecard_id": null,
+        "settings": {
+            "color": "#dd6700",
+            "cart_mandatory": "true",
+            "front_duration": "10",
+            "front_starting_hole": "1"
+        },
+        "return_course_id": 14917
+    }
+]
+
+3. Then we get affiliation types using this URL:
+- https://www.chronogolf.com/marketplace/organizations/{organization_id}/affiliation_types
+- Example response:
+[
+    {
+        "id": 100603,
+        "name": "Annual Pass - Junior Green Fee",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#30e4dc"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100601,
+        "name": "Annual Pass - Regular Green Fee",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#7700b7"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100630,
+        "name": "Annual Pass - Regular Green Fee and Cart",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#dfb5d0"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101197,
+        "name": "Annual Pass - Regular + Spouse Green Fee",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#500005"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": true,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101199,
+        "name": "Annual Pass - Regular + Spouse Green Fee and Cart",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#dfa39f"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": true,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100602,
+        "name": "Annual Pass - Senior Green Fee",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#1f181f"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100631,
+        "name": "Annual Pass - Senior Green Fee and Cart",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#dece9c"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101200,
+        "name": "Annual Pass - Senior Green Fee and Spouse",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#b4de9c"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": true,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101201,
+        "name": "Annual Pass - Senior + Spouse Green Fee and Cart",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#2277d0"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": true,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100604,
+        "name": "Member",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#afd936"
+        },
+        "default_role": "member",
+        "default_player_role": "member",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101154,
+        "name": "GolfNow",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#007071"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100593,
+        "name": "GolfNow",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#2277d0"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": true,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100592,
+        "name": "Junior",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#ffd006"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100721,
+        "name": "Ladies",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#dfb5d0"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": true,
+        "deleted": true,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 7,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 103026,
+        "name": "Multipass Play REGULAR",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#a79fdf"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 7,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 103025,
+        "name": "Multiplay Pass SENIOR",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#a79fdf"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 7,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101166,
+        "name": "PGA Hope",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#003102"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101168,
+        "name": "PGA/LPGA",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#2fda8f"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 52866,
+        "name": "Public",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#007b04"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": true,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 52865,
+        "name": "Resident",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#c9000c"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 100591,
+        "name": "Senior",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#e2e1e2"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": false,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    },
+    {
+        "id": 101092,
+        "name": "Women",
+        "organization_id": 13011,
+        "organization_type": "Club",
+        "organization_name": "The Golf Club at Wescott Plantation",
+        "data": {
+            "color": "#f904a2"
+        },
+        "default_role": "public",
+        "default_player_role": "public",
+        "publicly_visible": false,
+        "deleted": true,
+        "allow_member_directory": null,
+        "booking_opening_time": "00:00",
+        "booking_range": 14,
+        "require_credit_card": null,
+        "bookable_on_marketplace": true,
+        "excluded_from_member_identification": null
+    }
+]
+
+4. Lastly, we collect tee times here:
+- https://www.chronogolf.com/marketplace/clubs/13011/teetimes?date=2026-02-20&course_id=14916&affiliation_type_ids%5B%5D=52866&nb_holes=18
+- Example response:
+[
+    {
+        "id": 500725846,
+        "uuid": "75683b24-7e23-46cf-b86b-a4e267d4799b",
+        "course_id": 14916,
+        "start_time": "08:00",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725846,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725847,
+        "uuid": "b0ae23a1-3538-41e9-b4f5-f707e2cfb5ad",
+        "course_id": 14916,
+        "start_time": "08:08",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725847,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725848,
+        "uuid": "94ea5188-e6e6-4017-a24f-1120b78c1639",
+        "course_id": 14916,
+        "start_time": "08:16",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725848,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725849,
+        "uuid": "1de81248-dd85-497c-b186-ccd69c53a6bd",
+        "course_id": 14916,
+        "start_time": "08:24",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725849,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725850,
+        "uuid": "3dd16476-4b1b-4e64-9cb3-f3c4456ba459",
+        "course_id": 14916,
+        "start_time": "08:32",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725850,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725851,
+        "uuid": "3e241988-39c0-433d-835a-4740ada9d6f8",
+        "course_id": 14916,
+        "start_time": "08:40",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725851,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725852,
+        "uuid": "239876d9-27f5-48db-8b8b-5b3a65fb46ec",
+        "course_id": 14916,
+        "start_time": "08:48",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725852,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725853,
+        "uuid": "e8e1f85e-2435-453d-be2a-9df525e6f7e4",
+        "course_id": 14916,
+        "start_time": "08:56",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725853,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725854,
+        "uuid": "c1351f07-809c-4f90-8ba0-c783b25160f5",
+        "course_id": 14916,
+        "start_time": "09:04",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725854,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725855,
+        "uuid": "5bccf559-7c92-4c03-8c38-05bf34d0c552",
+        "course_id": 14916,
+        "start_time": "09:12",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725855,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725856,
+        "uuid": "08bbf7d8-8df2-425d-aaaf-f789b5396017",
+        "course_id": 14916,
+        "start_time": "09:20",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725856,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725857,
+        "uuid": "b6a4af19-bb99-4378-a251-50c4bc2c7a82",
+        "course_id": 14916,
+        "start_time": "09:28",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725857,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725858,
+        "uuid": "d91db7a8-11b9-4922-a4f7-91e971246679",
+        "course_id": 14916,
+        "start_time": "09:36",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725858,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725859,
+        "uuid": "448bbe75-8b9f-41f9-a9c2-6b15dc6ed7a9",
+        "course_id": 14916,
+        "start_time": "09:44",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725859,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725860,
+        "uuid": "eed9e32f-7f24-438e-9676-68d2adeb7000",
+        "course_id": 14916,
+        "start_time": "09:52",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725860,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725861,
+        "uuid": "0831dc11-9a1f-4401-82a2-b6e82653ed0b",
+        "course_id": 14916,
+        "start_time": "10:00",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725861,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725862,
+        "uuid": "3670bc89-5332-4893-ae7a-43de7bf29cea",
+        "course_id": 14916,
+        "start_time": "10:08",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725862,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725863,
+        "uuid": "e27c6601-4b48-47ec-b48c-584c0fcab549",
+        "course_id": 14916,
+        "start_time": "10:16",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725863,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725864,
+        "uuid": "27d1fa39-239c-44ca-98ed-fd53425a5344",
+        "course_id": 14916,
+        "start_time": "10:24",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725864,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725865,
+        "uuid": "78537b6a-d793-4c47-8a1b-1b5815663408",
+        "course_id": 14916,
+        "start_time": "10:32",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725865,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725866,
+        "uuid": "76d99143-56a0-496a-b2cb-9b9b3a329171",
+        "course_id": 14916,
+        "start_time": "10:40",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725866,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725867,
+        "uuid": "4aabb83a-709b-4d92-8147-19ec6a9b6580",
+        "course_id": 14916,
+        "start_time": "10:48",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725867,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725868,
+        "uuid": "6f1fd6fc-0f6b-4ae4-aa18-0d7e18a52811",
+        "course_id": 14916,
+        "start_time": "10:56",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725868,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725869,
+        "uuid": "b8e8a13e-031a-40df-9dfa-b6a3266cae2d",
+        "course_id": 14916,
+        "start_time": "11:04",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725869,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725870,
+        "uuid": "8d6e0a29-a404-4a7a-a193-409be746fe94",
+        "course_id": 14916,
+        "start_time": "11:12",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725870,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725871,
+        "uuid": "fb86be51-edf1-4ddf-ab6d-fca3fde5abb9",
+        "course_id": 14916,
+        "start_time": "11:20",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725871,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725872,
+        "uuid": "b3c81caf-ebd5-4a01-9043-1414c4a37073",
+        "course_id": 14916,
+        "start_time": "11:28",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725872,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725873,
+        "uuid": "1e688960-fcee-49fa-a894-a229160aeef0",
+        "course_id": 14916,
+        "start_time": "11:36",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725873,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725874,
+        "uuid": "1d53a31c-ab27-400c-a573-3a500256c307",
+        "course_id": 14916,
+        "start_time": "11:44",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725874,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725875,
+        "uuid": "af168258-5e18-406c-9bcc-a6f40a6456d1",
+        "course_id": 14916,
+        "start_time": "11:52",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725875,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725876,
+        "uuid": "456ae56e-88ec-418f-a720-686969953b64",
+        "course_id": 14916,
+        "start_time": "12:00",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725876,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725877,
+        "uuid": "e31bc9f3-0bf2-4d89-8063-96b8d8e33dda",
+        "course_id": 14916,
+        "start_time": "12:08",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725877,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725878,
+        "uuid": "52d4039d-65d1-451d-9a34-d5e8ac34d33a",
+        "course_id": 14916,
+        "start_time": "12:16",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725878,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725879,
+        "uuid": "0125fc52-920e-4ebf-a9f8-2a110b6ff2f5",
+        "course_id": 14916,
+        "start_time": "12:24",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725879,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725880,
+        "uuid": "46a4e391-e12a-4052-968d-533786ebc145",
+        "course_id": 14916,
+        "start_time": "12:32",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725880,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725881,
+        "uuid": "1226605f-5988-4ea3-92de-9858b24c8e52",
+        "course_id": 14916,
+        "start_time": "12:40",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725881,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725882,
+        "uuid": "6620b1f5-e4a8-4c1d-a06c-39b669b55668",
+        "course_id": 14916,
+        "start_time": "12:48",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725882,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725883,
+        "uuid": "4eb0adcf-8902-421d-b625-3c3a6b644968",
+        "course_id": 14916,
+        "start_time": "12:56",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725883,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725884,
+        "uuid": "630bde83-612d-4d56-805d-a5f0765f5a08",
+        "course_id": 14916,
+        "start_time": "13:04",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725884,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725885,
+        "uuid": "66943dca-6d2a-429e-9e8d-9d2e13e56cd9",
+        "course_id": 14916,
+        "start_time": "13:12",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725885,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725886,
+        "uuid": "35d1a3b3-f082-4d5b-a5fe-3bc3c67f7189",
+        "course_id": 14916,
+        "start_time": "13:20",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725886,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725887,
+        "uuid": "fc83a505-e2ec-499a-b15b-225ffffc9607",
+        "course_id": 14916,
+        "start_time": "13:28",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725887,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725888,
+        "uuid": "5c41b6a4-836b-424c-9044-bd8946b948cb",
+        "course_id": 14916,
+        "start_time": "13:36",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725888,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725889,
+        "uuid": "04154400-b4e6-4bd9-84a4-e440b5195dff",
+        "course_id": 14916,
+        "start_time": "13:44",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725889,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725890,
+        "uuid": "4e8cc104-3e7b-4379-b290-2a153363824a",
+        "course_id": 14916,
+        "start_time": "13:52",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725890,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725891,
+        "uuid": "5764da4c-9457-4d40-9871-30ad638769f5",
+        "course_id": 14916,
+        "start_time": "14:00",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": false,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725891,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725892,
+        "uuid": "95a3c162-4488-4132-98bf-f82f74330a34",
+        "course_id": 14916,
+        "start_time": "14:08",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725892,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725893,
+        "uuid": "746050e6-10e1-4689-b211-1a7a6881ad27",
+        "course_id": 14916,
+        "start_time": "14:16",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725893,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725894,
+        "uuid": "1010847a-13e1-488e-b92a-e1b1beda0a5b",
+        "course_id": 14916,
+        "start_time": "14:24",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725895,
+        "uuid": "6131b3bd-bb2e-4f6c-830a-025218431a9b",
+        "course_id": 14916,
+        "start_time": "14:32",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725896,
+        "uuid": "d7d3bf83-b42e-49fb-a950-bdc368f746f9",
+        "course_id": 14916,
+        "start_time": "14:40",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725897,
+        "uuid": "5611f677-9c8f-4dd5-8e99-d95be57088a7",
+        "course_id": 14916,
+        "start_time": "14:48",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725898,
+        "uuid": "d6701dec-d8a6-4f36-965f-bbc993a4c915",
+        "course_id": 14916,
+        "start_time": "14:56",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725899,
+        "uuid": "2ab9bf4d-4bf0-414c-9dce-a7c5790477be",
+        "course_id": 14916,
+        "start_time": "15:04",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725900,
+        "uuid": "db309c26-5b3a-4553-9590-3a691cbcae4d",
+        "course_id": 14916,
+        "start_time": "15:12",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725901,
+        "uuid": "20ef3063-3870-4fb1-8d13-d505720dfa73",
+        "course_id": 14916,
+        "start_time": "15:20",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725901,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725902,
+        "uuid": "b4b15640-a288-4a91-ab8a-41cfed003caa",
+        "course_id": 14916,
+        "start_time": "15:28",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [],
+        "out_of_capacity": true,
+        "frozen": false,
+        "green_fees": [
+            {
+                "player_type_id": 52866,
+                "green_fee": 40.95,
+                "half_cart": 22.43,
+                "one_person_cart": null,
+                "subtotal": 63.38,
+                "teetime_id": 500725902,
+                "affiliation_type_id": 52866,
+                "price": 40.95,
+                "one_person_cart_price": null,
+                "half_cart_price": 22.43
+            }
+        ]
+    },
+    {
+        "id": 500725903,
+        "uuid": "49b7b81b-3fd3-413b-83c5-a3a5fa04bd20",
+        "course_id": 14916,
+        "start_time": "15:36",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725904,
+        "uuid": "4bad22ad-c387-41c1-923b-8c95bcec847d",
+        "course_id": 14916,
+        "start_time": "15:44",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725905,
+        "uuid": "b2b2983c-f99a-48ca-902e-98878767d8fa",
+        "course_id": 14916,
+        "start_time": "15:52",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking."
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    },
+    {
+        "id": 500725906,
+        "uuid": "adc067b5-79e8-48ee-bd7e-f82d4fdc61fa",
+        "course_id": 14916,
+        "start_time": "16:00",
+        "date": "2026-02-20",
+        "event_id": null,
+        "hole": 1,
+        "round": 1,
+        "format": "normal",
+        "departure": null,
+        "restrictions": [
+            "Single players are not allowed to book online onto a fully empty tee time. This is a feature activated by the golf course. Please call the pro shop for more details or to request a booking.",
+            "The following players don't have the right to play at that time: Public"
+        ],
+        "out_of_capacity": false,
+        "frozen": false
+    }
+]
+

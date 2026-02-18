@@ -30,6 +30,7 @@ async def process_single_alert(supabase, alert, now, summaries):
         .select("id, course_id, tee_time, holes")
         .eq("course_id", course_id)
         .eq("holes", holes)
+        .eq("available", True)
         .gte("tee_time", start_dt.isoformat())
         .lte("tee_time", end_dt.isoformat())
         .execute()
