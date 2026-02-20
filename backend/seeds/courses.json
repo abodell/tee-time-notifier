@@ -33786,6 +33786,24 @@
     }
   },
   {
+    "name": "Lido Golf Course (9 Holes)",
+    "address": "255 Lido Blvd. , Lido Beach , NY 11561",
+    "city": "Lido Beach ",
+    "state": "NY",
+    "website": "",
+    "phone": "516-889-8181",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "21829",
+      "schedule_id": "9011",
+      "schedule_ids": "[9011]",
+      "booking_class": "49599",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
     "name": "Merrick Golf Course",
     "address": "2550B Clubhouse Road , Merrick, NY 11566",
     "city": "Merrick",
