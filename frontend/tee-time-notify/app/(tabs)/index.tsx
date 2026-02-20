@@ -113,7 +113,7 @@ export default function CourseSearchScreen() {
     const { data, error } = await supabase
       .from("courses")
       .select("id, name, city, state, provider")
-      .ilike("name", `%${search.trim()}%`)
+      .ilike("name_city_state", `%${search.trim()}%`)
       .limit(25);
     if (!error) setCourses(data || []);
     setLoading(false);
