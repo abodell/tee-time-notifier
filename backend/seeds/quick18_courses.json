@@ -1,0 +1,802 @@
+[
+  {
+    "name": "Rivertowne Country Club",
+    "city": "Mt Pleasant",
+    "state": "SC",
+    "website": "https://rivertowne.quick18.com",
+    "phone": "(843) 849-2400",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://rivertowne.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://rivertowne.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Dunes West Golf and River Club",
+    "city": "Mt Pleasant",
+    "state": "SC",
+    "website": "https://duneswest.quick18.com",
+    "phone": "843-856-9000",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://duneswest.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://duneswest.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Papago Golf Course",
+    "city": "Phoenix",
+    "state": "AZ",
+    "website": "https://papago.quick18.com",
+    "phone": "(602) 275-8428",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://papago.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://papago.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "The Golf Club at Moffett Field",
+    "city": "Moffett Field",
+    "state": "CA",
+    "website": "https://moffettfield.quick18.com",
+    "phone": "(650) 386-0720",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://moffettfield.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://moffettfield.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Indian Valley Golf Club",
+    "city": "Novato",
+    "state": "CA",
+    "website": "https://indianvalley.quick18.com",
+    "phone": "(415) 897-1118",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://indianvalley.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://indianvalley.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Presidio Golf Course",
+    "city": "San Francisco",
+    "state": "CA",
+    "website": "https://presidiogolf.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://presidiogolf.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://presidiogolf.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Boundary Oak Golf Course",
+    "city": "Walnut Creek",
+    "state": "CA",
+    "website": "https://boundaryoak.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://boundaryoak.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://boundaryoak.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "The Golf Club at Fossil Creek",
+    "city": "Fort Worth",
+    "state": "TX",
+    "website": "https://fossilcreek.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://fossilcreek.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://fossilcreek.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Coyote Creek Golf Club",
+    "city": "Morgan Hill",
+    "state": "CA",
+    "website": "https://coyotecreek.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://coyotecreek.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://coyotecreek.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Las Positas Golf Course",
+    "city": "Livermore",
+    "state": "CA",
+    "website": "https://laspositas.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://laspositas.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://laspositas.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Baylands Golf Links",
+    "city": "Palo Alto",
+    "state": "CA",
+    "website": "https://baylands.quick18.com",
+    "phone": "650-856-0881",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://baylands.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://baylands.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Monarch Bay Golf Club",
+    "city": "San Leandro",
+    "state": "CA",
+    "website": "https://monarchbay.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://monarchbay.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://monarchbay.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Metropolitan Golf Links",
+    "city": "Oakland",
+    "state": "CA",
+    "website": "https://metfield.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://metfield.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://metfield.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Crystal Springs Golf Course",
+    "city": "Burlingame",
+    "state": "CA",
+    "website": "https://crystalsprings.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://crystalsprings.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://crystalsprings.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Franklin Canyon Golf Course",
+    "city": "Hercules",
+    "state": "CA",
+    "website": "https://franklin.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://franklin.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://franklin.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Tilden Park Golf Course",
+    "city": "Berkeley",
+    "state": "CA",
+    "website": "https://tildenpark.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://tildenpark.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://tildenpark.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Willowick Golf Course",
+    "city": "Santa Ana",
+    "state": "CA",
+    "website": "https://willowick.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://willowick.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://willowick.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Los Lagos Golf Course",
+    "city": "San Jose",
+    "state": "CA",
+    "website": "https://loslagos.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://loslagos.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://loslagos.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Foxtail Golf Club",
+    "city": "Rohnert Park",
+    "state": "CA",
+    "website": "https://foxtail.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://foxtail.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://foxtail.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Chula Vista Golf Course",
+    "city": "Bonita",
+    "state": "CA",
+    "website": "https://chulavista.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://chulavista.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://chulavista.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Grayhawk Golf Club",
+    "city": "Scottsdale",
+    "state": "AZ",
+    "website": "https://grayhawk.quick18.com",
+    "phone": "(480) 502-1800",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://grayhawk.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://grayhawk.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Angel Park Golf Club",
+    "city": "Las Vegas",
+    "state": "NV",
+    "website": "https://angelpark.quick18.com",
+    "phone": "(702) 254-4653",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://angelpark.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://angelpark.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Baylands Golf Links (Walking)",
+    "city": "Palo Alto",
+    "state": "CA",
+    "website": "https://baylandswalking.quick18.com",
+    "phone": "650-856-0881",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://baylandswalking.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://baylandswalking.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Beaver Creek Golf Club",
+    "city": "Zachary",
+    "state": "LA",
+    "website": "https://beavercreek.quick18.com",
+    "phone": "970-754-5775",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://beavercreek.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://beavercreek.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Bully Pulpit Golf Course",
+    "city": "Medora",
+    "state": "ND",
+    "website": "https://bullypulpit.quick18.com",
+    "phone": "701-623-4653",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://bullypulpit.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://bullypulpit.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Carroll Valley Golf Course",
+    "city": "Fairfield",
+    "state": "PA",
+    "website": "https://carrollvalley.quick18.com",
+    "phone": "717-642-8252",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://carrollvalley.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://carrollvalley.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Chestnut Valley Golf Course",
+    "city": "Harbor Springs",
+    "state": "MI",
+    "website": "https://chestnutvalley.quick18.com",
+    "phone": "231-526-9100",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://chestnutvalley.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://chestnutvalley.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Cowboys Golf Club",
+    "city": "Grapevine",
+    "state": "TX",
+    "website": "https://cowboys.quick18.com",
+    "phone": "(817) 481-7277",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://cowboys.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://cowboys.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Eastwood Golf Course",
+    "city": "Fort Myers",
+    "state": "FL",
+    "website": "https://eastwood.quick18.com",
+    "phone": "507-281-6173",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://eastwood.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://eastwood.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Hadley Creek Golf Course",
+    "city": "Rochester",
+    "state": "MN",
+    "website": "https://hadleycreek.quick18.com",
+    "phone": "507-529-4119",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://hadleycreek.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://hadleycreek.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Homestead Golf Course",
+    "city": "Lakewood",
+    "state": "CO",
+    "website": "https://homestead.quick18.com",
+    "phone": "(720) 963-5181",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://homestead.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://homestead.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Denver",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Lake Travis Golf",
+    "city": "Lakeway",
+    "state": "TX",
+    "website": "https://laketravis.quick18.com",
+    "phone": "5125777281",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://laketravis.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://laketravis.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Live Oak Golf Course",
+    "city": "Lakeway",
+    "state": "TX",
+    "website": "https://liveoak.quick18.com",
+    "phone": "325-690-9190",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://liveoak.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://liveoak.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Mangrove Sands Golf Club",
+    "city": "Vero Beach",
+    "state": "FL",
+    "website": "https://mangrovesands.quick18.com",
+    "phone": "772-469-0197",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://mangrovesands.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://mangrovesands.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "McKay Creek Golf Course",
+    "city": "Pendleton",
+    "state": "OR",
+    "website": "https://mckaycreek.quick18.com",
+    "phone": "(503) 693-7612",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://mckaycreek.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://mckaycreek.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Midland Golf Club",
+    "city": "Kewanee",
+    "state": "IL",
+    "website": "https://midland.quick18.com",
+    "phone": "309-852-4508",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://midland.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://midland.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Mount Snow Golf Club",
+    "city": "West Dover",
+    "state": "VT",
+    "website": "https://mountsnow.quick18.com",
+    "phone": "802-464-4254",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://mountsnow.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://mountsnow.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Northern Hills Golf Club",
+    "city": "San Antonio",
+    "state": "TX",
+    "website": "https://northernhills.quick18.com",
+    "phone": "507-281-6170",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://northernhills.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://northernhills.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Chicago",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Orange Tree Golf Club",
+    "city": "Scottsdale",
+    "state": "AZ",
+    "website": "https://orangetree.quick18.com",
+    "phone": "(480) 948-3730",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://orangetree.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://orangetree.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Palmbrook Country Club",
+    "city": "Sun City",
+    "state": "AZ",
+    "website": "https://palmbrook.quick18.com",
+    "phone": "6239778383",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://palmbrook.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://palmbrook.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Journey at Pechanga",
+    "city": "Temecula",
+    "state": "CA",
+    "website": "https://pechanga.quick18.com",
+    "phone": null,
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://pechanga.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://pechanga.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Pembroke Lakes Golf Course",
+    "city": "Pembroke Pines",
+    "state": "FL",
+    "website": "https://pembroke.quick18.com",
+    "phone": "603-210-1365",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://pembroke.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://pembroke.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Stonecreek Golf Club",
+    "city": "Phoenix",
+    "state": "AZ",
+    "website": "https://stonecreek.quick18.com",
+    "phone": "503.518.4653",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://stonecreek.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://stonecreek.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "SunRidge Canyon Golf Club",
+    "city": "Fountain Hills",
+    "state": "AZ",
+    "website": "https://sunridgecanyonwekopass.quick18.com",
+    "phone": "(480) 837-5100",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://sunridgecanyonwekopass.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://sunridgecanyonwekopass.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "The St. Anne's Club",
+    "city": "Middletown",
+    "state": "DE",
+    "website": "https://thestannesclub.quick18.com",
+    "phone": "302-268-8888",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://thestannesclub.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://thestannesclub.quick18.com",
+      "course_id": "0",
+      "timezone": "America/New_York",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Trilogy La Quinta",
+    "city": "La Quinta",
+    "state": "CA",
+    "website": "https://trilogylaquintaresident.quick18.com",
+    "phone": "760-303-0490",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://trilogylaquintaresident.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://trilogylaquintaresident.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Los_Angeles",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Trilogy at Vistancia",
+    "city": "Peoria",
+    "state": "AZ",
+    "website": "https://trilogyvistancia.quick18.com",
+    "phone": "(623) 328-5100",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://trilogyvistancia.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://trilogyvistancia.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Trilogy at Vistancia (Residents)",
+    "city": "Peoria",
+    "state": "AZ",
+    "website": "https://trilogyvistanciaresidents.quick18.com",
+    "phone": "(623) 328-5100",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://trilogyvistanciaresidents.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://trilogyvistanciaresidents.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "Union Hills Country Club",
+    "city": "Sun City",
+    "state": "AZ",
+    "website": "https://unionhills.quick18.com",
+    "phone": "(623) 977-4281",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://unionhills.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://unionhills.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  },
+  {
+    "name": "We-Ko-Pa Golf Club",
+    "city": "Fort McDowell",
+    "state": "AZ",
+    "website": "https://wekopa.quick18.com",
+    "phone": "(480) 836-9000",
+    "provider": "Quick18",
+    "active": true,
+    "booking_link": "https://wekopa.quick18.com/teetimes/searchmatrix",
+    "configs": {
+      "base_url": "https://wekopa.quick18.com",
+      "course_id": "0",
+      "timezone": "America/Phoenix",
+      "provider_type": "quick18"
+    }
+  }
+]

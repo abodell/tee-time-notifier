@@ -1,0 +1,204 @@
+import httpx
+from typing import List, Dict, Optional
+from dateutil import tz
+from datetime import datetime
+from bs4 import BeautifulSoup
+import re
+import logging
+from app.db import create_supabase
+
+logger = logging.getLogger(__name__)
+
+async def fetch_quick18_times(client: httpx.AsyncClient, base_url: str, date_str: str) -> Optional[str]:
+    # date_str expected as YYYYMMDD for Quick18 URL
+    url = f"{base_url}/teetimes/searchmatrix?teedate={date_str}"
+    try:
+        resp = await client.get(url, timeout=15.0, follow_redirects=True, headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        })
+        if resp.status_code != 200:
+            logger.error(f"Quick18 Fetch Error {url}: {resp.status_code}")
+            return None
+        return resp.text
+    except Exception as e:
+        logger.error(f"Quick18 Exception {url}: {e}")
+        return None
+
+def normalize_quick18(html: str, course_id: int, date_str: str, time_zone: str = "UTC") -> List[Dict]:
+    soup = BeautifulSoup(html, 'html.parser')
+    tee_times = []
+    
+    # Quick18 Matrix Table Logic
+    
+    # Better: Scan for specific container if known. 
+    # In debug output we saw "matrixTable" (camelCase).
+    matrix = soup.find(class_=re.compile(r'matrixTable', re.I)) # Case insensitive match
+    if matrix:
+        
+        # Regex for time: 10:52 AM
+        time_re = re.compile(r'(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))')
+        # Regex for price: $55.00 or 55.00
+        price_re = re.compile(r'\$?\s*(\d+\.?\d{2})')
+
+        # Loop rows
+        for row in matrix.find_all('tr'):
+            text = row.get_text(" ", strip=True)
+            # Check if row has time and price
+            t_match = time_re.search(text)
+            p_match = price_re.search(text)
+            
+            if t_match and p_match:
+                time_str = t_match.group(1)
+                price_str = p_match.group(1)
+                
+                # Player count often in a separate column or assumes 1-4
+                # We'll default to 4 if not found
+                players = 4
+                if "1 to" in text: players = 4 # generic guess
+                
+                # Parse cart info?
+                cart = "Yes" if "Cart" in text else "No"
+                
+                tee_times.append({
+                    "course_id": course_id,
+                    "tee_time": f"{date_str} {time_str}", # Converted to ISO below
+                    "price": float(price_str),
+                    "holes": 18,
+                    "available": True,
+                    "data": {
+                        "players": players,
+                        "cart": cart == "Yes"
+                    }
+                })
+    
+    # Normalize Date/Time to UTC ISO, applying course's local timezone
+    local_tz = tz.gettz(time_zone) or tz.tzutc()
+    utc_tz = tz.tzutc()
+    final_times = []
+    for t in tee_times:
+        try:
+            # Parse "20260221 10:52 AM" as naive local time, then convert to UTC
+            dt_naive = datetime.strptime(t['tee_time'], "%Y%m%d %I:%M %p")
+            dt_local = dt_naive.replace(tzinfo=local_tz)
+            dt_utc = dt_local.astimezone(utc_tz)
+            t['tee_time'] = dt_utc.isoformat()
+            final_times.append(t)
+        except Exception as e:
+            logger.error(f"Time Parse Error: {t['tee_time']} - {e}")
+            
+    # Deduplicate by (tee_time, holes) to avoid ON CONFLICT batch errors
+    # Keep the lowest price if duplicates exist
+    unique_map = {}
+    for t in final_times:
+        key = (t['tee_time'], t['holes'])
+        if key not in unique_map:
+            unique_map[key] = t
+        else:
+            # If same time exists, keep cheaper one
+            if t['price'] < unique_map[key]['price']:
+                unique_map[key] = t
+                
+    return list(unique_map.values())
+
+async def get_active_quick18_targets():
+    """ 
+    Return a map of {(course_id, date_str): course_obj} that need scanning 
+    based on active alerts.
+    """
+    supabase = await create_supabase()
+    
+    # 1. Get all active alerts for Quick18
+    alerts_res = await (
+        supabase.table("alerts")
+        .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
+        .eq("active", True)
+        .eq("courses.provider", "Quick18")
+        .execute()
+    )
+    
+    targets = {} # {(course_id, date_str): course_obj}
+    
+    alerts = alerts_res.data or []
+    for a in alerts:
+        course = a["courses"]
+        # Parse date range
+        try:
+            # Simple handling: assume date_from is enough for now, matching ForeUp logic
+            start_dt = datetime.fromisoformat(a["date_from"].replace("Z", "+00:00"))
+            date_str = start_dt.strftime("%Y%m%d") # Quick18 format YYYYMMDD
+            
+            # Use tuple key to ensure uniqueness
+            key = (course["id"], date_str)
+            targets[key] = course
+        except Exception as e:
+            logger.error(f"Error parsing alert date {a}: {e}")
+            continue
+
+    return targets
+
+async def get_provider_configs(supabase, course_id: int) -> dict:
+    """ Fetch key/value pairs for provider configs """
+    res = await (
+        supabase.table("provider_configs")
+        .select("key", "value")
+        .eq("course_id", course_id)
+        .execute()
+    )
+    return {r['key']: r['value'] for r in res.data or []}
+
+# Main Service Method called by Job
+async def scan_quick18_course(course: Dict, date_str: str):
+    course_id = course["id"]
+    
+    supabase = await create_supabase()
+    config = await get_provider_configs(supabase, course_id)
+    base_url = config.get("base_url")
+    
+    if not base_url:
+        return
+    
+    # Use timezone from course dict (fetched via alert join)
+    time_zone = course.get("time_zone") or "UTC"
+    
+    # date_str passed in is already YYYYMMDD
+    
+    async with httpx.AsyncClient() as client:
+        html = await fetch_quick18_times(client, base_url, date_str)
+        if html:
+            times = normalize_quick18(html, course_id, date_str, time_zone)
+            if times:
+                # Upsert logic handling conflict
+                # constraint: unique_tee_time_per_holes (course_id, tee_time, holes)
+                await supabase.table("availability").upsert(
+                    times, 
+                    on_conflict="course_id, tee_time, holes"
+                ).execute()
+                logger.info(f"Stored {len(times)} times for Quick18 course {course['name']} on {date_str} (tz={time_zone})")
+            else:
+                logger.info(f"No times found for Quick18 course {course['name']} on {date_str}")
+
+async def run_quick18_scan():
+    """
+    Fetches targets active alerts and runs the scan for each.
+    """
+    logger.info("Starting Quick18 global scan (Alert Driven)...")
+    try:
+        targets = await get_active_quick18_targets()
+        
+        if not targets:
+            logger.info("No active Quick18 alerts found. Skipping scan.")
+            return
+
+        logger.info(f"Found {len(targets)} unique (course, date) pairs to scan.")
+        
+        for (course_id, date_str), course in targets.items():
+            # 3. Trigger scan
+            try:
+                await scan_quick18_course(course, date_str)
+            except Exception as e:
+                logger.error(f"Error scanning Quick18 course {course['name']}: {e}")
+                
+        logger.info("Quick18 global scan finished.")
+        
+    except Exception as e:
+        logger.error(f"Global Quick18 Scan Error: {e}")

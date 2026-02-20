@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 from app.services.foreup_service import run_foreup_scan
 from app.services.chronogolf_service import run_chronogolf_scan
+from app.services.quick18_service import run_quick18_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
 
@@ -31,6 +32,20 @@ async def scan_chronogolf_job():
         print("[Scheduler] ChronoGolf scan completed!")
     except Exception as e:
         print(f"[Scheduler] Error during ChronoGolf scan: {e}")
+
+
+async def scan_quick18_job():
+    """
+    Global Quick18 availability scan
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running Quick18 scan at {now}")
+
+    try:
+        await run_quick18_scan()
+        print("[Scheduler] Quick18 scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during Quick18 scan: {e}")
 
 
 async def get_all_tiers():

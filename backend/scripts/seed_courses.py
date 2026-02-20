@@ -56,6 +56,8 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
                 provider_url = f"https://www.chronogolf.com/club/{slug}#/teetimes?course_id={configs['course_id']}"
             else:
                 provider_url = f"https://www.chronogolf.com/marketplace/clubs/{configs['club_id']}/teetimes?course_id={configs['course_id']}"
+        elif provider == "Quick18":
+            provider_url = f"{configs.get('base_url')}/teetimes/searchmatrix"
 
         course_payload = {
             "name": course_item["name"],
@@ -65,7 +67,7 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             "provider": provider,
             "provider_course_id": configs["course_id"],
             "provider_url": provider_url,
-            "time_zone": configs.get("timezone"),
+            "time_zone": configs.get("timezone") or course_item.get("time_zone"),
             "active": course_item.get("active", True)
         }
         
@@ -98,7 +100,8 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
         configs = course_item.get("configs", {})
         ALLOWED_CONFIG_KEYS = {
             "booking_class", "schedule_id", "schedule_ids", "api_key", # ForeUp
-            "club_id", "course_id", "affiliation_id", "nb_holes", "timezone", "slug" # ChronoGolf
+            "club_id", "course_id", "affiliation_id", "nb_holes", "timezone", "slug", # ChronoGolf
+            "base_url", "provider_type" # Quick18
         }
         
         if configs:
