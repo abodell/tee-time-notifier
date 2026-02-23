@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from app.services.foreup_service import run_foreup_scan
 from app.services.chronogolf_service import run_chronogolf_scan
 from app.services.quick18_service import run_quick18_scan
+from app.services.golfnow_service import run_golfnow_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
 
@@ -46,6 +47,20 @@ async def scan_quick18_job():
         print("[Scheduler] Quick18 scan completed!")
     except Exception as e:
         print(f"[Scheduler] Error during Quick18 scan: {e}")
+
+
+async def scan_golfnow_job():
+    """
+    Global GolfNow availability scan
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running GolfNow scan at {now}")
+
+    try:
+        await run_golfnow_scan()
+        print("[Scheduler] GolfNow scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during GolfNow scan: {e}")
 
 
 async def get_all_tiers():
