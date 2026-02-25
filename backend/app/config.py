@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     SCAN_INTERVAL_SECONDS: int = 60
     ENVIRONMENT: str = "development"
     GOOGLE_MAPS_API_KEY: str = ""
+    GITHUB_PAT: str = ""
+    GITHUB_OWNER: str = "abodell"
+    GITHUB_REPO: str = "tee-time-notifier"
 
     class Config:
         env_file = ".env"

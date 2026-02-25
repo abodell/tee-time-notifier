@@ -1,11 +1,12 @@
 import asyncio
+import httpx
 from datetime import datetime, timezone
 from app.services.foreup_service import run_foreup_scan
 from app.services.chronogolf_service import run_chronogolf_scan
 from app.services.quick18_service import run_quick18_scan
-from app.services.golfnow_service import run_golfnow_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
+from app.config import settings
 
 async def scan_foreup_job():
     """
@@ -48,19 +49,42 @@ async def scan_quick18_job():
     except Exception as e:
         print(f"[Scheduler] Error during Quick18 scan: {e}")
 
-
 async def scan_golfnow_job():
     """
-    Global GolfNow availability scan
+    Trigger the GolfNow scanner via GitHub Actions API.
+    This bypasses OCI IP blocks by running the scan in GitHub's infra.
     """
     now = datetime.now(timezone.utc).isoformat()
-    print(f"[Scheduler] Running GolfNow scan at {now}")
+    print(f"[Scheduler] Triggering GolfNow GitHub Action at {now}")
+
+    if not settings.GITHUB_PAT:
+        print("[Scheduler] Skip GolfNow trigger: GITHUB_PAT not set.")
+        return
+
+    url = f"https://api.github.com/repos/{settings.GITHUB_OWNER}/{settings.GITHUB_REPO}/actions/workflows/golfnow-scan.yml/dispatches"
+    
+    headers = {
+        "Authorization": f"token {settings.GITHUB_PAT}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "TeeTimeNotifier-Backend"
+    }
+    
+    payload = {
+        "ref": "main"  # Or the default branch
+    }
 
     try:
-        await run_golfnow_scan()
-        print("[Scheduler] GolfNow scan completed!")
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=headers, json=payload, timeout=10.0)
+            
+            if resp.status_code == 204:
+                print("[Scheduler] Successfully dispatched GolfNow workflow.")
+            else:
+                print(f"[Scheduler] Failed to dispatch GolfNow workflow. Status: {resp.status_code}")
+                print(f"[Scheduler] Response: {resp.text}")
+                
     except Exception as e:
-        print(f"[Scheduler] Error during GolfNow scan: {e}")
+        print(f"[Scheduler] Error dispatching GolfNow workflow: {e}")
 
 
 async def get_all_tiers():
