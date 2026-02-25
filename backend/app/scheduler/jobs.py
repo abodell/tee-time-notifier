@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from app.services.foreup_service import run_foreup_scan
 from app.services.chronogolf_service import run_chronogolf_scan
 from app.services.quick18_service import run_quick18_scan
+from app.services.eagleclub_service import run_eagleclub_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
 from app.config import settings
@@ -85,6 +86,20 @@ async def scan_golfnow_job():
                 
     except Exception as e:
         print(f"[Scheduler] Error dispatching GolfNow workflow: {e}")
+
+
+async def scan_eagleclub_job():
+    """
+    Global EagleClub availability scan (runs on OCI)
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running EagleClub scan at {now}")
+
+    try:
+        await run_eagleclub_scan()
+        print("[Scheduler] EagleClub scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during EagleClub scan: {e}")
 
 
 async def get_all_tiers():

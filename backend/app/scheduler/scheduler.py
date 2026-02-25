@@ -6,6 +6,7 @@ from .jobs import (
     scan_chronogolf_job,
     scan_quick18_job,
     scan_golfnow_job,
+    scan_eagleclub_job,
     run_alert_engine_for_tier
 )
 from app.db import create_supabase
@@ -57,6 +58,12 @@ async def start_scheduler(app: FastAPI):
         scan_golfnow_job,
         trigger=IntervalTrigger(minutes=5, start_date=next_minute),
         name="GolfNow_GITHUB_dispatch",
+    )
+
+    scheduler.add_job(
+        scan_eagleclub_job,
+        trigger=IntervalTrigger(seconds=45, start_date=next_minute),
+        name="EagleClub_GLOBAL_scan",
     )
 
     for tier in tiers:
