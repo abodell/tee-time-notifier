@@ -1,6 +1,8 @@
 name: GolfNow Tee-Time Scanner
 
 on:
+  push:
+    branches: ["**"]
   schedule:
     - cron: '*/5 * * * *' # Run every 5 minutes
   workflow_dispatch: # Allow manual trigger
