@@ -1,0 +1,40 @@
+[
+    {
+        "name": "Bedford Hills Golf Club",
+        "location": "6400 Jackman Rd, Temperance, MI 48182",
+        "city": "Temperance",
+        "state": "MI",
+        "country": "USA",
+        "latitude": 41.7456,
+        "longitude": -83.5786,
+        "provider": "EagleClub",
+        "provider_url": "https://player.eagleclubsystems.online/#/tee-slot?dbname=bedfordhills20240401",
+        "time_zone": "America/New_York",
+        "configs": {
+            "dbname": "bedfordhills20240401",
+            "org_id": "1",
+            "operator_id": "2",
+            "price_class_id": "85",
+            "carriage_id": "95"
+        }
+    },
+    {
+        "name": "Valleywood Golf Club",
+        "location": "13502 Airport Hwy, Swanton, OH 43558",
+        "city": "Swanton",
+        "state": "OH",
+        "country": "USA",
+        "latitude": 41.5881,
+        "longitude": -83.7919,
+        "provider": "EagleClub",
+        "provider_url": "https://player.eagleclubsystems.online/#/tee-slot?dbname=valleywood20240401",
+        "time_zone": "America/New_York",
+        "configs": {
+            "dbname": "valleywood20240401",
+            "org_id": "1",
+            "operator_id": "2",
+            "price_class_id": "85",
+            "carriage_id": "95"
+        }
+    }
+]
