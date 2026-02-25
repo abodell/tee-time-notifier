@@ -5,18 +5,38 @@ import json
 async def test_golfnow():
     url = "https://www.golfnow.com/api/tee-times/tee-time-results"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json",
         "Content-Type": "application/json",
         "Referer": "https://www.golfnow.com/",
-        "Origin": "https://www.golfnow.com"
+        "Origin": "https://www.golfnow.com",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
     }
     # Morris Williams Golf Course (Facility 620) - Using a valid common facility
     payload = {
-        "PageSize": 1,
+        "PageSize": 1000,
+        "PageNumber": 0,
         "SearchType": 1,
+        "SortBy": "Date",
+        "SortDirection": 0,
         "Date": "Feb 28 2026",
-        "FacilityId": 620
+        "Players": "0",
+        "TimePeriod": "3",
+        "FacilityType": "0",
+        "RateType": "all",
+        "TimeMin": "0",
+        "TimeMax": "48",
+        "FacilityId": 620,
+        "SortByRollup": "Date.MinDate",
+        "View": "Grouping",
+        "TeeTimeCount": 1000,
     }
 
     print(f"Testing connectivity to {url}...")
