@@ -120,7 +120,9 @@ async def get_active_quick18_targets():
     
     alerts = alerts_res.data or []
     for a in alerts:
-        course = a["courses"]
+        course = a.get("courses")
+        if not course:
+            continue
         # Parse date range
         try:
             # Simple handling: assume date_from is enough for now, matching ForeUp logic
@@ -131,7 +133,7 @@ async def get_active_quick18_targets():
             key = (course["id"], date_str)
             targets[key] = course
         except Exception as e:
-            logger.error(f"Error parsing alert date {a}: {e}")
+            logger.error(f"[Quick18] Error parsing alert date {a}: {e}")
             continue
 
     return targets
