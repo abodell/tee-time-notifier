@@ -40,6 +40,7 @@ async def test_golfnow():
     }
 
     print(f"Testing connectivity to {url}...")
+    print(f"Request Payload: {json.dumps(payload, indent=2)}")
     
     async with httpx.AsyncClient() as client:
         try:
@@ -52,7 +53,12 @@ async def test_golfnow():
             
             if resp.status_code == 200:
                 print("SUCCESS: Connection established and 200 OK received.")
-                # print(resp.text[:500]) # Print first 500 chars of response
+                body = resp.json()
+                print(f"Response Body: {json.dumps(body, indent=2)}")
+                tee_times = (body.get("ttResults") or {}).get("teeTimes") or []
+                print(f"Found {len(tee_times)} tee times.")
+                for tt in tee_times[:3]:
+                    print(f" - {tt.get('time')} | ${tt.get('minPretaxPrice')} | {tt.get('maxPlayerCount')} players")
             elif resp.status_code == 403:
                 print("FAILURE: 403 Forbidden. GitHub IP is likely blocked.")
             else:
