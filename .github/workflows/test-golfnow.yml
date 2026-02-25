@@ -1,6 +1,8 @@
 name: Test GolfNow Connectivity
 
 on:
+  push:
+    branches: ["**"]
   workflow_dispatch: # Allows manual trigger
 
 jobs:
