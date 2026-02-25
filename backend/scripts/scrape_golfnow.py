@@ -18,6 +18,9 @@ from typing import Optional, Dict, List
 
 import httpx
 from timezonefinder import TimezoneFinder
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -33,6 +36,11 @@ HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
     "Referer": "https://www.golfnow.com/",
+    "Origin": "https://www.golfnow.com",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
 }
 
 # Mapping from raw UTC offset (hours) to candidate IANA timezone.
@@ -198,9 +206,10 @@ async def scrape_range(start_id: int, end_id: int, output_file: str, concurrency
     print(f"Output: {output_file}\n")
 
     sem = asyncio.Semaphore(concurrency)
+    proxy_url = os.getenv("GOLFNOW_PROXY")
     results: List[Dict] = []
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(proxy=proxy_url, verify=False) as client:
         tasks = [
             fetch_facility(client, fid, scan_date, sem)
             for fid in range(start_id, end_id + 1)

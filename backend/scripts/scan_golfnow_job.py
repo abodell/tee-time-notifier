@@ -1,16 +1,7 @@
-"""
-golfnow_service.py — Tee-time scanning service for GolfNow courses.
-
-Mirrors the structure of foreup_service.py:
-  - get_active_golfnow_targets()  → discover (course_id, date_str) pairs from active alerts
-  - fetch_golfnow_times()         → POST to GolfNow API
-  - normalize_and_store()         → convert to UTC, diff, upsert to `availability`
-  - run_golfnow_scan()            → entry point called by the scheduler job
-"""
-
 import asyncio
 import logging
 import os
+import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -18,15 +9,16 @@ import httpx
 from dateutil import tz
 from dotenv import load_dotenv
 
-load_dotenv()
+# Add parent directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.db import create_supabase
 
-logger = logging.getLogger(__name__)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("scan_golfnow_job")
 
-# ---------------------------------------------------------------------------
 # Constants
-# ---------------------------------------------------------------------------
 GOLFNOW_API_URL = "https://www.golfnow.com/api/tee-times/tee-time-results"
 
 REQUEST_HEADERS = {
@@ -45,19 +37,11 @@ REQUEST_HEADERS = {
     "Sec-Fetch-Site": "same-origin",
 }
 
-
-# ---------------------------------------------------------------------------
-# Target discovery
-# ---------------------------------------------------------------------------
-async def get_active_golfnow_targets() -> Dict[Tuple[int, str], Dict]:
+async def get_active_golfnow_targets(supabase) -> Dict[Tuple[int, str], Dict]:
     """
     Return a map of {(course_id, date_str): course_obj} for every unique
     (GolfNow course, date) pair referenced by an active alert.
-
-    date_str format: "Mon DD YYYY" e.g. "Feb 21 2026" — required by GolfNow API.
     """
-    supabase = await create_supabase()
-
     alerts_res = await (
         supabase.table("alerts")
         .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
@@ -73,7 +57,6 @@ async def get_active_golfnow_targets() -> Dict[Tuple[int, str], Dict]:
             continue
         try:
             start_dt = datetime.fromisoformat(alert["date_from"].replace("Z", "+00:00"))
-            # GolfNow API expects e.g. "Feb 21 2026"
             date_str = start_dt.strftime("%b %d %Y")
             key = (course["id"], date_str)
             targets[key] = course
@@ -83,10 +66,6 @@ async def get_active_golfnow_targets() -> Dict[Tuple[int, str], Dict]:
 
     return targets
 
-
-# ---------------------------------------------------------------------------
-# Provider config lookup
-# ---------------------------------------------------------------------------
 async def get_provider_configs(supabase, course_id: int) -> Dict[str, str]:
     """Fetch key/value provider configs for a course."""
     res = await (
@@ -97,20 +76,12 @@ async def get_provider_configs(supabase, course_id: int) -> Dict[str, str]:
     )
     return {r["key"]: r["value"] for r in (res.data or [])}
 
-
-# ---------------------------------------------------------------------------
-# API fetch
-# ---------------------------------------------------------------------------
 async def fetch_golfnow_times(
     client: httpx.AsyncClient,
     course: Dict,
     configs: Dict,
     date_str: str,
 ) -> List[Dict]:
-    """
-    POST to GolfNow tee-time API for the given facility on date_str.
-    Returns the raw list of tee-time dicts (may be empty).
-    """
     facility_id_raw = configs.get("facility_id")
     if not facility_id_raw:
         logger.error(f"[GolfNow] No facility_id config for course {course.get('name')}")
@@ -125,7 +96,7 @@ async def fetch_golfnow_times(
     payload = {
         "PageSize": 1000,
         "PageNumber": 0,
-        "SearchType": 1,           # Search by FacilityId
+        "SearchType": 1,
         "SortBy": "Date",
         "SortDirection": 0,
         "Date": date_str,
@@ -141,45 +112,32 @@ async def fetch_golfnow_times(
         "TeeTimeCount": 1000,
     }
 
-    print(f"[Fetch GolfNow Times] Fetching {course['name']} | facility={facility_id} | date={date_str}...")
+    logger.info(f"[Fetch] {course['name']} | facility={facility_id} | date={date_str}...")
 
     try:
         resp = await client.post(
             GOLFNOW_API_URL,
             json=payload,
             headers=REQUEST_HEADERS,
-            timeout=15.0,
+            timeout=20.0,
         )
         resp.raise_for_status()
         body = resp.json()
         tee_times = (body.get("ttResults") or {}).get("teeTimes") or []
         return tee_times
     except Exception as e:
-        print(f"[GolfNow] Fetch error for {course['name']} on {date_str}: {e}")
+        logger.error(f"[GolfNow] Fetch error for {course['name']} on {date_str}: {e}")
         return []
 
-
-# ---------------------------------------------------------------------------
-# Normalize & store
-# ---------------------------------------------------------------------------
 async def normalize_and_store(
+    supabase,
     course: Dict,
     raw_tee_times: List[Dict],
     date_str: str,
 ) -> None:
-    """
-    Convert raw GolfNow tee-time entries to UTC, diff against DB, upsert.
-
-    GolfNow `time` field is a local ISO datetime string, e.g. "2026-02-21T09:50:00".
-    We treat it as naive local time and convert using the course's IANA time_zone.
-    """
-    supabase = await create_supabase()
-
     local_tz = tz.gettz(course.get("time_zone")) or tz.tzutc()
     utc_tz = tz.tzutc()
 
-    # Parse the scan date for window calculation
-    # date_str is like "Feb 21 2026"
     try:
         scan_date = datetime.strptime(date_str, "%b %d %Y")
     except ValueError:
@@ -191,7 +149,6 @@ async def normalize_and_store(
     start_utc = start_of_day.astimezone(utc_tz)
     end_utc = end_of_day.astimezone(utc_tz)
 
-    # Fetch existing availability rows for this course/date window
     current_res = await (
         supabase.table("availability")
         .select("id, tee_time, holes")
@@ -206,7 +163,6 @@ async def normalize_and_store(
         for r in db_records
     }
 
-    # Build fresh tee-time records
     upsert_rows = []
     scanned_keys = set()
 
@@ -217,26 +173,14 @@ async def normalize_and_store(
 
         try:
             dt_naive = datetime.fromisoformat(raw_time)
+            dt_local = dt_naive.replace(tzinfo=local_tz) if dt_naive.tzinfo is None else dt_naive
+            dt_utc = dt_local.astimezone(utc_tz)
         except ValueError:
-            logger.warning(f"[GolfNow] Cannot parse time '{raw_time}'")
             continue
 
-        if dt_naive.tzinfo is None:
-            dt_local = dt_naive.replace(tzinfo=local_tz)
-        else:
-            dt_local = dt_naive
-
-        dt_utc = dt_local.astimezone(utc_tz)
-
-        # Use the lowest rate from teeTimeRates (minTeeTimeRate field on entry)
         price_raw = entry.get("minTeeTimeRate", 0) or 0
-        try:
-            price = float(price_raw)
-        except (ValueError, TypeError):
-            price = 0.0
+        price = float(price_raw)
 
-        # GolfNow doesn't separate 9/18 at the tee-time level in a simple flag;
-        # we check teeTimeRates for holeCount
         hole_counts_seen = set()
         for rate in (entry.get("teeTimeRates") or []):
             hc = rate.get("holeCount")
@@ -244,7 +188,7 @@ async def normalize_and_store(
                 hole_counts_seen.add(int(hc))
 
         if not hole_counts_seen:
-            hole_counts_seen = {18}  # default to 18
+            hole_counts_seen = {18}
 
         for holes in hole_counts_seen:
             key = (dt_utc.isoformat(), holes)
@@ -257,17 +201,12 @@ async def normalize_and_store(
                 "available": True
             })
 
-    # Diff: remove stale rows no longer returned by the API
     ids_to_remove = [
         db_id
         for (tk, hk), db_id in db_map.items()
         if (tk, hk) not in scanned_keys
     ]
     if ids_to_remove:
-        print(
-            f"[GolfNow] Diff result: Removing {len(ids_to_remove)} stale tee times "
-            f"for {course['name']} on {date_str}"
-        )
         await (
             supabase.table("availability")
             .delete()
@@ -275,66 +214,50 @@ async def normalize_and_store(
             .execute()
         )
 
-    # Upsert fresh data
     if upsert_rows:
         await supabase.table("availability").upsert(
             upsert_rows,
             on_conflict="course_id, tee_time, holes",
         ).execute()
-        print(f"Sync complete for {course['name']} on {date_str}. Found {len(upsert_rows)} available times.")
+        logger.info(f"Sync complete for {course['name']} on {date_str}. Found {len(upsert_rows)} times.")
     else:
-        print(f"[GolfNow] No times found for {course['name']} on {date_str}.")
+        logger.info(f"No times found for {course['name']} on {date_str}.")
 
-
-# ---------------------------------------------------------------------------
-# Single-target worker
-# ---------------------------------------------------------------------------
 async def process_single_target(
+    supabase,
     client: httpx.AsyncClient,
     course: Dict,
     date_str: str,
     sem: asyncio.Semaphore,
 ) -> bool:
-    """Worker used by run_golfnow_scan for concurrent processing."""
     async with sem:
         try:
-            supabase = await create_supabase()
             configs = await get_provider_configs(supabase, course["id"])
             raw = await fetch_golfnow_times(client, course, configs, date_str)
-            await normalize_and_store(course, raw, date_str)
+            await normalize_and_store(supabase, course, raw, date_str)
             return True
         except Exception as e:
-            logger.error(
-                f"[GolfNow] Error scanning {course.get('name')} for {date_str}: {e}"
-            )
+            logger.error(f"Error scanning {course.get('name')} for {date_str}: {e}")
             return False
 
-
-# ---------------------------------------------------------------------------
-# Main scan entry point
-# ---------------------------------------------------------------------------
-async def run_golfnow_scan() -> None:
-    """
-    Scan all GolfNow courses referenced by active alerts.
-    Called by the scheduler job every 45 seconds.
-    """
+async def main():
     start_time = datetime.now()
-    print(f"[GolfNow] Starting scan at {start_time.isoformat()}...")
+    logger.info(f"Starting GolfNow GitHub Action scan at {start_time.isoformat()}...")
 
-    targets = await get_active_golfnow_targets()
+    supabase = await create_supabase()
+    targets = await get_active_golfnow_targets(supabase)
 
     if not targets:
-        print("[GolfNow] No active alerts found.")
+        logger.info("No active GolfNow alerts found.")
         return
 
-    print(f"[GolfNow] Found {len(targets)} unique (course, date) pairs to scan.")
+    logger.info(f"Found {len(targets)} unique (course, date) pairs to scan.")
 
-    sem = asyncio.Semaphore(10)
-    proxy_url = os.getenv("GOLFNOW_PROXY")
-
-    async with httpx.AsyncClient(proxy=proxy_url, verify=False) as client:
+    sem = asyncio.Semaphore(5) # Lower concurrency for safety in GH Actions
+    
+    async with httpx.AsyncClient(verify=True) as client: # Verifying SSL in GH Actions
         tasks = [
-            process_single_target(client, course, date_str, sem)
+            process_single_target(supabase, client, course, date_str, sem)
             for (_, date_str), course in targets.items()
         ]
         results = await asyncio.gather(*tasks)
@@ -342,7 +265,7 @@ async def run_golfnow_scan() -> None:
     end_time = datetime.now()
     duration = (end_time - start_time).total_seconds()
     success_count = sum(1 for r in results if r)
-    print(
-        f"[GolfNow] Scan complete in {duration:.2f}s. "
-        f"Success: {success_count}/{len(targets)}"
-    )
+    logger.info(f"Scan complete in {duration:.2f}s. Success: {success_count}/{len(targets)}")
+
+if __name__ == "__main__":
+    asyncio.run(main())

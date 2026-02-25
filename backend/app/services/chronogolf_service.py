@@ -40,7 +40,7 @@ async def get_active_chronogolf_targets():
             key = (course["id"], date_str)
             targets[key] = course
         except Exception as e:
-            print(f"Error parsing alert date {a}: {e}")
+            print(f"[ChronoGolf] Error parsing alert date {a}: {e}")
             continue
 
     return targets

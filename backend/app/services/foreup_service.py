@@ -19,7 +19,7 @@ async def get_active_foreup_targets():
     # 1. Get all active alerts
     alerts_res = await (
         supabase.table("alerts")
-        .select("date_from, date_to, courses!alerts_course_id_fkey(id, name, provider, time_zone)")
+        .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
         .eq("active", True)
         .eq("courses.provider", "ForeUp")
         .execute()
@@ -29,7 +29,10 @@ async def get_active_foreup_targets():
     
     alerts = alerts_res.data or []
     for a in alerts:
-        course = a["courses"]
+        course = a.get("courses")
+        if not course:
+            continue
+            
         # Parse date range
         try:
             # Simple handling: assume date_from is enough for now
@@ -40,7 +43,7 @@ async def get_active_foreup_targets():
             key = (course["id"], date_str)
             targets[key] = course
         except Exception as e:
-            print(f"Error parsing alert date {a}: {e}")
+            print(f"[ForeUp] Error parsing alert date {a}: {e}")
             continue
 
     return targets

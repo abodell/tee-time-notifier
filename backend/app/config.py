@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     """
 
     ENABLE_SCHEDULER: bool = False
+    ENABLE_GOLFNOW: bool = True
     SCAN_INTERVAL_SECONDS: int = 60
     ENVIRONMENT: str = "development"
     GOOGLE_MAPS_API_KEY: str = ""

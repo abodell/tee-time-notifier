@@ -9,3 +9,4 @@ httpx
 pydantic-settings
 python-dateutil
 beautifulsoup4
+timezonefinder
