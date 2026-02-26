@@ -81,8 +81,18 @@ export default function MyAlertsScreen() {
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
   const [tierName, setTierName] = useState("—");
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    });
+    const authSub = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+      loadAlerts();
+      loadTier();
+    });
+
     loadAlerts();
     loadTier();
 
@@ -97,6 +107,7 @@ export default function MyAlertsScreen() {
     return () => {
       sub1.remove();
       sub2.remove();
+      authSub.data.subscription.unsubscribe();
     };
   }, []);
 
@@ -276,11 +287,18 @@ export default function MyAlertsScreen() {
                       if (!teeTime) return null;
                       return (
                         <View key={notif.id} style={styles.notificationRow}>
-                          <View style={{ flexDirection: "row", alignItems: "center" }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
                             <MaterialCommunityIcons name="golf" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
-                            <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                              {formatInTimeZone(teeTime, itemTz)}
-                            </Text>
+                            <View>
+                              <Text variant="bodyMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                                {formatInTimeZone(teeTime, itemTz)}
+                              </Text>
+                              {notif.availability?.price ? (
+                                <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                                  ${notif.availability.price.toFixed(2)}
+                                </Text>
+                              ) : null}
+                            </View>
                           </View>
                           <Button
                             mode="contained"
@@ -341,7 +359,17 @@ export default function MyAlertsScreen() {
               </View>
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
-                  {atQuota ? (
+                  {!session ? (
+                    <>
+                      Join now to start tracking tee times.{" "}
+                      <Text
+                        style={{ color: theme.colors.primary, fontWeight: "600" }}
+                        onPress={() => router.push("/upgrade")}
+                      >
+                        See Pricing
+                      </Text>
+                    </>
+                  ) : atQuota ? (
                     <>
                       Limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
                       <Text
@@ -355,6 +383,17 @@ export default function MyAlertsScreen() {
                     <>
                       Using <Text style={{ fontWeight: "600" }}>{alerts.length}</Text>
                       {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
+                      {(tierName === "Free" || tierName === "Plus") && (
+                        <>
+                          {" "}
+                          <Text
+                            style={{ color: theme.colors.primary, fontWeight: "600" }}
+                            onPress={() => router.push("/upgrade")}
+                          >
+                            Upgrade
+                          </Text>
+                        </>
+                      )}
                     </>
                   )}
                 </Text>

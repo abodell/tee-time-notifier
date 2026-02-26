@@ -231,7 +231,7 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, opacity: 0.5, fontSize: 12 }}>
-            TeeSignal v1.0.0
+            TeeSignal v1.0.1
           </Text>
         </View>
       </SafeAreaView>
@@ -364,7 +364,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
-          TeeSignal v1.0.0
+          TeeSignal v1.0.1
         </Text>
       </ScrollView>
     </SafeAreaView>

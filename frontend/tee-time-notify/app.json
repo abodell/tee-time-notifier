@@ -2,7 +2,7 @@
   "expo": {
     "name": "TeeSignal",
     "slug": "tee-signal",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "teesignal",
@@ -23,7 +23,8 @@
         "UIViewControllerBasedStatusBarAppearance": false,
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.teesignal.app"
+      "bundleIdentifier": "com.teesignal.app",
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {

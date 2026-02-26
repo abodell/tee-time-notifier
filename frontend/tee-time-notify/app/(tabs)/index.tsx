@@ -51,6 +51,7 @@ export default function CourseSearchScreen() {
   const [tierName, setTierName] = useState<string>("—");
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
   const [alertCount, setAlertCount] = useState<number>(0);
+  const [session, setSession] = useState<any>(null);
 
   const [fetchingQuota, setFetchingQuota] = useState(true);
   const [hasData, setHasData] = useState(false);
@@ -63,6 +64,12 @@ export default function CourseSearchScreen() {
 
   // Listen for global alert updates (e.g. from My Alerts deletion)
   React.useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+      loadQuotaData();
+    });
+
     const sub1 = DeviceEventEmitter.addListener("alertsUpdated", () => {
       loadQuotaData();
     });
@@ -72,6 +79,7 @@ export default function CourseSearchScreen() {
     return () => {
       sub1.remove();
       sub2.remove();
+      authSub.subscription.unsubscribe();
     };
   }, []);
 
@@ -178,7 +186,17 @@ export default function CourseSearchScreen() {
 
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
-                      {reachedQuota ? (
+                      {!session ? (
+                        <>
+                          Join now to start tracking tee times.{" "}
+                          <Text
+                            style={{ color: theme.colors.primary, fontWeight: "600" }}
+                            onPress={() => router.push("/upgrade")}
+                          >
+                            See Pricing
+                          </Text>
+                        </>
+                      ) : reachedQuota ? (
                         <>
                           Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
                           <Text
@@ -192,6 +210,17 @@ export default function CourseSearchScreen() {
                         <>
                           Using <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
                           {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
+                          {(tierName === "Free" || tierName === "Plus") && (
+                            <>
+                              {" "}
+                              <Text
+                                style={{ color: theme.colors.primary, fontWeight: "600" }}
+                                onPress={() => router.push("/upgrade")}
+                              >
+                                Upgrade
+                              </Text>
+                            </>
+                          )}
                         </>
                       )}
                     </Text>
