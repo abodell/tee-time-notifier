@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -35,13 +35,12 @@ export default function SignUpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const redirectToUrl = useMemo(() => Linking.createURL("profile"), []);
 
   const handleSignUp = async () => {
     setLoading(true);
     setError(null);
 
-    const redirectToUrl = Linking.createURL("profile");
-    console.log("Redirect URL:", redirectToUrl);
     const { error } = await supabase.auth.signUp({
       email,
       password,

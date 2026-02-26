@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform, DeviceEventEmitter } from "react-native";
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform, DeviceEventEmitter, Animated } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import {
   Text,
   Button,
@@ -31,8 +32,12 @@ export default function UpgradeScreen() {
   const [pendingDowngrade, setPendingDowngrade] = useState(false);
   const [cancelAt, setCancelAt] = useState<string | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    });
     loadData();
   }, []);
 
@@ -41,23 +46,28 @@ export default function UpgradeScreen() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not logged in");
 
-      const [tiersRes, profileRes] = await Promise.all([
-        fetch(`${API_URL}/membership/tiers`),
-        fetch(`${API_URL}/membership/profile/${user.id}`),
-      ]);
+      const fetchTasks: Promise<any>[] = [fetch(`${API_URL}/membership/tiers`)];
+      if (user) {
+        fetchTasks.push(fetch(`${API_URL}/membership/profile/${user.id}`));
+      }
 
-      if (!tiersRes.ok || !profileRes.ok)
-        throw new Error("Failed to fetch membership info");
+      const results = await Promise.all(fetchTasks);
+      const tiersRes = results[0];
+      const profileRes = user ? results[1] : null;
+
+      if (!tiersRes.ok || (profileRes && !profileRes.ok))
+        throw new Error("Failed to fetch info");
 
       const tierList: MembershipTier[] = await tiersRes.json();
-      const profileData: UserProfileResponse = await profileRes.json();
-
       setTiers(tierList);
-      setUserTier(profileData.membership_tier_id);
-      setPendingDowngrade(profileData.pending_downgrade || false);
-      setCancelAt(profileData.cancel_at || null);
+
+      if (profileRes) {
+        const profileData: UserProfileResponse = await profileRes.json();
+        setUserTier(profileData.membership_tier_id);
+        setPendingDowngrade(profileData.pending_downgrade || false);
+        setCancelAt(profileData.cancel_at || null);
+      }
 
       // Fetch RevenueCat Offerings or Products
       try {
@@ -385,70 +395,100 @@ export default function UpgradeScreen() {
                 </View>
               </View>
 
-              {/* Action Button */}
-              <View style={{ marginTop: 24 }}>
-                {isCurrent ? (
-                  <Button
-                    mode="outlined"
-                    disabled={true}
-                    style={{ borderRadius: 12, borderColor: theme.colors.outline }}
-                    labelStyle={{ color: theme.colors.onSurfaceDisabled }}
-                  >
-                    {pendingDowngrade && cancelAt && userTier !== 1
-                      ? `Ends ${new Date(cancelAt).toLocaleDateString()}`
-                      : "Active Plan"}
-                  </Button>
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => handleSelectPlan(tier)}
-                    disabled={isRedirecting || isUnavailable}
-                    activeOpacity={0.8}
-                  >
-                    <LinearGradient
-                      colors={
-                        (isRedirecting || isUnavailable
-                          ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
-                          : Colors.light.gradients.primary) as [string, string, ...string[]]
-                      }
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={[
-                        styles.gradientButton,
-                        { opacity: isRedirecting || isUnavailable ? 0.7 : 1 },
-                      ]}
+              {/* Action Button - Only show if authenticated */}
+              {session && (
+                <View style={{ marginTop: 24 }}>
+                  {isCurrent ? (
+                    <Button
+                      mode="outlined"
+                      disabled={true}
+                      style={{ borderRadius: 12, borderColor: theme.colors.outline }}
+                      labelStyle={{ color: theme.colors.onSurfaceDisabled }}
                     >
-                      <Text
-                        style={{
-                          color: "#FFF",
-                          fontWeight: "700",
-                          fontSize: 16,
-                        }}
+                      {pendingDowngrade && cancelAt && userTier !== 1
+                        ? `Ends ${new Date(cancelAt).toLocaleDateString()}`
+                        : "Active Plan"}
+                    </Button>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => handleSelectPlan(tier)}
+                      disabled={isRedirecting || isUnavailable}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={
+                          (isRedirecting || isUnavailable
+                            ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
+                            : Colors.light.gradients.primary) as [string, string, ...string[]]
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[
+                          styles.gradientButton,
+                          { opacity: isRedirecting || isUnavailable ? 0.7 : 1 },
+                        ]}
                       >
-                        {isRedirecting
-                          ? "Processing..."
-                          : isUnavailable
-                            ? "Unavailable"
-                            : `Switch to ${tier.name}`}
-                      </Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-              </View>
+                        <Text
+                          style={{
+                            color: "#FFF",
+                            fontWeight: "700",
+                            fontSize: 16,
+                          }}
+                        >
+                          {isRedirecting
+                            ? "Processing..."
+                            : isUnavailable
+                              ? "Unavailable"
+                              : `Switch to ${tier.name}`}
+                        </Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </Surface>
           );
         })}
 
+        {/* Global Sign Up Footer for Guests */}
+        {!session && (
+          <View style={{ marginTop: 24, paddingBottom: 16 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/sign-up")}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={Colors.light.gradients.primary as [string, string, ...string[]]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientButton}
+              >
+                <Text
+                  style={{
+                    color: "#FFF",
+                    fontWeight: "700",
+                    fontSize: 16,
+                  }}
+                >
+                  Create Your Account
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Legal & Compliance Footer */}
         <View style={styles.footer}>
-
-          <Button
-            mode="text"
-            onPress={handleRestorePurchases}
-            textColor={theme.colors.secondary}
-            style={{ marginBottom: 24 }}
-          >
-            Restore Purchases
-          </Button>
+          {session && (
+            <Button
+              mode="text"
+              onPress={handleRestorePurchases}
+              textColor={theme.colors.secondary}
+              style={{ marginBottom: 24 }}
+            >
+              Restore Purchases
+            </Button>
+          )}
 
           <View style={styles.legalLinks}>
             <TouchableOpacity onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}>
@@ -467,8 +507,8 @@ export default function UpgradeScreen() {
             You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase.
           </Text>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </ScrollView >
+    </SafeAreaView >
   );
 }
 

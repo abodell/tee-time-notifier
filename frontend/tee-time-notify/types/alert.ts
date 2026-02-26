@@ -8,6 +8,7 @@ export interface Course {
 
 export interface Availability {
   tee_time: string;
+  price?: number;
 }
 
 export interface AlertNotification {
