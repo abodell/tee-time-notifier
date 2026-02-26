@@ -234,20 +234,25 @@ async def normalize_and_store(
         dt_utc = dt_local.astimezone(utc_tz)
 
         # Handle 9/18 pricing and availability
-        # Users often want 18, but Bedford/Valleywood might only offer 9.
-        nine_fee = float(entry.get("NineFee") or 0)
-        eighteen_fee = float(entry.get("EighteenFee") or 0)
+        # Sum base fee and carriage fee as shown on the website
+        nine_base = float(entry.get("NineFee") or 0)
+        nine_carriage = float(entry.get("CarriageNineFee") or 0)
+        nine_total = nine_base + nine_carriage
+
+        eighteen_base = float(entry.get("EighteenFee") or 0)
+        eighteen_carriage = float(entry.get("CarriageEighteenFee") or 0)
+        eighteen_total = eighteen_base + eighteen_carriage
 
         # If both fees are 0, it might be unavailable or just not populated
-        if nine_fee <= 0 and eighteen_fee <= 0:
+        if nine_total <= 0 and eighteen_total <= 0:
             continue
 
         # We store separate rows for 9 and 18 if both are available
         available_options = []
-        if nine_fee > 0:
-            available_options.append((9, nine_fee))
-        if eighteen_fee > 0:
-            available_options.append((18, eighteen_fee))
+        if nine_total > 0:
+            available_options.append((9, nine_total))
+        if eighteen_total > 0:
+            available_options.append((18, eighteen_total))
 
         for holes, price in available_options:
             key = (dt_utc.isoformat(), holes)
