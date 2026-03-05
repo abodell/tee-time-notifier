@@ -21,6 +21,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import Toast from "react-native-toast-message";
 import { Colors } from "@/constants/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
+import OAuthSection from "@/components/auth/OAuthSection";
 
 export default function SignInScreen() {
   const theme = useTheme();
@@ -107,6 +108,19 @@ export default function SignInScreen() {
           )}
 
           <View style={styles.form}>
+            <OAuthSection
+              loading={loading}
+              setLoading={setLoading}
+              setError={setError}
+              onSuccess={() => {
+                if (redirectTo) {
+                  router.replace(redirectTo as any);
+                } else {
+                  router.replace("/(tabs)/profile");
+                }
+              }}
+            />
+
             <TextInput
               label="Email"
               mode="outlined"
@@ -169,6 +183,7 @@ export default function SignInScreen() {
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
+
           </View>
 
           <View style={styles.footer}>
