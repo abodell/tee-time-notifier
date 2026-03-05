@@ -1,7 +1,7 @@
 {
   "name": "teesignal",
   "main": "expo-router/entry",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -23,7 +23,9 @@
     "@supabase/supabase-js": "^2.81.1",
     "dayjs": "^1.11.19",
     "expo": "~54.0.33",
+    "expo-apple-authentication": "~8.0.8",
     "expo-constants": "~18.0.13",
+    "expo-crypto": "~15.0.8",
     "expo-dev-client": "~6.0.20",
     "expo-device": "~8.0.10",
     "expo-font": "~14.0.11",

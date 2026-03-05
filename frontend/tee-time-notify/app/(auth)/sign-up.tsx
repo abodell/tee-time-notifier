@@ -23,6 +23,7 @@ import FadeSlideTransition from "@/components/FadeSlideTransition";
 import { Colors } from "@/constants/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
+import OAuthSection from "@/components/auth/OAuthSection";
 
 export default function SignUpScreen() {
   const theme = useTheme();
@@ -144,6 +145,19 @@ export default function SignUpScreen() {
               </Surface>
             ) : (
               <View style={styles.form}>
+                <OAuthSection
+                  loading={loading}
+                  setLoading={setLoading}
+                  setError={setError}
+                  onSuccess={() => {
+                    if (redirectTo) {
+                      router.replace(redirectTo as any);
+                    } else {
+                      router.replace("/(tabs)/profile");
+                    }
+                  }}
+                />
+
                 <TextInput
                   label="Email"
                   mode="outlined"
@@ -233,6 +247,7 @@ export default function SignUpScreen() {
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
+
 
                 <View style={styles.footer}>
                   <Text style={{ color: theme.colors.onSurfaceVariant }}>

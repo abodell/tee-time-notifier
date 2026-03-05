@@ -15,6 +15,7 @@ import Toast from "react-native-toast-message";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import * as Linking from "expo-linking";
+import OAuthSection from "@/components/auth/OAuthSection";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -44,10 +45,14 @@ export default function ProfileScreen() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      if (!data.session) setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, sess) => setSession(sess)
+      (_event, sess) => {
+        setSession(sess);
+        if (!sess) setLoading(false);
+      }
     );
 
     const membershipSub = DeviceEventEmitter.addListener("membershipUpdated", () => {
@@ -197,24 +202,31 @@ export default function ProfileScreen() {
                 Sign in to manage your membership, view your subscription details, and configure your alerts.
               </Text>
 
-              <Button
-                mode="contained"
-                onPress={() => router.push("/(auth)/sign-in")}
-                style={{ width: "100%", borderRadius: 12, marginBottom: 12 }}
-                contentStyle={{ height: 48 }}
-                labelStyle={{ fontWeight: "600", fontSize: 16 }}
-              >
-                Sign In
-              </Button>
+              <OAuthSection
+                loading={loading}
+                setLoading={setLoading}
+                setError={(err) => {
+                  if (err) {
+                    Toast.show({
+                      type: "error",
+                      text1: "Sign-In Error",
+                      text2: err,
+                      position: "top",
+                    });
+                  }
+                }}
+                onSuccess={() => {
+                  fetchProfile();
+                }}
+              />
 
               <Button
-                mode="outlined"
-                onPress={() => router.push("/(auth)/sign-up")}
-                style={{ width: "100%", borderRadius: 12, borderColor: theme.colors.outline }}
-                contentStyle={{ height: 48 }}
-                labelStyle={{ fontWeight: "600", fontSize: 16, color: theme.colors.onSurface }}
+                mode="text"
+                onPress={() => router.push("/(auth)/sign-in")}
+                style={{ width: "100%", marginTop: 8 }}
+                labelStyle={{ fontWeight: "600", color: theme.colors.primary }}
               >
-                Create Account
+                Continue with Email
               </Button>
             </View>
           </Surface>
@@ -231,7 +243,7 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, opacity: 0.5, fontSize: 12 }}>
-            TeeSignal v1.0.1
+            TeeSignal v1.0.2
           </Text>
         </View>
       </SafeAreaView>
@@ -364,7 +376,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
-          TeeSignal v1.0.1
+          TeeSignal v1.0.2
         </Text>
       </ScrollView>
     </SafeAreaView>

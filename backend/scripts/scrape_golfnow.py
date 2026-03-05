@@ -209,7 +209,7 @@ async def scrape_range(start_id: int, end_id: int, output_file: str, concurrency
     proxy_url = os.getenv("GOLFNOW_PROXY")
     results: List[Dict] = []
 
-    async with httpx.AsyncClient(proxy=proxy_url, verify=False) as client:
+    async with httpx.AsyncClient(proxy=proxy_url if proxy_url else None, verify=False) as client:
         tasks = [
             fetch_facility(client, fid, scan_date, sem)
             for fid in range(start_id, end_id + 1)
