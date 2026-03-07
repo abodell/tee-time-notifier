@@ -15,6 +15,8 @@ import Toast from "react-native-toast-message";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import * as Linking from "expo-linking";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "@/constants/theme";
 import OAuthSection from "@/components/auth/OAuthSection";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -218,6 +220,7 @@ export default function ProfileScreen() {
                 onSuccess={() => {
                   fetchProfile();
                 }}
+                showSeparator={true}
               />
 
               <Button
@@ -228,6 +231,28 @@ export default function ProfileScreen() {
               >
                 Continue with Email
               </Button>
+
+              <View style={{ marginTop: 32, width: '100%' }}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => router.push("/(auth)/sign-up?redirectTo=/upgrade")}
+                >
+                  <LinearGradient
+                    colors={Colors.light.gradients.primary as [string, string, ...string[]]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.promoBanner}
+                  >
+                    <View style={styles.promoContent}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.promoTextBold}>Free 14-Day Trial</Text>
+                        <Text style={styles.promoSubtext}>Get Pro features free. No credit card required.</Text>
+                      </View>
+                      <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             </View>
           </Surface>
 
@@ -243,7 +268,7 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, opacity: 0.5, fontSize: 12 }}>
-            TeeSignal v1.0.2
+            TeeSignal v1.0.3
           </Text>
         </View>
       </SafeAreaView>
@@ -376,7 +401,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
-          TeeSignal v1.0.2
+          TeeSignal v1.0.3
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -446,5 +471,31 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  promoBanner: {
+    borderRadius: 12,
+    overflow: "hidden",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    shadowColor: "#2F80ED",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  promoContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  promoTextBold: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  promoSubtext: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 13,
+    marginTop: 1,
+    fontWeight: "500",
   },
 });

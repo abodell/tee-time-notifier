@@ -14,7 +14,9 @@ import {
   useTheme,
   Surface,
   IconButton,
+  Divider,
 } from "react-native-paper";
+import { KeyboardAvoidingView, ScrollView, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "../../lib/supabase";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -77,133 +79,148 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.inner}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
-            onPress={handleSafeBack}
-            style={styles.backBtn}
-            iconColor={theme.colors.onBackground}
-          />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.inner}>
+              <IconButton
+                icon="arrow-left"
+                size={24}
+                onPress={handleSafeBack}
+                style={styles.backBtn}
+                iconColor={theme.colors.onBackground}
+              />
 
-          <View style={styles.headerContainer}>
-            <Text
-              variant="displaySmall"
-              style={[styles.header, { color: theme.colors.onBackground }]}
-            >
-              Welcome Back
-            </Text>
-            <Text style={[styles.subHeader, { color: theme.colors.secondary }]}>
-              Sign in to continue sniping tee times.
-            </Text>
-          </View>
-
-          {error && (
-            <Surface style={[styles.errorContainer, { backgroundColor: theme.colors.errorContainer }]} elevation={0}>
-              <Text style={{ color: theme.colors.onErrorContainer, textAlign: "center", fontWeight: "600" }}>
-                {error}
-              </Text>
-            </Surface>
-          )}
-
-          <View style={styles.form}>
-            <OAuthSection
-              loading={loading}
-              setLoading={setLoading}
-              setError={setError}
-              onSuccess={() => {
-                if (redirectTo) {
-                  router.replace(redirectTo as any);
-                } else {
-                  router.replace("/(tabs)/profile");
-                }
-              }}
-            />
-
-            <TextInput
-              label="Email"
-              mode="outlined"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              style={styles.input}
-              outlineStyle={{ borderRadius: 12 }}
-            />
-
-            <TextInput
-              label="Password"
-              mode="outlined"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              style={styles.input}
-              outlineStyle={{ borderRadius: 12 }}
-            />
-
-            <TouchableOpacity
-              onPress={() => router.push("/(auth)/forgot-password" as any)}
-              style={{ alignSelf: "flex-end", marginTop: 4 }}
-            >
-              <Text style={{ color: theme.colors.primary, fontWeight: "600" }}>
-                Forgot Password?
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleSignIn}
-              disabled={!email || !password || loading}
-              activeOpacity={0.8}
-              style={{ marginTop: 24 }}
-            >
-              <LinearGradient
-                colors={
-                  ((!email || !password || loading)
-                    ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
-                    : Colors.light.gradients.primary) as [string, string, ...string[]]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[
-                  styles.gradientButton,
-                  { opacity: (!email || !password || loading) ? 0.6 : 1 },
-                ]}
-              >
+              <View style={styles.headerContainer}>
                 <Text
-                  style={{
-                    color: (!email || !password || loading)
-                      ? theme.colors.onSurfaceDisabled
-                      : "#FFF",
-                    fontWeight: "700",
-                    fontSize: 16,
-                  }}
+                  variant="displaySmall"
+                  style={[styles.header, { color: theme.colors.onBackground }]}
                 >
-                  {loading ? "Signing in..." : "Sign In"}
+                  Welcome Back
                 </Text>
-              </LinearGradient>
-            </TouchableOpacity>
+                <Text style={[styles.subHeader, { color: theme.colors.secondary }]}>
+                  Sign in to continue sniping tee times.
+                </Text>
+              </View>
 
-          </View>
+              {error && (
+                <Surface style={[styles.errorContainer, { backgroundColor: theme.colors.errorContainer }]} elevation={0}>
+                  <Text style={{ color: theme.colors.onErrorContainer, textAlign: "center", fontWeight: "600" }}>
+                    {error}
+                  </Text>
+                </Surface>
+              )}
 
-          <View style={styles.footer}>
-            <Text style={{ color: theme.colors.onSurfaceVariant }}>
-              Don't have an account?
-            </Text>
-            <TouchableOpacity onPress={() => router.replace("/(auth)/sign-up")}>
-              <Text
-                style={{
-                  color: theme.colors.primary,
-                  fontWeight: "700",
-                  marginLeft: 6,
-                }}
-              >
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableWithoutFeedback>
+              <View style={styles.form}>
+                <TextInput
+                  label="Email"
+                  mode="outlined"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                  style={styles.input}
+                  outlineStyle={{ borderRadius: 12 }}
+                />
+
+                <TextInput
+                  label="Password"
+                  mode="outlined"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  style={styles.input}
+                  outlineStyle={{ borderRadius: 12 }}
+                />
+
+                <TouchableOpacity
+                  onPress={() => router.push("/(auth)/forgot-password" as any)}
+                  style={{ alignSelf: "flex-end", marginTop: 4 }}
+                >
+                  <Text style={{ color: theme.colors.primary, fontWeight: "600" }}>
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSignIn}
+                  disabled={!email || !password || loading}
+                  activeOpacity={0.8}
+                  style={{ marginTop: 24 }}
+                >
+                  <LinearGradient
+                    colors={
+                      ((!email || !password || loading)
+                        ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
+                        : Colors.light.gradients.primary) as [string, string, ...string[]]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.gradientButton,
+                      { opacity: (!email || !password || loading) ? 0.6 : 1 },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: (!email || !password || loading)
+                          ? theme.colors.onSurfaceDisabled
+                          : "#FFF",
+                        fontWeight: "700",
+                        fontSize: 16,
+                      }}
+                    >
+                      {loading ? "Signing in..." : "Sign In"}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <View style={styles.separatorContainer}>
+                  <Divider style={styles.divider} />
+                  <Text style={[styles.separatorText, { color: theme.colors.onSurfaceVariant }]}>OR</Text>
+                  <Divider style={styles.divider} />
+                </View>
+
+                <OAuthSection
+                  loading={loading}
+                  setLoading={setLoading}
+                  setError={setError}
+                  onSuccess={() => {
+                    if (redirectTo) {
+                      router.replace(redirectTo as any);
+                    } else {
+                      router.replace("/(tabs)/profile");
+                    }
+                  }}
+                />
+              </View>
+
+              <View style={styles.footer}>
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                  Don't have an account?
+                </Text>
+                <TouchableOpacity onPress={() => router.replace("/(auth)/sign-up")}>
+                  <Text
+                    style={{
+                      color: theme.colors.primary,
+                      fontWeight: "700",
+                      marginLeft: 6,
+                    }}
+                  >
+                    Sign Up
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -259,5 +276,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+  },
+  separatorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(150, 150, 150, 0.2)",
+  },
+  separatorText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

@@ -10,22 +10,18 @@ import {
   DeviceEventEmitter,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  Text,
-  useTheme,
-  IconButton,
-  ActivityIndicator,
-  Surface,
-  Button,
-  Divider,
-} from "react-native-paper";
+import { TextInput, Text, useTheme, IconButton, ActivityIndicator, Surface, Button, Divider } from "react-native-paper";
 import Animated, { FadeIn, Layout } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Skeleton } from "moti/skeleton";
+import { useColorScheme } from "react-native";
 import { getUserAlerts, deleteAlert } from "@/lib/api";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "@/constants/theme";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -82,80 +78,94 @@ export default function MyAlertsScreen() {
   const [tierName, setTierName] = useState("—");
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [session, setSession] = useState<any>(null);
+  const [fetchingQuota, setFetchingQuota] = useState(false);
+  const [hasData, setHasData] = useState(false);
+  const [alertCount, setAlertCount] = useState(0);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
     });
-    const authSub = supabase.auth.onAuthStateChange((_event, sess) => {
+    const { data: authSub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
-      loadAlerts();
-      loadTier();
+      loadQuotaData();
     });
 
-    loadAlerts();
-    loadTier();
+    loadQuotaData();
 
     const sub1 = DeviceEventEmitter.addListener("membershipUpdated", () => {
-      loadTier();
-      loadAlerts();
+      loadQuotaData();
     });
-    const sub2 = DeviceEventEmitter.addListener("notificationReceived", () => {
-      loadAlerts();
+    const sub2 = DeviceEventEmitter.addListener("alertsUpdated", () => {
+      loadQuotaData();
+    });
+    const sub3 = DeviceEventEmitter.addListener("notificationReceived", () => {
+      loadQuotaData();
     });
 
     return () => {
       sub1.remove();
       sub2.remove();
-      authSub.data.subscription.unsubscribe();
+      sub3.remove();
+      authSub.subscription.unsubscribe();
     };
   }, []);
 
-  const loadAlerts = async () => {
+  const loadQuotaData = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase.auth.getSession();
-      const user = data.session?.user;
-      if (!user) return;
-      const result = await getUserAlerts(user.id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
+      if (!user) {
+        setFetchingQuota(false);
+        setHasData(false);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      if (!hasData) {
+        setFetchingQuota(true);
+      }
+
+      const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+      const [profileRes, alertsRes] = await Promise.all([
+        fetch(`${baseUrl}/membership/profile/${user.id}`),
+        fetch(`${baseUrl}/alerts/user/${user.id}`),
+      ]);
+
+      const profile = await profileRes.json();
+      const tier = profile.membership_tiers;
+      setTierName(tier?.name || "—");
+      setMaxAlerts(tier?.max_alerts ?? null);
+
+      const userAlerts = await alertsRes.json();
       // Sort: Active first, Expired last
-      result.sort((a: AlertType, b: AlertType) => {
+      userAlerts.sort((a: AlertType, b: AlertType) => {
         const aExpired = dayjs.utc().isAfter(dayjs.utc(a.end_time));
         const bExpired = dayjs.utc().isAfter(dayjs.utc(b.end_time));
         if (aExpired === bExpired) return 0;
         return aExpired ? 1 : -1;
       });
 
-      setAlerts(result);
+      setAlerts(userAlerts);
+      setAlertCount(userAlerts.length);
+      setHasData(true);
     } catch (err: any) {
+      console.log("Quota load failed", err);
       Toast.show({
         type: "error",
-        text1: "Failed to load alerts",
+        text1: "Failed to load data",
         text2: err.message,
-        position: "top",
       });
     } finally {
+      setFetchingQuota(false);
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  const loadTier = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const baseUrl =
-        process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${baseUrl}/membership/profile/${user.id}`);
-      const data = await res.json();
-      const tier = data.membership_tiers;
-      setTierName(tier?.name || "—");
-      setMaxAlerts(tier?.max_alerts ?? null);
-    } catch (e) {
-      console.log("Tier load error", e);
     }
   };
 
@@ -201,7 +211,8 @@ export default function MyAlertsScreen() {
       Toast.show({ type: "error", text1: "Could not open link", text2: err.message })
     );
   };
-  const atQuota = maxAlerts !== null && alerts.length >= (maxAlerts || 0);
+  const reachedQuota =
+    maxAlerts !== null && alertCount >= (maxAlerts || 0) && hasData;
 
   const renderItem = ({ item, index }: { item: AlertType; index: number }) => {
     const course = item.courses || {};
@@ -324,7 +335,7 @@ export default function MyAlertsScreen() {
   };
 
 
-  if (loading && !refreshing)
+  if (loading && !refreshing && !hasData)
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -339,70 +350,101 @@ export default function MyAlertsScreen() {
         </Text>
       </View>
 
-      {/* Soft notice */}
-      <Animated.View entering={FadeIn.duration(600)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
-          <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
+      {/* Quota Banner - Only for logged-in users */}
+      {fetchingQuota && !hasData && session ? (
+        <View style={{ marginBottom: 16, paddingHorizontal: 16 }}>
+          <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={60} radius={12} />
+        </View>
+      ) : session && hasData && (
+        <Animated.View entering={FadeIn.duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
+            <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: reachedQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={reachedQuota ? "alert-circle" : "information"}
+                    size={24}
+                    color={reachedQuota ? theme.colors.error : theme.colors.primary}
+                  />
+                </View>
 
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: atQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={atQuota ? "alert-circle" : "information"}
-                  size={24}
-                  color={atQuota ? theme.colors.error : theme.colors.primary}
-                />
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
-                  {!session ? (
-                    <>
-                      Join now to start tracking tee times.{" "}
-                      <Text
-                        style={{ color: theme.colors.primary, fontWeight: "600" }}
-                        onPress={() => router.push("/upgrade")}
-                      >
-                        See Pricing
-                      </Text>
-                    </>
-                  ) : atQuota ? (
-                    <>
-                      Limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
-                      <Text
-                        style={{ color: theme.colors.primary, fontWeight: "600" }}
-                        onPress={() => router.push("/upgrade")}
-                      >
-                        Upgrade
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      Using <Text style={{ fontWeight: "600" }}>{alerts.length}</Text>
-                      {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
-                      {(tierName === "Free" || tierName === "Plus") && (
-                        <>
-                          {" "}
-                          <Text
-                            style={{ color: theme.colors.primary, fontWeight: "600" }}
-                            onPress={() => router.push("/upgrade")}
-                          >
-                            Upgrade
-                          </Text>
-                        </>
-                      )}
-                    </>
-                  )}
-                </Text>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
+                    {reachedQuota ? (
+                      <>
+                        Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
+                        <Text
+                          style={{ color: theme.colors.primary, fontWeight: "600" }}
+                          onPress={() => router.push("/upgrade")}
+                        >
+                          Upgrade
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        Using <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
+                        {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
+                        {tierName === "Plus" && (
+                          <>
+                            {" "}
+                            <Text
+                              style={{ color: theme.colors.primary, fontWeight: "600" }}
+                              onPress={() => router.push("/upgrade")}
+                            >
+                              Upgrade
+                            </Text>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </Text>
+                </View>
               </View>
             </View>
-          </View>
-        </Surface>
-      </Animated.View>
+          </Surface>
+        </Animated.View>
+      )}
 
+      {/* 🚀 Integrated Trial Promotion Banner */}
+      {(!session || tierName === "Free") && (
+        <Animated.View entering={FadeIn.delay(300).duration(500)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <LinearGradient
+            colors={Colors.light.gradients.primary as [string, string, ...string[]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.promoBanner}
+          >
+            <View style={styles.promoContent}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.promoTextBold}>
+                  Try Pro Free for 14 Days
+                </Text>
+                <Text style={styles.promoSubtext}>
+                  Unlock 10 alerts and 1-minute scans.
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (!session) {
+                    router.push("/(auth)/sign-up?redirectTo=/upgrade");
+                  } else {
+                    router.push("/upgrade");
+                  }
+                }}
+                style={styles.promoButton}
+              >
+                <Text style={styles.promoButtonText}>Start Trial</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      )}
 
       <FlatList
         data={alerts}
@@ -414,8 +456,7 @@ export default function MyAlertsScreen() {
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              loadAlerts();
-              loadTier();
+              loadQuotaData();
             }}
             tintColor={theme.colors.primary}
           />
@@ -471,7 +512,7 @@ export default function MyAlertsScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
@@ -532,5 +573,37 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
+  },
+  promoBanner: {
+    borderRadius: 12,
+    overflow: "hidden",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  promoContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  promoTextBold: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  promoSubtext: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  promoButton: {
+    backgroundColor: "#FFF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  promoButtonText: {
+    color: "#15803d",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

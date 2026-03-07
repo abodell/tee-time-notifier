@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tee Signal | Instagram Post Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">TEE SIGNAL</div>
+            <h1>Aura Post Generator</h1>
+            <p>Generate high-engagement Instagram content assets.</p>
+        </header>
+
+        <main>
+            <section class="upload-grid">
+                <!-- 4 Slots for Courses -->
+                <div class="slot" data-index="0">
+                    <div class="slot-header">
+                        Slot 1
+                        <div class="toggle-container">
+                            <span>Fill</span>
+                            <label class="switch">
+                                <input type="checkbox" class="fit-toggle" data-index="0">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Fit</span>
+                        </div>
+                    </div>
+                    <div class="upload-boxes">
+                        <div class="upload-box" id="course-photo-0" tabindex="0">
+                            <span>Course Photo</span>
+                            <small>Click to upload or Paste</small>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                        <div class="upload-box" id="app-screenshot-0" tabindex="0">
+                            <span>App Screenshot</span>
+                            <small>Click to upload or Paste</small>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slot" data-index="1">
+                    <div class="slot-header">
+                        Slot 2
+                        <div class="toggle-container">
+                            <span>Fill</span>
+                            <label class="switch">
+                                <input type="checkbox" class="fit-toggle" data-index="1">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Fit</span>
+                        </div>
+                    </div>
+                    <div class="upload-boxes">
+                        <div class="upload-box" id="course-photo-1" tabindex="0">
+                            <span>Course Photo</span>
+                            <small>Click to upload or Paste</small>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                        <div class="upload-box" id="app-screenshot-1" tabindex="0">
+                            <span>App Screenshot</span>
+                            <small>Click to upload or Paste</small>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slot" data-index="2">
+                    <div class="slot-header">
+                        Slot 3
+                        <div class="toggle-container">
+                            <span>Fill</span>
+                            <label class="switch">
+                                <input type="checkbox" class="fit-toggle" data-index="2">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Fit</span>
+                        </div>
+                    </div>
+                    <div class="upload-boxes">
+                        <div class="upload-box" id="course-photo-2" tabindex="0">
+                            <span>Course Photo</span>
+                            <small>Click to upload or Paste</small>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                        <div class="upload-box" id="app-screenshot-2" tabindex="0">
+                            <span>App Screenshot</span>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slot" data-index="3">
+                    <div class="slot-header">
+                        Slot 4
+                        <div class="toggle-container">
+                            <span>Fill</span>
+                            <label class="switch">
+                                <input type="checkbox" class="fit-toggle" data-index="3">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Fit</span>
+                        </div>
+                    </div>
+                    <div class="upload-boxes">
+                        <div class="upload-box" id="course-photo-3" tabindex="0">
+                            <span>Course Photo</span>
+                            <small>Click to upload or Paste</small>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                        <div class="upload-box" id="app-screenshot-3" tabindex="0">
+                            <span>App Screenshot</span>
+                            <small>Click to upload or Paste</small>
+                            <input type="file" accept="image/*" class="file-input">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="actions">
+                <button id="generate-all" class="btn btn-primary">Download Full Post (1080x1080)</button>
+            </section>
+
+            <section class="preview-area">
+                <h2>Live Preview</h2>
+                <div class="preview-grid" id="preview-grid">
+                    <!-- Preview items will be rendered here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Hidden Canvas for Processing -->
+    <canvas id="processing-canvas" style="display: none;"></canvas>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

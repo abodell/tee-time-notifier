@@ -361,8 +361,16 @@ export default function UpgradeScreen() {
               </Text>
 
               {!isFree && (
+                <Text style={{ fontSize: 13, color: theme.colors.primary, marginBottom: 12, fontWeight: "700" }}>
+                  {rcPackage?.product?.introPrice ? "Includes 14-Day Free Trial" : "Monthly Subscription"}
+                </Text>
+              )}
+
+              {!isFree && (
                 <Text style={{ fontSize: 12, color: theme.colors.onSurfaceVariant, marginBottom: 16, fontWeight: "500" }}>
-                  Auto-renewable subscription, billed monthly
+                  {rcPackage?.product?.introPrice
+                    ? `After 14 days, you'll be charged ${priceDisplay}/mo`
+                    : "Auto-renewable subscription, billed monthly"}
                 </Text>
               )}
 
@@ -439,7 +447,9 @@ export default function UpgradeScreen() {
                             ? "Processing..."
                             : isUnavailable
                               ? "Unavailable"
-                              : `Switch to ${tier.name}`}
+                              : rcPackage?.product?.introPrice
+                                ? `Start 14-Day Free Trial`
+                                : `Switch to ${tier.name}`}
                         </Text>
                       </LinearGradient>
                     </TouchableOpacity>

@@ -16,9 +16,10 @@ interface OAuthSectionProps {
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     onSuccess?: () => void;
+    showSeparator?: boolean;
 }
 
-export default function OAuthSection({ loading, setLoading, setError, onSuccess }: OAuthSectionProps) {
+export default function OAuthSection({ loading, setLoading, setError, onSuccess, showSeparator = false }: OAuthSectionProps) {
     const theme = useTheme();
     const router = useRouter();
 
@@ -166,11 +167,13 @@ export default function OAuthSection({ loading, setLoading, setError, onSuccess 
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.separatorContainer}>
-                <View style={[styles.line, { backgroundColor: theme.colors.outlineVariant }]} />
-                <Text style={[styles.separatorText, { color: theme.colors.onSurfaceVariant }]}>or use email</Text>
-                <View style={[styles.line, { backgroundColor: theme.colors.outlineVariant }]} />
-            </View>
+            {showSeparator && (
+                <View style={styles.separatorContainer}>
+                    <View style={[styles.line, { backgroundColor: theme.colors.outlineVariant }]} />
+                    <Text style={[styles.separatorText, { color: theme.colors.onSurfaceVariant }]}>or use email</Text>
+                    <View style={[styles.line, { backgroundColor: theme.colors.outlineVariant }]} />
+                </View>
+            )}
         </View>
     );
 }
