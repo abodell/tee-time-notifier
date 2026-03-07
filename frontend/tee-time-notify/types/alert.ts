@@ -26,6 +26,7 @@ export interface Alert {
   date_to?: string;
   start_time?: string;
   end_time?: string;
+  is_recurring?: boolean;
   active?: boolean;
   created_at?: string;
   updated_at?: string;

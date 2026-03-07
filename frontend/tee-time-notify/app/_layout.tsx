@@ -38,7 +38,7 @@ SplashScreen.preventAutoHideAsync();
 // Configure notification handler (foreground behavior)
 setupNotificationHandlers();
 
-function setupNotificationListeners() {
+function setupNotificationListeners(router: any) {
   const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
     console.log("Notification received:", notification);
     DeviceEventEmitter.emit("notificationReceived");
@@ -46,7 +46,16 @@ function setupNotificationListeners() {
 
   const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
     console.log("Notification response:", response);
-    DeviceEventEmitter.emit("notificationReceived");
+    const alertId = response.notification.request.content.data?.alertId;
+
+    if (alertId) {
+      // Small delay to ensure navigation stack is ready if waking from cold state
+      setTimeout(() => {
+        router.push(`/(tabs)/my-alerts?alertId=${alertId}`);
+      }, 300);
+    } else {
+      DeviceEventEmitter.emit("notificationReceived");
+    }
   });
 
   return () => {
@@ -167,7 +176,7 @@ export default function RootLayout() {
       }
 
       registerForPushNotificationsAsync();
-      cleanupListeners = setupNotificationListeners();
+      cleanupListeners = setupNotificationListeners(router);
     }
     return () => {
       if (cleanupListeners) cleanupListeners();

@@ -401,6 +401,15 @@ export default function UpgradeScreen() {
                     </Text>
                   </Text>
                 </View>
+
+                {tier.name === "Pro" && (
+                  <View style={styles.featureRow}>
+                    <Text style={{ fontSize: 18, marginRight: 12 }}>🔁</Text>
+                    <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                      Set <Text style={{ fontWeight: "700" }}>Recurring</Text> alerts
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Action Button - Only show if authenticated */}

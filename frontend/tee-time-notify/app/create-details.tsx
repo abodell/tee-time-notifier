@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import { Switch } from "react-native-paper";
 import DatePickerField from "../components/DatePickerField";
 import TimePickerField from "../components/TimePickerField";
 import { LinearGradient } from "expo-linear-gradient";
@@ -52,9 +53,11 @@ export default function CreateDetailsScreen() {
   const [startValid, setStartValid] = useState(false);
   const [endValid, setEndValid] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [tierName, setTierName] = useState<string | null>(null);
 
   React.useEffect(() => {
-    const fetchCourse = async () => {
+    const fetchCourseAndProfile = async () => {
       const courseId = Array.isArray(id) ? parseInt(id[0]) : parseInt(id || "0");
       if (courseId) {
         const { data } = await supabase
@@ -64,8 +67,25 @@ export default function CreateDetailsScreen() {
           .single();
         if (data) setCourse(data);
       }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        // Fetch profile to get tier info using the backend endpoint for consistency
+        try {
+          const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+          const profileRes = await fetch(`${baseUrl}/membership/profile/${session.user.id}`);
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            if (profile?.membership_tiers?.name) {
+              setTierName(profile.membership_tiers.name);
+            }
+          }
+        } catch (err) {
+          console.log("Failed to load tier info", err);
+        }
+      }
     };
-    fetchCourse();
+    fetchCourseAndProfile();
   }, [id]);
 
   const handleSubmit = async () => {
@@ -98,6 +118,7 @@ export default function CreateDetailsScreen() {
         date_to: combinedEnd?.startOf("day").toISOString(),
         start_time: combinedStart?.toISOString(),
         end_time: combinedEnd?.toISOString(),
+        is_recurring: tierName === "Pro" ? isRecurring : false,
       };
       await createAlert(alertPayload);
 
@@ -243,6 +264,65 @@ export default function CreateDetailsScreen() {
             </View>
           </Surface>
 
+        </View>
+
+        {/* Grouped Form: Recurring Alert (Pro Only) */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
+            AUTOMATION
+          </Text>
+          <Surface
+            style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
+            elevation={0}
+          >
+            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface, padding: 16 }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flex: 1, paddingRight: 16 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
+                    <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
+                      Recurring Alert
+                    </Text>
+                    {tierName === "Pro" && (
+                      <View style={{ backgroundColor: theme.colors.primaryContainer, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.onPrimaryContainer }}>PRO</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Automatically set this exact same alert for 7 days later once the time window passes.
+                  </Text>
+                </View>
+
+                <Switch
+                  value={isRecurring}
+                  onValueChange={(val) => {
+                    if (tierName !== "Pro") {
+                      // Optional: could auto-route them or show a native alert
+                      return;
+                    }
+                    setIsRecurring(val);
+                  }}
+                  color={theme.colors.primary}
+                  disabled={tierName !== "Pro"}
+                />
+              </View>
+
+              {/* Pro Nudge if not Pro */}
+              {tierName !== "Pro" && tierName !== null && (
+                <View style={{ marginTop: 16, backgroundColor: theme.colors.surfaceVariant + "40", padding: 12, borderRadius: 8 }}>
+                  <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 13, lineHeight: 18 }}>
+                    Want to automatically repeat this alert every week without hitting your quota?{" "}
+                    <Text
+                      style={{ color: theme.colors.primary, fontWeight: "700" }}
+                      onPress={() => router.push("/upgrade")}
+                    >
+                      Upgrade to Pro
+                    </Text>
+                  </Text>
+                </View>
+              )}
+            </View>
+          </Surface>
         </View>
 
         {/* Gradient Action Button */}

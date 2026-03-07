@@ -19,7 +19,7 @@ import { useColorScheme } from "react-native";
 import { getUserAlerts, deleteAlert } from "@/lib/api";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
 import dayjs from "dayjs";
@@ -83,6 +83,7 @@ export default function MyAlertsScreen() {
   const [alertCount, setAlertCount] = useState(0);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const params = useLocalSearchParams();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -155,6 +156,15 @@ export default function MyAlertsScreen() {
       setAlerts(userAlerts);
       setAlertCount(userAlerts.length);
       setHasData(true);
+
+      // Auto-expand alert if passed in via deep link
+      if (params.alertId && !expandedIds.has(Number(params.alertId))) {
+        setExpandedIds((prev) => {
+          const next = new Set(prev);
+          next.add(Number(params.alertId));
+          return next;
+        });
+      }
     } catch (err: any) {
       console.log("Quota load failed", err);
       Toast.show({
@@ -247,6 +257,11 @@ export default function MyAlertsScreen() {
                   {isExpired && (
                     <Text style={{ color: theme.colors.error, fontWeight: "800", fontSize: 12 }}>
                       {"  "}EXPIRED
+                    </Text>
+                  )}
+                  {item.is_recurring && (
+                    <Text style={{ color: theme.colors.primary, fontWeight: "800", fontSize: 12 }}>
+                      {"  "}RECURRING
                     </Text>
                   )}
                 </Text>
