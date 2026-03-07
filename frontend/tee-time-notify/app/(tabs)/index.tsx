@@ -24,6 +24,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "@/constants/theme";
 
 type Course = {
   id: number;
@@ -85,11 +87,20 @@ export default function CourseSearchScreen() {
 
   const loadQuotaData = async () => {
     try {
-      setFetchingQuota(true);
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+
+      if (!user) {
+        setFetchingQuota(false);
+        setHasData(false);
+        return;
+      }
+
+      // Only show skeleton if we don't have data yet
+      if (!hasData) {
+        setFetchingQuota(true);
+      }
 
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
       const [profileRes, alertsRes] = await Promise.all([
@@ -160,16 +171,15 @@ export default function CourseSearchScreen() {
           </Text>
         </View>
 
-        {/* Quota Banner */}
-        {fetchingQuota && !hasData ? (
+        {/* Quota Banner - Only for logged-in users */}
+        {fetchingQuota && !hasData && session ? (
           <View style={{ marginBottom: 16, paddingHorizontal: 16 }}>
             <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={60} radius={12} />
           </View>
-        ) : (
+        ) : session && hasData && (
           <Animated.View entering={FadeIn.duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
               <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
-
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <View
                     style={[
@@ -186,17 +196,7 @@ export default function CourseSearchScreen() {
 
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
-                      {!session ? (
-                        <>
-                          Join now to start tracking tee times.{" "}
-                          <Text
-                            style={{ color: theme.colors.primary, fontWeight: "600" }}
-                            onPress={() => router.push("/upgrade")}
-                          >
-                            See Pricing
-                          </Text>
-                        </>
-                      ) : reachedQuota ? (
+                      {reachedQuota ? (
                         <>
                           Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
                           <Text
@@ -210,7 +210,7 @@ export default function CourseSearchScreen() {
                         <>
                           Using <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
                           {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
-                          {(tierName === "Free" || tierName === "Plus") && (
+                          {tierName === "Plus" && (
                             <>
                               {" "}
                               <Text
@@ -229,8 +229,42 @@ export default function CourseSearchScreen() {
               </View>
             </Surface>
           </Animated.View>
+        )}
 
-
+        {/* 🚀 Integrated Trial Promotion Banner */}
+        {(!session || tierName === "Free") && (
+          <Animated.View entering={FadeIn.delay(300).duration(500)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <LinearGradient
+              colors={Colors.light.gradients.primary as [string, string, ...string[]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.promoBanner}
+            >
+              <View style={styles.promoContent}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.promoTextBold}>
+                    Try Pro Free for 14 Days
+                  </Text>
+                  <Text style={styles.promoSubtext}>
+                    Unlock 10 alerts and 1-minute scans.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (!session) {
+                      router.push("/(auth)/sign-up?redirectTo=/upgrade");
+                    } else {
+                      router.push("/upgrade");
+                    }
+                  }}
+                  style={styles.promoButton}
+                >
+                  <Text style={styles.promoButtonText}>Start Trial</Text>
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </Animated.View>
         )}
 
         {/* Search Bar */}
@@ -316,11 +350,11 @@ export default function CourseSearchScreen() {
                 )}
                 <Button
                   mode="text"
-                  onPress={() => router.push("/request-course")}
+                  onPress={() => session ? router.push("/request-course") : router.push("/upgrade")}
                   style={{ marginTop: 12 }}
                   textColor={theme.colors.primary}
                 >
-                  Can't find your course?
+                  {session ? "Can't find your course?" : "View Pricing & Memberships"}
                 </Button>
               </View>
             }
@@ -329,11 +363,11 @@ export default function CourseSearchScreen() {
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Button
                     mode="text"
-                    onPress={() => router.push("/request-course")}
+                    onPress={() => session ? router.push("/request-course") : router.push("/upgrade")}
                     textColor={theme.colors.primary}
                     labelStyle={{ fontSize: 13, opacity: 1 }}
                   >
-                    Can't find your course?
+                    {session ? "Can't find your course?" : "View Pricing & Memberships"}
                   </Button>
                 </View>
               ) : null
@@ -375,4 +409,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center", paddingBottom: 100 },
+  promoBanner: {
+    borderRadius: 12,
+    overflow: "hidden",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  promoContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  promoTextBold: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  promoSubtext: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  promoButton: {
+    backgroundColor: "#FFF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  promoButtonText: {
+    color: "#15803d",
+    fontSize: 13,
+    fontWeight: "700",
+  },
 });

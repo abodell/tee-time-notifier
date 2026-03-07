@@ -93,15 +93,15 @@ document.addEventListener('DOMContentLoaded', () => {
         fctx.fillStyle = '#ffffff';
         fctx.fillRect(0, 0, 1080, 1080);
 
-        const marginTop = 280; // Increased for text space
-        const marginSides = 80;
-        const marginBottom = 60;
-        const colGap = 80;
+        const marginTop = 70;
+        const marginBottom = 40;
+        const colGap = 60;
         const innerGap = 15; // Gap between rect and square
-        const rowGap = 50;   // Gap between slot pairs
+        const rowGap = 40;   // Gap between slot pairs
+        const itemWidth = 320; // Reduced to fit vertically
 
-        // Calculate available width for items
-        const itemWidth = (1080 - (marginSides * 2) - colGap) / 2;
+        // Center horizontally
+        const marginSides = (1080 - (itemWidth * 2) - colGap) / 2;
 
         // Load all images
         const images = {};
