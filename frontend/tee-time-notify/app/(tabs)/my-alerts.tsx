@@ -157,14 +157,6 @@ export default function MyAlertsScreen() {
       setAlertCount(userAlerts.length);
       setHasData(true);
 
-      // Auto-expand alert if passed in via deep link
-      if (params.alertId && !expandedIds.has(Number(params.alertId))) {
-        setExpandedIds((prev) => {
-          const next = new Set(prev);
-          next.add(Number(params.alertId));
-          return next;
-        });
-      }
     } catch (err: any) {
       console.log("Quota load failed", err);
       Toast.show({
@@ -178,6 +170,21 @@ export default function MyAlertsScreen() {
       setRefreshing(false);
     }
   };
+
+  // React to deep link params changing (works in background and foreground)
+  useEffect(() => {
+    if (params.alertId && hasData) {
+      const idNum = Number(params.alertId);
+      if (!isNaN(idNum)) {
+        setExpandedIds((prev) => {
+          if (prev.has(idNum)) return prev;
+          const next = new Set(prev);
+          next.add(idNum);
+          return next;
+        });
+      }
+    }
+  }, [params.alertId, hasData]);
 
   const deleteConfirm = (id: number) =>
     RNAlert.alert("Delete Alert", "Are you sure you want to remove this alert?", [
@@ -231,8 +238,8 @@ export default function MyAlertsScreen() {
     const hasNotifications = notifications.length > 0;
     const itemTz = course.time_zone || "UTC";
 
-    // Check expiration using UTC comparison
-    const isExpired = dayjs.utc().isAfter(dayjs.utc(item.end_time));
+    // Check expiration using UTC comparison, recurring alerts never "expire" in UI
+    const isExpired = !item.is_recurring && dayjs.utc().isAfter(dayjs.utc(item.end_time));
 
     return (
       <Animated.View layout={Layout.springify()}>

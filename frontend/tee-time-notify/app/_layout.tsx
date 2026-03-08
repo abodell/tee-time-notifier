@@ -48,13 +48,14 @@ function setupNotificationListeners(router: any) {
     console.log("Notification response:", response);
     const alertId = response.notification.request.content.data?.alertId;
 
+    // Always trigger a data refresh across the app so lists contain the latest openings
+    DeviceEventEmitter.emit("notificationReceived");
+
     if (alertId) {
       // Small delay to ensure navigation stack is ready if waking from cold state
       setTimeout(() => {
         router.push(`/(tabs)/my-alerts?alertId=${alertId}`);
       }, 300);
-    } else {
-      DeviceEventEmitter.emit("notificationReceived");
     }
   });
 
@@ -166,6 +167,22 @@ export default function RootLayout() {
   // Track the last user ID we identified to prevent redundant calls (429 errors)
   const lastIdentifiedUserId = useRef<string | null>(null);
 
+  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (
+      lastNotificationResponse &&
+      lastNotificationResponse.notification.request.content.data?.alertId &&
+      lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
+    ) {
+      const alertId = lastNotificationResponse.notification.request.content.data.alertId;
+      // We wait slightly to ensure the router and session are fully mounted/restored
+      setTimeout(() => {
+        router.push(`/(tabs)/my-alerts?alertId=${alertId}`);
+      }, 500);
+    }
+  }, [lastNotificationResponse, router]);
+
   useEffect(() => {
     let cleanupListeners: (() => void) | undefined;
     if (session && isRevenueCatConfigured) {
@@ -181,7 +198,7 @@ export default function RootLayout() {
     return () => {
       if (cleanupListeners) cleanupListeners();
     };
-  }, [session, isRevenueCatConfigured]);
+  }, [session, isRevenueCatConfigured, router]);
 
   const theme = systemScheme === "dark" ? PaperDarkTheme : PaperLightTheme;
   const isDark = systemScheme === "dark";
