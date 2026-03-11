@@ -58,7 +58,24 @@ async def create_alert(alert: dict):
                 status_code=403,
                 detail=f"Your {tier_name} plan allows up to {max_alerts} active alert(s). Please upgrade your plan to add more"
             )
-        result = await supabase.table("alerts").insert(alert).execute()
+            
+        # Optional: ensure is_recurring is only accepted for PRO tier members
+        # In this implementation, the frontend will gate it, but we can also sanitize it.
+        is_recurring = alert.get("is_recurring", False)
+        
+        # Build strict payload
+        insert_payload = {
+            "user_id": user_id,
+            "course_id": alert.get("course_id"),
+            "holes": alert.get("holes"),
+            "date_from": alert.get("date_from"),
+            "date_to": alert.get("date_to"),
+            "start_time": alert.get("start_time"),
+            "end_time": alert.get("end_time"),
+            "is_recurring": is_recurring
+        }
+            
+        result = await supabase.table("alerts").insert(insert_payload).execute()
         return {"status": "success", "alert": result.data[0]}
     
     except HTTPException:

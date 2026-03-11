@@ -14,6 +14,66 @@ def notify_user(user_id, course_id, tee_time, method="push"):
         f"tee time {tee_time} via {method}"
     )
 
+import zoneinfo
+
+async def rollover_recurring_alerts(supabase, now: datetime):
+    """
+    Find active recurring alerts that have expired, and roll them forward 7 days.
+    """
+    try:
+        res = await (
+            supabase.table("alerts")
+            .select("id, date_from, date_to, start_time, end_time, courses!alerts_course_id_fkey(time_zone)")
+            .eq("active", True)
+            .eq("is_recurring", True)
+            .lt("end_time", now.isoformat())
+            .execute()
+        )
+        
+        expired_alerts = res.data or []
+        for alert in expired_alerts:
+            tz_str = alert.get("courses", {}).get("time_zone", "UTC")
+            tz = zoneinfo.ZoneInfo(tz_str)
+            
+            def add_7_days_local(iso_str):
+                # Clean off 'Z' replacing it with +00:00 to use standard fromisoformat if needed,
+                # but standard tee-time backend saves it as normal isoformat.
+                # Just parse it and attach UTC:
+                dt_utc = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+                if dt_utc.tzinfo is None:
+                    dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                # Convert to local timezone, add 7 days (preserves local wall time), convert back to UTC
+                dt_local = dt_utc.astimezone(tz)
+                dt_next_week = dt_local + timedelta(days=7)
+                return dt_next_week.astimezone(timezone.utc).isoformat()
+                
+            def add_168_hours_utc(iso_str):
+                dt_utc = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+                if dt_utc.tzinfo is None:
+                    dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+                dt_next_utc = dt_utc + timedelta(days=7)
+                return dt_next_utc.isoformat()
+
+            new_date_from = add_168_hours_utc(alert["date_from"])
+            new_date_to = add_168_hours_utc(alert["date_to"])
+            new_start = add_7_days_local(alert["start_time"])
+            new_end = add_7_days_local(alert["end_time"])
+            
+            await (
+                supabase.table("alerts")
+                .update({
+                    "date_from": new_date_from,
+                    "date_to": new_date_to,
+                    "start_time": new_start,
+                    "end_time": new_end
+                })
+                .eq("id", alert["id"])
+                .execute()
+            )
+            print(f"[AlertRollover] Rolled over recurring alert {alert['id']} to next week.")
+    except Exception as e:
+        print(f"[AlertRollover] Error during recurring alert rollover: {e}")
+
 async def process_single_alert(supabase, alert, now, summaries):
     """ Worker for concurrent alert checking """
     course_id = alert["course_id"]
@@ -78,6 +138,9 @@ async def run_alert_engine(tier_id: int | None = None):
 
     print(f"[AlertEngine] Starting scan for tier={tier_id} at {start_time.isoformat()}...")
 
+    # Step 0: Roll over expired recurring alerts before selecting what's active
+    await rollover_recurring_alerts(supabase, start_time)
+
     query = supabase.table("alerts").select(
         "*, user_profiles!alerts_user_id_fkey(membership_tier_id)"
     ).eq("active", True)
@@ -114,7 +177,9 @@ async def send_summary_notification(alert_id, info, engine_start_time):
     token = await get_user_push_token(user_id)
     if token:
         try:
-            await send_push_notification(token, title, body)
+            # We must pass the alert_id explicitly in the 'data' structure
+            extra_data = {"alertId": str(alert_id)}
+            await send_push_notification(token, title, body, data=extra_data)
             now = datetime.now(timezone.utc)
             latency = (now - engine_start_time).total_seconds()
             print(f"[AlertEngine] Latency: {latency:.2f}s | Notified alert {alert_id} for user {user_id}")

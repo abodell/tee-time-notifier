@@ -3,7 +3,7 @@ import os
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
-async def send_push_notification(token: str, title: str, body: str):
+async def send_push_notification(token: str, title: str, body: str, data: dict = None):
     """
     Sends a push notification using Expo Push API
     """
@@ -16,7 +16,7 @@ async def send_push_notification(token: str, title: str, body: str):
         "sound": "default",
         "title": title,
         "body": body,
-        "data": {"extra": "tee-time"}
+        "data": data or {"extra": "tee-time"}
     }
 
     async with httpx.AsyncClient(timeout = 10) as client:
