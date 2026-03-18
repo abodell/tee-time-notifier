@@ -136,6 +136,9 @@ async def normalize_and_store(
     date_str: str,
 ) -> None:
     local_tz = tz.gettz(course.get("time_zone")) or tz.tzutc()
+    # GolfNow's API returns times in Eastern time incorrectly labeled as +00:00 UTC.
+    # We must strip the bogus offset and treat the value as US Eastern before converting to true UTC.
+    eastern_tz = tz.gettz("America/New_York")
     utc_tz = tz.tzutc()
 
     try:
@@ -183,12 +186,12 @@ async def normalize_and_store(
 
         try:
             if isinstance(raw_time, datetime):
-                dt_naive = raw_time
+                dt_naive = raw_time.replace(tzinfo=None)
             else:
                 logger.debug(f"[GolfNow] raw_time type={type(raw_time)} value={raw_time!r}")
-                dt_naive = datetime.fromisoformat(str(raw_time))
-            dt_local = dt_naive.replace(tzinfo=local_tz) if dt_naive.tzinfo is None else dt_naive
-            dt_utc = dt_local.astimezone(utc_tz)
+                dt_naive = datetime.fromisoformat(str(raw_time)).replace(tzinfo=None)
+            # GolfNow sends course-local time with a bogus +00:00 label — strip it and apply course tz.
+            dt_utc = dt_naive.replace(tzinfo=local_tz).astimezone(utc_tz)
         except (ValueError, TypeError):
             logger.warning(f"[GolfNow] Skipping unparseable time: {raw_time!r} (type={type(raw_time).__name__})")
             continue
