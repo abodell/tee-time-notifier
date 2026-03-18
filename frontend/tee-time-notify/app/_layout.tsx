@@ -7,6 +7,8 @@ import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ONBOARDING_KEY } from "./onboarding";
 import "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -70,6 +72,7 @@ export default function RootLayout() {
   const systemScheme = useColorScheme();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [isRevenueCatConfigured, setIsRevenueCatConfigured] = useState(false);
 
   const [loaded] = useFonts({
@@ -147,22 +150,45 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
+      const flag = await AsyncStorage.getItem(ONBOARDING_KEY);
+      if (!flag) {
+        if (data.session) {
+          // Existing user — skip onboarding and write the key so they never see it
+          await AsyncStorage.setItem(ONBOARDING_KEY, "true");
+        } else {
+          setNeedsOnboarding(true);
+        }
+      }
       setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, sess) => {
+      async (_event, sess) => {
         setSession(sess);
         if (_event === "PASSWORD_RECOVERY") {
           router.replace("/(auth)/reset-password" as any);
         }
+        // Note: we intentionally do NOT call setNeedsOnboarding here.
+        // For new users, getSession() already sets it before loading resolves.
+        // Calling it again on SIGNED_IN (e.g. mid-onboarding Apple Sign In)
+        // would flip needsOnboarding false→true and retrigger the navigation
+        // effect, remounting OnboardingScreen back to step 0.
       }
     );
 
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  // Navigate to onboarding after loading resolves — for ALL first-time users
+  // regardless of auth status. Session check removed intentionally: unauthenticated
+  // users go through onboarding first, then create an account mid-flow.
+  useEffect(() => {
+    if (!loading && needsOnboarding) {
+      router.replace("/onboarding" as any);
+    }
+  }, [loading, needsOnboarding]);
 
   // Track the last user ID we identified to prevent redundant calls (429 errors)
   const lastIdentifiedUserId = useRef<string | null>(null);
@@ -259,11 +285,12 @@ export default function RootLayout() {
             animation: "default",
           }}
         >
-          {session ? (
-            <Stack.Screen name="(tabs)" />
-          ) : (
-            <Stack.Screen name="(auth)" />
-          )}
+          {/* All screens always declared — never conditionally render Stack children
+              as changing the Stack structure causes Expo Router to remount the
+              current screen (e.g. resetting onboarding step mid-flow on sign-in). */}
+          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
         </Stack>
 
         {/* ✅ Global Toast Manager */}
