@@ -382,20 +382,14 @@ export default function MyAlertsScreen() {
           <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
             <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: reachedQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name={reachedQuota ? "alert-circle" : "information"}
-                    size={24}
-                    color={reachedQuota ? theme.colors.error : theme.colors.primary}
-                  />
-                </View>
+                <MaterialCommunityIcons
+                  name={reachedQuota ? "alert-circle-outline" : "information-outline"}
+                  size={20}
+                  color={reachedQuota ? theme.colors.error : theme.colors.primary}
+                  style={{ marginRight: 4 }}
+                />
 
-                <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flex: 1, marginLeft: 4 }}>
                   <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
                     {reachedQuota ? (
                       <>
@@ -490,13 +484,15 @@ export default function MyAlertsScreen() {
                 style={[styles.footerAction, { backgroundColor: theme.colors.surface }]}
                 elevation={1}
               >
-                <TouchableOpacity
-                  onPress={() => router.push("/")}
-                  style={styles.fullTouch}
-                  activeOpacity={0.7}
-                >
-                  <MaterialCommunityIcons name="plus" size={32} color={theme.colors.primary} />
-                </TouchableOpacity>
+                <View style={{ overflow: "hidden", borderRadius: 30, width: "100%", height: "100%" }}>
+                  <TouchableOpacity
+                    onPress={() => router.push("/")}
+                    style={styles.fullTouch}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons name="plus" size={32} color={theme.colors.primary} />
+                  </TouchableOpacity>
+                </View>
               </Surface>
             </View>
           ) : null
@@ -549,13 +545,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
   },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   listItem: {
   },
   notificationRow: {
@@ -588,7 +577,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    overflow: "hidden",
   },
   fullTouch: {
     width: "100%",

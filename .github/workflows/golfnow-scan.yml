@@ -3,7 +3,12 @@ name: GolfNow Tee-Time Scanner
 on:
   push:
     branches: ["**"]
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      alert_id:
+        description: 'Alert ID to notify after scan (optional, set by scan-now)'
+        required: false
+        default: ''
 
 jobs:
   scan:
@@ -27,3 +32,12 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           python backend/scripts/scan_golfnow_job.py
+
+      - name: Notify backend (alert check)
+        if: ${{ inputs.alert_id != '' }}
+        env:
+          API_URL: ${{ secrets.API_URL }}
+        run: |
+          curl -s -X POST "${API_URL}/alerts/${{ inputs.alert_id }}/check" \
+            -H "Content-Type: application/json" \
+            || echo "[GolfNow] Alert check callback failed — alert engine will catch it on next run"

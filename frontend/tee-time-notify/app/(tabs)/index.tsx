@@ -26,6 +26,8 @@ import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ONBOARDING_KEY } from "@/app/onboarding";
 
 type Course = {
   id: number;
@@ -169,6 +171,17 @@ export default function CourseSearchScreen() {
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
             Search for a course to start tracking.
           </Text>
+          {__DEV__ && (
+            <TouchableOpacity
+              onPress={async () => {
+                await AsyncStorage.removeItem(ONBOARDING_KEY);
+                router.replace("/onboarding" as any);
+              }}
+              style={{ marginTop: 8 }}
+            >
+              <Text style={{ color: "red", fontSize: 12 }}>[DEV] Reset onboarding</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Quota Banner - Only for logged-in users */}
@@ -181,20 +194,14 @@ export default function CourseSearchScreen() {
             <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
               <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      { backgroundColor: reachedQuota ? theme.colors.error + "20" : theme.colors.primary + "20" },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={reachedQuota ? "alert-circle" : "information"}
-                      size={24}
-                      color={reachedQuota ? theme.colors.error : theme.colors.primary}
-                    />
-                  </View>
+                  <MaterialCommunityIcons
+                    name={reachedQuota ? "alert-circle-outline" : "information-outline"}
+                    size={20}
+                    color={reachedQuota ? theme.colors.error : theme.colors.primary}
+                    style={{ marginRight: 4 }}
+                  />
 
-                  <View style={{ flex: 1, marginLeft: 12 }}>
+                  <View style={{ flex: 1, marginLeft: 4 }}>
                     <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
                       {reachedQuota ? (
                         <>
