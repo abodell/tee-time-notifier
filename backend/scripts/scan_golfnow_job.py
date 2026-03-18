@@ -158,8 +158,15 @@ async def normalize_and_store(
         .execute()
     )
     db_records = current_res.data or []
+
+    def parse_dt(val):
+        """Handle supabase-py returning either a str or a datetime object for timestamp columns."""
+        if isinstance(val, datetime):
+            return val
+        return datetime.fromisoformat(val)
+
     db_map = {
-        (datetime.fromisoformat(r["tee_time"]).astimezone(utc_tz).isoformat(), int(r["holes"])): r["id"]
+        (parse_dt(r["tee_time"]).astimezone(utc_tz).isoformat(), int(r["holes"])): r["id"]
         for r in db_records
     }
 
@@ -168,17 +175,27 @@ async def normalize_and_store(
 
     for entry in raw_tee_times:
         raw_time = entry.get("time")
+        # GolfNow API returns time as a dict: {'date': '2026-03-21T17:20:00+00:00', 'formatted': '5:20', ...}
+        if isinstance(raw_time, dict):
+            raw_time = raw_time.get("date")
         if not raw_time:
             continue
 
         try:
-            dt_naive = datetime.fromisoformat(raw_time)
+            if isinstance(raw_time, datetime):
+                dt_naive = raw_time
+            else:
+                logger.debug(f"[GolfNow] raw_time type={type(raw_time)} value={raw_time!r}")
+                dt_naive = datetime.fromisoformat(str(raw_time))
             dt_local = dt_naive.replace(tzinfo=local_tz) if dt_naive.tzinfo is None else dt_naive
             dt_utc = dt_local.astimezone(utc_tz)
-        except ValueError:
+        except (ValueError, TypeError):
+            logger.warning(f"[GolfNow] Skipping unparseable time: {raw_time!r} (type={type(raw_time).__name__})")
             continue
 
         price_raw = entry.get("minTeeTimeRate", 0) or 0
+        if isinstance(price_raw, dict):
+            price_raw = price_raw.get("value", 0) or 0
         price = float(price_raw)
 
         hole_counts_seen = set()
@@ -237,7 +254,9 @@ async def process_single_target(
             await normalize_and_store(supabase, course, raw, date_str)
             return True
         except Exception as e:
+            import traceback
             logger.error(f"Error scanning {course.get('name')} for {date_str}: {e}")
+            logger.error(traceback.format_exc())
             return False
 
 async def main():
