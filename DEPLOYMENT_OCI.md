@@ -55,7 +55,7 @@ Since you want to exclude the large `seeds` directory, `rsync` is much better th
 From your **local terminal** (in the root of your project):
 ```bash
 # This copies the backend folder but EXCLUDES the large seeds directory
-rsync -av --exclude='seeds' --exclude='venv' --exclude='__pycache__' ./backend/ tee-time:~/backend
+rsync -av --exclude='seeds' --exclude='venv' --exclude='__pycache__' --exclude='tests' --exclude='pytest.ini' ./backend/ tee-time:~/backend
 ```
 *Note: The trailing slash on `./backend/` ensures we copy the **contents** into `~/backend` on the server.*
 

@@ -196,6 +196,33 @@ async def test_nb_holes_stored_correctly():
 
 
 # ---------------------------------------------------------------------------
+# Deduplication
+# ---------------------------------------------------------------------------
+
+async def test_duplicate_slots_deduped_before_upsert():
+    """
+    ChronoGolf returns two entries for the same tee time when a course has
+    split-tee / shotgun starts (e.g. 5:10 PM hole 1 AND 5:10 PM hole 10).
+    Both collapse to the same (course_id, tee_time, holes) key, which causes
+    a Postgres ON CONFLICT batch error. They must be deduped before upsert.
+    """
+    supabase = make_supabase_mock()
+    with patch("app.services.chronogolf_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.chronogolf_service import normalize_and_store
+
+        raw = [
+            make_raw_entry(start_time="17:10", price=105.6),
+            make_raw_entry(start_time="17:10", price=105.6),  # same time, different starting hole
+        ]
+        await normalize_and_store(CENTRAL_COURSE, raw, "2026-03-21")
+
+    rows = supabase.table().upsert.call_args[0][0]
+    tee_times = [r["tee_time"] for r in rows]
+    assert len(tee_times) == len(set(tee_times)), "Duplicate tee times reached the upsert payload"
+    assert len(rows) == 1
+
+
+# ---------------------------------------------------------------------------
 # Stale record diffing
 # ---------------------------------------------------------------------------
 
