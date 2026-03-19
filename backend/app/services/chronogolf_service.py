@@ -158,9 +158,15 @@ async def normalize_and_store(course, raw_data, date_str: str):
     if ids_to_remove:
         await supabase.table("availability").delete().in_("id", ids_to_remove).execute()
 
-    # 4. Upsert fresh data
+    # 4. Upsert fresh data (deduplicate to avoid ON CONFLICT batch errors when
+    #    ChronoGolf returns multiple slot instances for the same tee time)
     if tee_times:
-        payload = [t.to_dict() for t in tee_times]
+        unique_map = {}
+        for t in tee_times:
+            key = (t.tee_time.isoformat(), t.holes)
+            if key not in unique_map or t.price < unique_map[key].price:
+                unique_map[key] = t
+        payload = [t.to_dict() for t in unique_map.values()]
         await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
     
     num_available = len([t for t in tee_times if t.available])
