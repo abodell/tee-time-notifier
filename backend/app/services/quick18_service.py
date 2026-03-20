@@ -151,28 +151,50 @@ async def get_provider_configs(supabase, course_id: int) -> dict:
 # Main Service Method called by Job
 async def scan_quick18_course(course: Dict, date_str: str):
     course_id = course["id"]
-    
+
     supabase = await create_supabase()
     config = await get_provider_configs(supabase, course_id)
     base_url = config.get("base_url")
-    
+
     if not base_url:
         return
-    
+
     # Use timezone from course dict (fetched via alert join)
     time_zone = course.get("time_zone") or "UTC"
-    
+
     # date_str passed in is already YYYYMMDD
-    
+
     async with httpx.AsyncClient() as client:
         html = await fetch_quick18_times(client, base_url, date_str)
         if html:
             times = normalize_quick18(html, course_id, date_str, time_zone)
+            scanned_keys = {(t["tee_time"], t["holes"]) for t in times}
+
+            # Diff: fetch existing DB records for this course + date window and remove stale ones
+            local_tz = tz.gettz(time_zone) or tz.tzutc()
+            utc_tz = tz.tzutc()
+            day = datetime.strptime(date_str, "%Y%m%d")
+            window_start = day.replace(hour=0, minute=0, second=0, tzinfo=local_tz).astimezone(utc_tz).isoformat()
+            window_end = day.replace(hour=23, minute=59, second=59, tzinfo=local_tz).astimezone(utc_tz).isoformat()
+
+            db_res = await (
+                supabase.table("availability")
+                .select("id, tee_time, holes")
+                .eq("course_id", course_id)
+                .gte("tee_time", window_start)
+                .lte("tee_time", window_end)
+                .execute()
+            )
+            db_map = {(r["tee_time"], r["holes"]): r["id"] for r in db_res.data or []}
+
+            ids_to_remove = [db_id for key, db_id in db_map.items() if key not in scanned_keys]
+            if ids_to_remove:
+                await supabase.table("availability").delete().in_("id", ids_to_remove).execute()
+                logger.info(f"Removed {len(ids_to_remove)} stale times for Quick18 course {course['name']} on {date_str}")
+
             if times:
-                # Upsert logic handling conflict
-                # constraint: unique_tee_time_per_holes (course_id, tee_time, holes)
                 await supabase.table("availability").upsert(
-                    times, 
+                    times,
                     on_conflict="course_id, tee_time, holes"
                 ).execute()
                 logger.info(f"Stored {len(times)} times for Quick18 course {course['name']} on {date_str} (tz={time_zone})")
