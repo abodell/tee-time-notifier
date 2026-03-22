@@ -9,6 +9,7 @@ Covers:
   - booked/locked items skipped
   - price from green_fee
   - stale DB records removed via diff
+  - spots_available from available_spots_18 / available_spots_9 / available_spots
 """
 
 import sys, os
@@ -251,3 +252,63 @@ async def test_stale_records_deleted_when_not_in_scan():
     assert delete_call is not None, "Expected stale records to be deleted"
     deleted_ids = delete_call[0][1]
     assert 999 in deleted_ids
+
+
+# ---------------------------------------------------------------------------
+# spots_available
+# ---------------------------------------------------------------------------
+
+async def test_spots_available_from_18hole_field():
+    """available_spots_18=4 is stored as spots_available=4 on the 18-hole row."""
+    supabase = make_supabase_mock()
+    with patch("app.services.foreup_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.foreup_service import normalize_and_store
+
+        entry = {**make_raw_entry("2026-03-25T08:00:00", holes="18"), "available_spots_18": 4}
+        await normalize_and_store(CENTRAL_COURSE, [entry], "03-25-2026", "all")
+
+    rows = supabase.table().upsert.call_args[0][0]
+    row_18 = next(r for r in rows if r["holes"] == 18)
+    assert row_18["spots_available"] == 4
+
+
+async def test_spots_available_from_9hole_field():
+    """available_spots_9=2 is stored as spots_available=2 on the 9-hole row."""
+    supabase = make_supabase_mock()
+    with patch("app.services.foreup_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.foreup_service import normalize_and_store
+
+        entry = {**make_raw_entry("2026-03-25T08:00:00", holes="9"), "available_spots_9": 2}
+        await normalize_and_store(CENTRAL_COURSE, [entry], "03-25-2026", "all")
+
+    rows = supabase.table().upsert.call_args[0][0]
+    row_9 = next(r for r in rows if r["holes"] == 9)
+    assert row_9["spots_available"] == 2
+
+
+async def test_spots_available_fallback_to_generic_field():
+    """Falls back to available_spots when the holes-specific field is absent."""
+    supabase = make_supabase_mock()
+    with patch("app.services.foreup_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.foreup_service import normalize_and_store
+
+        entry = {**make_raw_entry("2026-03-25T08:00:00", holes="18"), "available_spots": 3}
+        await normalize_and_store(CENTRAL_COURSE, [entry], "03-25-2026", "all")
+
+    rows = supabase.table().upsert.call_args[0][0]
+    row_18 = next(r for r in rows if r["holes"] == 18)
+    assert row_18["spots_available"] == 3
+
+
+async def test_spots_available_none_when_no_field():
+    """No spots field in raw entry → spots_available=None."""
+    supabase = make_supabase_mock()
+    with patch("app.services.foreup_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.foreup_service import normalize_and_store
+
+        entry = make_raw_entry("2026-03-25T08:00:00", holes="18")
+        await normalize_and_store(CENTRAL_COURSE, [entry], "03-25-2026", "all")
+
+    rows = supabase.table().upsert.call_args[0][0]
+    row_18 = next(r for r in rows if r["holes"] == 18)
+    assert row_18["spots_available"] is None

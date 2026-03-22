@@ -160,9 +160,21 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
                 actual_holes_to_store = [18]
 
         for num_holes in actual_holes_to_store:
+            # Pick the holes-specific spots count when available, fall back to overall
+            if num_holes == 9:
+                spots = item.get("available_spots_9") or item.get("available_spots")
+            elif num_holes == 18:
+                spots = item.get("available_spots_18") or item.get("available_spots")
+            else:
+                spots = item.get("available_spots")
+            try:
+                spots_available = int(spots) if spots is not None else None
+            except (TypeError, ValueError):
+                spots_available = None
+
             # Track scanned keys for diffing
             scanned_keys.add((dt_utc.isoformat(), num_holes))
-            
+
             tee_times.append(
                 TeeTime(
                     course_id = course['id'],
@@ -172,6 +184,7 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
                     available = available,
                     source = "ForeUp",
                     raw = item,
+                    spots_available = spots_available,
                 )
             )
 

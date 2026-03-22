@@ -157,7 +157,7 @@ export default function CourseSearchScreen() {
     Keyboard.dismiss();
     router.push({
       pathname: "/create-details",
-      params: { id: course.id, name: course.name },
+      params: { id: course.id, name: course.name, tierName },
     });
   };
 

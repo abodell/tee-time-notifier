@@ -47,6 +47,28 @@ REQUEST_HEADERS = {
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+_PLAYER_WORD_MAP = {"One": 1, "Two": 2, "Three": 3, "Four": 4}
+
+def _player_rule_to_max(rule: str) -> Optional[int]:
+    """Convert GolfNow playerRule string to max allowed players.
+
+    Examples: "Two"→2, "OneTwo"→2, "OneTwoThreeFour"→4, "Any"→4
+    Returns None if the rule string is empty or unrecognised.
+    """
+    if not rule:
+        return None
+    if rule == "Any":
+        return 4
+    max_p = 0
+    for word, n in _PLAYER_WORD_MAP.items():
+        if word in rule:
+            max_p = max(max_p, n)
+    return max_p if max_p > 0 else None
+
+
+# ---------------------------------------------------------------------------
 # Target discovery
 # ---------------------------------------------------------------------------
 async def get_active_golfnow_targets() -> Dict[Tuple[int, str], Dict]:
@@ -246,6 +268,11 @@ async def normalize_and_store(
         if not hole_counts_seen:
             hole_counts_seen = {18}  # default to 18
 
+        # Parse playerRule CamelCase string into max allowed players.
+        # e.g. "Two"→2, "OneTwo"→2, "OneTwoThreeFour"→4, "Any"→4
+        player_rule = entry.get("playerRule") or ""
+        spots_available = _player_rule_to_max(player_rule)
+
         for holes in hole_counts_seen:
             key = (dt_utc.isoformat(), holes)
             scanned_keys.add(key)
@@ -254,7 +281,8 @@ async def normalize_and_store(
                 "tee_time": dt_utc.isoformat(),
                 "price": price,
                 "holes": holes,
-                "available": True
+                "available": True,
+                "spots_available": spots_available,
             })
 
     # Diff: remove stale rows no longer returned by the API

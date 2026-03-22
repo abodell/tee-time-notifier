@@ -274,6 +274,13 @@ export default function MyAlertsScreen() {
                 </Text>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
                   {dayjs.utc(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
+                  {item.players ? (
+                    <>
+                      {" • "}
+                      <MaterialCommunityIcons name="account-group" size={12} />
+                      {` ${item.players}p`}
+                    </>
+                  ) : null}
                 </Text>
                 <Text variant="bodySmall" style={{ color: theme.colors.primary, marginTop: 2, fontWeight: "500" }}>
                   {formatInTimeZone(item.start_time, itemTz)} - {formatInTimeZone(item.end_time, itemTz)}
@@ -310,6 +317,14 @@ export default function MyAlertsScreen() {
                   </Text>
                 ) : (
                   notifications
+                    .filter((n) => {
+                      // Hide tee times where live spots_available has dropped below the alert's requirement.
+                      const spotsNow = n.availability?.spots_available;
+                      if (item.players != null && spotsNow != null && spotsNow < item.players) {
+                        return false;
+                      }
+                      return true;
+                    })
                     .sort((a, b) => {
                       const timeA = a.availability?.tee_time ? new Date(a.availability.tee_time).getTime() : 0;
                       const timeB = b.availability?.tee_time ? new Date(b.availability.tee_time).getTime() : 0;
@@ -329,6 +344,9 @@ export default function MyAlertsScreen() {
                               {notif.availability?.price ? (
                                 <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
                                   ${notif.availability.price.toFixed(2)}
+                                  {notif.availability.spots_available != null
+                                    ? `  •  ${notif.availability.spots_available} Player${notif.availability.spots_available !== 1 ? "s" : ""}`
+                                    : ""}
                                 </Text>
                               ) : null}
                             </View>

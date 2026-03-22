@@ -50,6 +50,7 @@ def make_supabase_for_process(tee_times=None, existing_notifications=None):
     avail_chain.eq = MagicMock(return_value=avail_chain)
     avail_chain.gte = MagicMock(return_value=avail_chain)
     avail_chain.lte = MagicMock(return_value=avail_chain)
+    avail_chain.or_ = MagicMock(return_value=avail_chain)
     avail_chain.execute = AsyncMock(return_value=MagicMock(data=tee_times))
 
     avail_table = MagicMock()
@@ -57,6 +58,8 @@ def make_supabase_for_process(tee_times=None, existing_notifications=None):
 
     notif_select_chain = MagicMock()
     notif_select_chain.eq = MagicMock(return_value=notif_select_chain)
+    notif_select_chain.order = MagicMock(return_value=notif_select_chain)
+    notif_select_chain.limit = MagicMock(return_value=notif_select_chain)
     notif_select_chain.execute = AsyncMock(return_value=MagicMock(data=existing_notifications))
 
     notif_insert_chain = MagicMock()
@@ -74,13 +77,13 @@ def make_supabase_for_process(tee_times=None, existing_notifications=None):
     return mock, avail_table, notif_table
 
 
-def make_alert(alert_id=1, user_id="user-123", course_id=100, holes=18):
-    now = datetime(2026, 3, 24, tzinfo=timezone.utc)
+def make_alert(alert_id=1, user_id="user-123", course_id=100, holes=18, players=None):
     return {
         "id": alert_id,
         "user_id": user_id,
         "course_id": course_id,
         "holes": holes,
+        "players": players,
         "start_time": datetime(2026, 3, 24, 12, 0, 0, tzinfo=timezone.utc).isoformat(),
         "end_time": datetime(2026, 3, 24, 16, 0, 0, tzinfo=timezone.utc).isoformat(),
     }
@@ -249,3 +252,42 @@ async def test_process_single_alert_multiple_new_tee_times():
     await process_single_alert(supabase, alert, now, summaries)
 
     assert summaries[1]["count"] == 3
+
+
+# ---------------------------------------------------------------------------
+# players filter in process_single_alert
+# ---------------------------------------------------------------------------
+
+async def test_players_filter_applied_when_set():
+    """
+    When alert.players=3, the query must include an or_ filter that allows
+    spots_available IS NULL or spots_available >= 3.
+    """
+    from app.services.alert_service import process_single_alert
+
+    tee_times = [{"id": 55, "course_id": 100, "tee_time": "2026-03-24T12:00:00+00:00", "holes": 18}]
+    supabase, avail_table, notif_table = make_supabase_for_process(tee_times=tee_times)
+
+    alert = make_alert(players=3)
+    await process_single_alert(supabase, alert, datetime(2026, 3, 24, tzinfo=timezone.utc), {})
+
+    # or_ must have been called on the availability query chain
+    avail_table.select.return_value.or_.assert_called_once()
+    call_arg = avail_table.select.return_value.or_.call_args[0][0]
+    assert "spots_available.is.null" in call_arg
+    assert "spots_available.gte.3" in call_arg
+
+
+async def test_players_filter_not_applied_when_none():
+    """
+    When alert.players=None (Any), or_ must NOT be called on the query.
+    """
+    from app.services.alert_service import process_single_alert
+
+    tee_times = [{"id": 56, "course_id": 100, "tee_time": "2026-03-24T12:00:00+00:00", "holes": 18}]
+    supabase, avail_table, notif_table = make_supabase_for_process(tee_times=tee_times)
+
+    alert = make_alert(players=None)
+    await process_single_alert(supabase, alert, datetime(2026, 3, 24, tzinfo=timezone.utc), {})
+
+    avail_table.select.return_value.or_.assert_not_called()

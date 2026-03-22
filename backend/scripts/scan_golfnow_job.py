@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.db import create_supabase
+from app.services.golfnow_service import _player_rule_to_max
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -210,6 +211,9 @@ async def normalize_and_store(
         if not hole_counts_seen:
             hole_counts_seen = {18}
 
+        player_rule = entry.get("playerRule") or ""
+        spots_available = _player_rule_to_max(player_rule)
+
         for holes in hole_counts_seen:
             key = (dt_utc.isoformat(), holes)
             scanned_keys.add(key)
@@ -218,7 +222,8 @@ async def normalize_and_store(
                 "tee_time": dt_utc.isoformat(),
                 "price": price,
                 "holes": holes,
-                "available": True
+                "available": True,
+                "spots_available": spots_available,
             })
 
     ids_to_remove = [
