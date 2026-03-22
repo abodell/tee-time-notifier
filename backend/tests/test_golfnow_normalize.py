@@ -290,3 +290,70 @@ async def test_existing_db_records_with_datetime_objects():
     entry = make_entry(time_value={"date": "2026-03-24T07:00:00+00:00", "formatted": "7:00", "formattedTimeMeridian": "AM"})
     # Should not raise
     await normalize_and_store(supabase, CENTRAL_COURSE, [entry], "Mar 24 2026")
+
+
+# ---------------------------------------------------------------------------
+# spots_available — playerRule parsing
+# ---------------------------------------------------------------------------
+
+from app.services.golfnow_service import _player_rule_to_max
+
+
+def test_player_rule_single_word():
+    """'Two' → 2."""
+    assert _player_rule_to_max("Two") == 2
+
+
+def test_player_rule_compound():
+    """'OneTwo' → 2 (highest word)."""
+    assert _player_rule_to_max("OneTwo") == 2
+
+
+def test_player_rule_full_range():
+    """'OneTwoThreeFour' → 4."""
+    assert _player_rule_to_max("OneTwoThreeFour") == 4
+
+
+def test_player_rule_any():
+    """'Any' → 4."""
+    assert _player_rule_to_max("Any") == 4
+
+
+def test_player_rule_empty_string():
+    """Empty rule → None."""
+    assert _player_rule_to_max("") is None
+
+
+def test_player_rule_none_input():
+    """None rule → None."""
+    assert _player_rule_to_max(None) is None
+
+
+async def test_player_rule_stored_as_spots_available():
+    """playerRule in raw entry is parsed and stored as spots_available."""
+    supabase = make_supabase_mock()
+    entry = make_entry(
+        time_value={"date": "2026-03-24T08:00:00+00:00", "formatted": "8:00", "formattedTimeMeridian": "AM"},
+        price_value={"value": 52.0},
+    )
+    entry["playerRule"] = "OneTwo"  # max 2 players
+
+    await normalize_and_store(supabase, CENTRAL_COURSE, [entry], "Mar 24 2026")
+
+    rows = supabase.table().upsert.call_args[0][0]
+    assert any(r["spots_available"] == 2 for r in rows)
+
+
+async def test_missing_player_rule_is_none():
+    """Entry with no playerRule → spots_available=None."""
+    supabase = make_supabase_mock()
+    entry = make_entry(
+        time_value={"date": "2026-03-24T08:00:00+00:00", "formatted": "8:00", "formattedTimeMeridian": "AM"},
+        price_value={"value": 52.0},
+    )
+    # playerRule intentionally omitted
+
+    await normalize_and_store(supabase, CENTRAL_COURSE, [entry], "Mar 24 2026")
+
+    rows = supabase.table().upsert.call_args[0][0]
+    assert all(r["spots_available"] is None for r in rows)

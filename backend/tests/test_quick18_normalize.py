@@ -169,3 +169,35 @@ def test_available_true():
     html = make_matrix_html([make_row("8:00 AM", "60.00")])
     result = normalize_quick18(html, COURSE_ID, DATE_STR, "America/Chicago")
     assert result[0]["available"] is True
+
+
+# ---------------------------------------------------------------------------
+# spots_available — matrixPlayers cell
+# ---------------------------------------------------------------------------
+
+def make_row_with_players(time_str="7:00 AM", price="55.00", players_text=None):
+    """Build a matrixTable row optionally with a matrixPlayers cell."""
+    players_cell = f'<td class="matrixPlayers">{players_text}</td>' if players_text else ""
+    return f"<td>{time_str}</td><td>${price}</td>{players_cell}"
+
+
+def test_spots_available_from_matrix_players_cell():
+    """'1 to 3 players' → spots_available=3 (last number)."""
+    html = make_matrix_html([make_row_with_players("8:00 AM", "60.00", "1 to 3 players")])
+    result = normalize_quick18(html, COURSE_ID, DATE_STR, "America/Chicago")
+    assert len(result) == 1
+    assert result[0]["spots_available"] == 3
+
+
+def test_spots_available_single_player_text():
+    """'1 players' → spots_available=1."""
+    html = make_matrix_html([make_row_with_players("8:00 AM", "60.00", "1 players")])
+    result = normalize_quick18(html, COURSE_ID, DATE_STR, "America/Chicago")
+    assert result[0]["spots_available"] == 1
+
+
+def test_spots_available_none_when_no_players_cell():
+    """Row without matrixPlayers cell → spots_available=None."""
+    html = make_matrix_html([make_row("8:00 AM", "60.00")])
+    result = normalize_quick18(html, COURSE_ID, DATE_STR, "America/Chicago")
+    assert result[0]["spots_available"] is None

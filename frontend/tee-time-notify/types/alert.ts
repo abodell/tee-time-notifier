@@ -9,6 +9,7 @@ export interface Course {
 export interface Availability {
   tee_time: string;
   price?: number;
+  spots_available?: number | null;
 }
 
 export interface AlertNotification {
@@ -22,6 +23,7 @@ export interface Alert {
   user_id: string;
   course_id: number;
   holes: number;
+  players?: number | null;
   date_from?: string;
   date_to?: string;
   start_time?: string;

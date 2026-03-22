@@ -40,35 +40,37 @@ def normalize_quick18(html: str, course_id: int, date_str: str, time_zone: str =
         # Regex for price: $55.00 or 55.00
         price_re = re.compile(r'\$?\s*(\d+\.?\d{2})')
 
+        # Regex for max players from matrixPlayers cell: "1 to 3 players" → 3
+        players_re = re.compile(r'(\d+)\s+players?', re.I)
+
         # Loop rows
         for row in matrix.find_all('tr'):
             text = row.get_text(" ", strip=True)
             # Check if row has time and price
             t_match = time_re.search(text)
             p_match = price_re.search(text)
-            
+
             if t_match and p_match:
                 time_str = t_match.group(1)
                 price_str = p_match.group(1)
-                
-                # Player count often in a separate column or assumes 1-4
-                # We'll default to 4 if not found
-                players = 4
-                if "1 to" in text: players = 4 # generic guess
-                
-                # Parse cart info?
-                cart = "Yes" if "Cart" in text else "No"
-                
+
+                # Parse max players from <td class="matrixPlayers"> cell
+                # e.g. "1 to 3 players" → spots_available=3
+                spots_available = None
+                players_cell = row.find(class_=re.compile(r'matrixPlayers', re.I))
+                if players_cell:
+                    all_nums = players_re.findall(players_cell.get_text(" ", strip=True))
+                    if all_nums:
+                        spots_available = int(all_nums[-1])  # last number = max
+
                 tee_times.append({
                     "course_id": course_id,
-                    "tee_time": f"{date_str} {time_str}", # Converted to ISO below
+                    "tee_time": f"{date_str} {time_str}",
                     "price": float(price_str),
                     "holes": 18,
                     "available": True,
-                    "data": {
-                        "players": players,
-                        "cart": cart == "Yes"
-                    }
+                    "spots_available": spots_available,
+                    "data": {"cart": "Cart" in text}
                 })
     
     # Normalize Date/Time to UTC ISO, applying course's local timezone

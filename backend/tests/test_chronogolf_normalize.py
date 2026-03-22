@@ -242,3 +242,64 @@ async def test_stale_records_deleted():
     delete_call = supabase.table().delete().in_.call_args
     assert delete_call is not None
     assert 777 in delete_call[0][1]
+
+
+# ---------------------------------------------------------------------------
+# spots_available — v2 vs v1 API format
+# ---------------------------------------------------------------------------
+
+def make_v2_entry(starts_at="2026-03-24T12:00:00Z", max_player_size=3,
+                  bookable_holes=None, price=55.0):
+    """Build a v2-format ChronoGolf tee-time entry."""
+    bookable_holes = bookable_holes or [18]
+    return {
+        "starts_at": starts_at,
+        "max_player_size": max_player_size,
+        "min_player_size": 1,
+        "course": {"id": 4387, "bookable_holes": bookable_holes, "uuid": "test-uuid"},
+        "affiliation_types_availability": [
+            {"bookable_holes": [
+                {"hole": h, "green_fees": [{"price": price}]} for h in bookable_holes
+            ]}
+        ],
+    }
+
+
+async def test_v2_max_player_size_stored_as_spots_available():
+    """v2 entry with max_player_size=3 → spots_available=3."""
+    supabase = make_supabase_mock()
+    with patch("app.services.chronogolf_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.chronogolf_service import normalize_and_store
+
+        raw = [make_v2_entry(max_player_size=3)]
+        await normalize_and_store(CENTRAL_COURSE, raw, "2026-03-24", is_v2=True)
+
+    rows = supabase.table().upsert.call_args[0][0]
+    assert any(r["spots_available"] == 3 for r in rows)
+
+
+async def test_v2_max_player_size_zero_marks_unavailable():
+    """v2 entry with max_player_size=0 → available=False, spots_available=None."""
+    supabase = make_supabase_mock()
+    with patch("app.services.chronogolf_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.chronogolf_service import normalize_and_store
+
+        raw = [make_v2_entry(max_player_size=0)]
+        await normalize_and_store(CENTRAL_COURSE, raw, "2026-03-24", is_v2=True)
+
+    rows = supabase.table().upsert.call_args[0][0]
+    assert all(r["available"] is False for r in rows)
+    assert all(r["spots_available"] is None for r in rows)
+
+
+async def test_v1_spots_available_is_none():
+    """v1 API format → spots_available=None (field not exposed)."""
+    supabase = make_supabase_mock()
+    with patch("app.services.chronogolf_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.chronogolf_service import normalize_and_store
+
+        raw = [make_raw_entry(out_of_capacity=False)]
+        await normalize_and_store(CENTRAL_COURSE, raw, "2026-03-24", is_v2=False)
+
+    rows = supabase.table().upsert.call_args[0][0]
+    assert all(r["spots_available"] is None for r in rows)

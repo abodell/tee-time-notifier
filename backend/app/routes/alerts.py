@@ -65,15 +65,15 @@ async def create_alert(alert: dict):
                 detail=f"Your {tier_name} plan allows up to {max_alerts} active alert(s). Please upgrade your plan to add more"
             )
             
-        # Optional: ensure is_recurring is only accepted for PRO tier members
-        # In this implementation, the frontend will gate it, but we can also sanitize it.
-        is_recurring = alert.get("is_recurring", False)
-        
+        is_recurring = alert.get("is_recurring", False) if tier_name == "Pro" else False
+        players = alert.get("players") if tier_name in ("Plus", "Pro") else None
+
         # Build strict payload
         insert_payload = {
             "user_id": user_id,
             "course_id": alert.get("course_id"),
             "holes": alert.get("holes"),
+            "players": players,
             "date_from": alert.get("date_from"),
             "date_to": alert.get("date_to"),
             "start_time": alert.get("start_time"),
@@ -126,8 +126,8 @@ async def _scan_provider_for_alert(supabase, course: dict, date_from: str, alert
             from app.services.chronogolf_service import get_provider_configs, fetch_chronogolf_times, normalize_and_store
             date_str = dt.strftime("%Y-%m-%d")
             cfgs = await get_provider_configs(supabase, course["id"])
-            data = await fetch_chronogolf_times(cfgs, date_str)
-            await normalize_and_store(course, data, date_str)
+            data, is_v2 = await fetch_chronogolf_times(supabase, course["id"], cfgs, date_str)
+            await normalize_and_store(course, data, date_str, is_v2=is_v2)
 
         elif provider == "quick18":
             from app.services.quick18_service import scan_quick18_course
@@ -136,11 +136,10 @@ async def _scan_provider_for_alert(supabase, course: dict, date_from: str, alert
 
         elif provider == "eagleclub":
             from app.services.eagleclub_service import get_provider_configs, fetch_eagleclub_times, normalize_and_store
-            date_str = dt.strftime("%Y%m%d")
             cfgs = await get_provider_configs(supabase, course["id"])
             async with httpx.AsyncClient() as client:
-                data = await fetch_eagleclub_times(client, course, cfgs, date_str)
-            await normalize_and_store(course, data, date_str)
+                data = await fetch_eagleclub_times(client, course, cfgs)
+            await normalize_and_store(course, data)
 
         elif provider == "golfnow":
             from app.config import settings
@@ -240,6 +239,7 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
         user_id = alert["user_id"]
         course_id = alert["course_id"]
         holes = alert.get("holes")
+        players = alert.get("players")  # None = Any
 
         token = await get_user_push_token(user_id)
         if not token:
@@ -261,8 +261,15 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
             time_str = local_dt.strftime("%I:%M %p").lstrip("0")
             return f"{local_dt.strftime('%a %b')} {local_dt.day} at {time_str}"
 
+        def apply_players_filter(q):
+            if players is not None:
+                # Pass through slots where spots_available is unknown (NULL) so
+                # providers without player count data don't silently block notifications.
+                return q.or_(f"spots_available.is.null,spots_available.gte.{players}")
+            return q
+
         # 1. Exact match
-        exact_res = await (
+        exact_q = (
             supabase.table("availability")
             .select("id, tee_time")
             .eq("course_id", course_id)
@@ -272,8 +279,8 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
             .lte("tee_time", end_dt.isoformat())
             .order("tee_time")
             .limit(1)
-            .execute()
         )
+        exact_res = await apply_players_filter(exact_q).execute()
         if exact_res.data:
             availability_id = exact_res.data[0]["id"]
             tee_dt = datetime.fromisoformat(exact_res.data[0]["tee_time"]).astimezone(timezone.utc)
@@ -297,7 +304,7 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
         )
         nearby_end = (end_dt + timedelta(days=3)).replace(hour=23, minute=59, second=59, microsecond=0)
 
-        nearby_res = await (
+        nearby_q = (
             supabase.table("availability")
             .select("id, tee_time")
             .eq("course_id", course_id)
@@ -307,14 +314,14 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
             .lte("tee_time", nearby_end.isoformat())
             .order("tee_time")
             .limit(1)
-            .execute()
         )
+        nearby_res = await apply_players_filter(nearby_q).execute()
         if nearby_res.data:
             tee_dt = datetime.fromisoformat(nearby_res.data[0]["tee_time"]).astimezone(timezone.utc)
             await send_push_notification(
                 token,
                 f"{course_name}",
-                f"Nothing on your date, but {fmt(tee_dt)} is open.",
+                f"Nothing for your alert, but {fmt(tee_dt)} is open.",
                 data={"alertId": str(alert_id)},
             )
             return
@@ -350,7 +357,7 @@ async def get_user_alerts(user_id: str):
         .select(
             "*, "
             "courses!alerts_course_id_fkey(name, city, state, provider_url, time_zone), "
-            "alert_notifications(id, sent_at, availability(tee_time, price))"
+            "alert_notifications(id, sent_at, availability(tee_time, price, spots_available))"
         )
         .eq("user_id", user_id)
         .order("created_at", desc=True)

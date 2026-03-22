@@ -40,12 +40,13 @@ function combinedDateAndTime(date: Date, time: Date, tz: string) {
 }
 
 export default function CreateDetailsScreen() {
-  const { id, name } = useLocalSearchParams();
+  const { id, name, tierName: tierNameParam } = useLocalSearchParams();
   const router = useRouter();
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
   const [holes, setHoles] = useState<string>("18");
+  const [players, setPlayers] = useState<string>("0"); // "0" = Any
   const [date, setDate] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
@@ -54,7 +55,9 @@ export default function CreateDetailsScreen() {
   const [endValid, setEndValid] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [tierName, setTierName] = useState<string | null>(null);
+  const [tierName, setTierName] = useState<string | null>(
+    typeof tierNameParam === "string" ? tierNameParam : null
+  );
 
   React.useEffect(() => {
     const fetchCourseAndProfile = async () => {
@@ -113,6 +116,7 @@ export default function CreateDetailsScreen() {
       const alertPayload = {
         user_id: data.session.user.id,
         holes: parseInt(holes),
+        players: players === "0" ? null : parseInt(players),
         course_id: courseId,
         date_from: combinedStart?.startOf("day").toISOString(),
         date_to: combinedEnd?.startOf("day").toISOString(),
@@ -224,6 +228,53 @@ export default function CreateDetailsScreen() {
           </Surface>
 
         </View>
+
+        {/* Grouped Form: Players */}
+        {(() => {
+          const isPaidTier = tierName === "Plus" || tierName === "Pro";
+          return (
+            <View style={styles.sectionContainer}>
+              <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
+                PLAYERS
+              </Text>
+              <Surface
+                style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
+                elevation={0}
+              >
+                <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface }]}>
+                  <View pointerEvents={isPaidTier ? "auto" : "none"} style={{ opacity: isPaidTier ? 1 : 0.4 }}>
+                    <SegmentedButtons
+                      value={players}
+                      onValueChange={setPlayers}
+                      buttons={[
+                        { value: "1", label: "1", style: { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 } },
+                        { value: "2", label: "2" },
+                        { value: "3", label: "3" },
+                        { value: "4", label: "4", style: { borderTopRightRadius: 12, borderBottomRightRadius: 12 } },
+                      ]}
+                      style={styles.segmentedBtn}
+                      density="medium"
+                    />
+                  </View>
+                </View>
+
+                {!isPaidTier && tierName !== null && (
+                  <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: theme.colors.surfaceVariant + "40", padding: 12, borderRadius: 8 }}>
+                    <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 13, lineHeight: 18 }}>
+                      Filter by group size with Plus or Pro.{" "}
+                      <Text
+                        style={{ color: theme.colors.primary, fontWeight: "700" }}
+                        onPress={() => router.push("/upgrade")}
+                      >
+                        Upgrade
+                      </Text>
+                    </Text>
+                  </View>
+                )}
+              </Surface>
+            </View>
+          );
+        })()}
 
         {/* Grouped Form: Window */}
         <View style={styles.sectionContainer}>

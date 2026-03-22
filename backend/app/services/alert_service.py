@@ -78,23 +78,29 @@ async def process_single_alert(supabase, alert, now, summaries):
     """ Worker for concurrent alert checking """
     course_id = alert["course_id"]
     holes = alert.get("holes")
+    players = alert.get("players")  # None = Any
     alert_id = alert["id"]
     user_id = alert["user_id"]
 
     # User selected day in UTC
     start_dt = datetime.fromisoformat(alert['start_time']).astimezone(timezone.utc)
     end_dt = datetime.fromisoformat(alert['end_time']).astimezone(timezone.utc)
-    
-    tee_times_execute = await (
+
+    query = (
         supabase.table("availability")
-        .select("id, course_id, tee_time, holes")
+        .select("id, course_id, tee_time, holes, spots_available")
         .eq("course_id", course_id)
         .eq("holes", holes)
         .eq("available", True)
         .gte("tee_time", start_dt.isoformat())
         .lte("tee_time", end_dt.isoformat())
-        .execute()
     )
+    if players is not None:
+        # Pass through slots where spots_available is unknown (NULL) so providers
+        # without player count data don't silently block notifications.
+        query = query.or_(f"spots_available.is.null,spots_available.gte.{players}")
+
+    tee_times_execute = await query.execute()
 
     tee_times = tee_times_execute.data or []
     if not tee_times:
@@ -102,26 +108,36 @@ async def process_single_alert(supabase, alert, now, summaries):
 
     new_ids = []
     for tee in tee_times:
-        # Check for existing notification for THIS specific availability record to avoid spam
-        # Since reappearing tee-times (cancellations) get a fresh ID from the scanner,
-        # they will pass this check and trigger a re-notification.
+        current_spots = tee.get("spots_available")
+
+        # Check for existing notification for this (alert, availability) pair.
+        # Re-notify if spots_available has increased since the last notification
+        # (e.g. a cancellation freed up more spots than before).
         existing_res = await (
             supabase.table("alert_notifications")
-            .select("id")
+            .select("id, spots_available")
             .eq("alert_id", alert_id)
             .eq("availability_id", tee["id"])
+            .order("sent_at", desc=True)
+            .limit(1)
             .execute()
         )
 
-        if not existing_res.data:
-            await supabase.table("alert_notifications").insert({
-                "alert_id": alert_id,
-                "availability_id": tee["id"],
-                "via": "push",
-                "status": "sent",
-                "sent_at": now.isoformat()
-            }).execute()
-            new_ids.append(tee["id"])
+        if existing_res.data:
+            last_spots = existing_res.data[0].get("spots_available")
+            # Only re-notify if both values are known and spots increased
+            if not (current_spots is not None and last_spots is not None and current_spots > last_spots):
+                continue
+
+        await supabase.table("alert_notifications").insert({
+            "alert_id": alert_id,
+            "availability_id": tee["id"],
+            "spots_available": current_spots,
+            "via": "push",
+            "status": "sent",
+            "sent_at": now.isoformat()
+        }).execute()
+        new_ids.append(tee["id"])
     
     if new_ids:
         summaries[alert_id] = {

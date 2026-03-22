@@ -9,12 +9,13 @@ Covers:
   - Both fees zero → entry skipped
   - Deduplication: duplicate (time, holes) → keep lowest price
   - Stale DB records removed via diff
+  - Slots field stored as spots_available
 """
 
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from dateutil import tz
 
@@ -22,6 +23,11 @@ from dateutil import tz
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _tomorrow_date_str():
+    """Return tomorrow's date as YYYYMMDD — always within the 8-day scan window."""
+    return (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y%m%d")
+
 
 def make_supabase_mock(existing_records=None):
     existing_records = existing_records or []
@@ -49,11 +55,12 @@ def make_supabase_mock(existing_records=None):
     return mock
 
 
-def make_raw_entry(date="20260324", time="0700", reserve_online=1,
+def make_raw_entry(date=None, time="0700", reserve_online=1,
                    nine_fee=0.0, nine_carriage=0.0,
-                   eighteen_fee=55.0, eighteen_carriage=15.0):
-    return {
-        "Date": date,
+                   eighteen_fee=55.0, eighteen_carriage=15.0,
+                   slots=None):
+    entry = {
+        "Date": date or _tomorrow_date_str(),
         "Time": time,
         "ReserveOnline": reserve_online,
         "NineFee": nine_fee,
@@ -61,6 +68,9 @@ def make_raw_entry(date="20260324", time="0700", reserve_online=1,
         "EighteenFee": eighteen_fee,
         "CarriageEighteenFee": eighteen_carriage,
     }
+    if slots is not None:
+        entry["Slots"] = slots
+    return entry
 
 
 CENTRAL_COURSE = {
@@ -74,34 +84,35 @@ CENTRAL_COURSE = {
 # Timezone conversion
 # ---------------------------------------------------------------------------
 
-async def test_7am_central_stored_as_12pm_utc():
-    """Time '0700' for CDT course → 12:00 UTC."""
+async def test_7am_central_stores_correct_utc():
+    """Time '0700' for America/Chicago course is stored as the right UTC hour."""
     supabase = make_supabase_mock()
     with patch("app.services.eagleclub_service.create_supabase", AsyncMock(return_value=supabase)):
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(time="0700")]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     call = supabase.table().upsert.call_args
     assert call is not None
     rows = call[0][0]
-    # Should have one 18-hole row (NineFee=0, EighteenFee=55)
     assert any(r["holes"] == 18 for r in rows)
     utc_row = next(r for r in rows if r["holes"] == 18)
     stored_dt = datetime.fromisoformat(utc_row["tee_time"])
-    assert stored_dt.astimezone(tz.tzutc()).hour == 12
+    # Round-trip: convert back to local and verify the original hour
+    local = stored_dt.astimezone(tz.gettz("America/Chicago"))
+    assert local.hour == 7
 
 
-async def test_7am_eastern_stored_as_11am_utc():
-    """Time '0700' for EDT course → 11:00 UTC."""
+async def test_7am_eastern_stored_as_correct_utc():
+    """Time '0700' for Eastern course round-trips back to 7am local."""
     eastern_course = {"id": 2, "name": "Eastern", "time_zone": "America/New_York"}
     supabase = make_supabase_mock()
     with patch("app.services.eagleclub_service.create_supabase", AsyncMock(return_value=supabase)):
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(time="0700")]
-        await normalize_and_store(eastern_course, raw, "20260324")
+        await normalize_and_store(eastern_course, raw)
 
     rows = supabase.table().upsert.call_args[0][0]
     utc_row = next(r for r in rows if r["holes"] == 18)
@@ -121,7 +132,7 @@ async def test_reserve_online_0_skipped():
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(reserve_online=0)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     assert supabase.table().upsert.call_args is None
 
@@ -133,7 +144,7 @@ async def test_reserve_online_1_stored():
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(reserve_online=1)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     assert supabase.table().upsert.call_args is not None
 
@@ -149,7 +160,7 @@ async def test_eighteen_only_creates_one_row():
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(nine_fee=0, eighteen_fee=55.0, eighteen_carriage=15.0)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     rows = supabase.table().upsert.call_args[0][0]
     hole_counts = {r["holes"] for r in rows}
@@ -163,7 +174,7 @@ async def test_nine_only_creates_one_row():
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(nine_fee=30.0, nine_carriage=10.0, eighteen_fee=0, eighteen_carriage=0)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     rows = supabase.table().upsert.call_args[0][0]
     hole_counts = {r["holes"] for r in rows}
@@ -178,7 +189,7 @@ async def test_both_fees_creates_two_rows():
 
         raw = [make_raw_entry(nine_fee=30.0, nine_carriage=10.0,
                               eighteen_fee=55.0, eighteen_carriage=15.0)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     rows = supabase.table().upsert.call_args[0][0]
     hole_counts = {r["holes"] for r in rows}
@@ -192,7 +203,7 @@ async def test_both_fees_zero_entry_skipped():
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(nine_fee=0, nine_carriage=0, eighteen_fee=0, eighteen_carriage=0)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     assert supabase.table().upsert.call_args is None
 
@@ -208,7 +219,7 @@ async def test_eighteen_price_sums_fee_and_carriage():
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(eighteen_fee=55.0, eighteen_carriage=15.0)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     rows = supabase.table().upsert.call_args[0][0]
     row_18 = next(r for r in rows if r["holes"] == 18)
@@ -222,7 +233,7 @@ async def test_nine_price_sums_fee_and_carriage():
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(nine_fee=30.0, nine_carriage=10.0, eighteen_fee=0, eighteen_carriage=0)]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     rows = supabase.table().upsert.call_args[0][0]
     row_9 = next(r for r in rows if r["holes"] == 9)
@@ -243,7 +254,7 @@ async def test_duplicate_time_and_holes_deduplicates_to_lowest_price():
             make_raw_entry(time="0700", eighteen_fee=70.0, eighteen_carriage=0),
             make_raw_entry(time="0700", eighteen_fee=55.0, eighteen_carriage=0),  # cheaper
         ]
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     rows = supabase.table().upsert.call_args[0][0]
     rows_18 = [r for r in rows if r["holes"] == 18]
@@ -257,16 +268,65 @@ async def test_duplicate_time_and_holes_deduplicates_to_lowest_price():
 
 async def test_stale_records_deleted():
     """DB records not returned by scan are deleted."""
-    old_dt = datetime(2026, 3, 24, 11, 0, 0, tzinfo=tz.tzutc())
-    existing_records = [{"id": 888, "tee_time": old_dt.isoformat(), "holes": 18}]
+    # Use a time within the 8-day window but different from what the scan returns
+    stale_dt = datetime.now(timezone.utc) + timedelta(days=1, hours=4)
+    stale_dt = stale_dt.replace(minute=0, second=0, microsecond=0)
+    existing_records = [{"id": 888, "tee_time": stale_dt.isoformat(), "holes": 18}]
     supabase = make_supabase_mock(existing_records=existing_records)
 
     with patch("app.services.eagleclub_service.create_supabase", AsyncMock(return_value=supabase)):
         from app.services.eagleclub_service import normalize_and_store
 
         raw = [make_raw_entry(time="0700")]  # different time → stale record gets deleted
-        await normalize_and_store(CENTRAL_COURSE, raw, "20260324")
+        await normalize_and_store(CENTRAL_COURSE, raw)
 
     delete_call = supabase.table().delete().in_.call_args
     assert delete_call is not None
     assert 888 in delete_call[0][1]
+
+
+# ---------------------------------------------------------------------------
+# spots_available (Slots field)
+# ---------------------------------------------------------------------------
+
+async def test_slots_field_stored_as_spots_available():
+    """Slots=3 in raw entry → spots_available=3 in upserted row."""
+    supabase = make_supabase_mock()
+    with patch("app.services.eagleclub_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.eagleclub_service import normalize_and_store
+
+        raw = [make_raw_entry(eighteen_fee=55.0, eighteen_carriage=0, slots=3)]
+        await normalize_and_store(CENTRAL_COURSE, raw)
+
+    rows = supabase.table().upsert.call_args[0][0]
+    row_18 = next(r for r in rows if r["holes"] == 18)
+    assert row_18["spots_available"] == 3
+
+
+async def test_missing_slots_stored_as_none():
+    """Entry with no Slots field → spots_available=None."""
+    supabase = make_supabase_mock()
+    with patch("app.services.eagleclub_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.eagleclub_service import normalize_and_store
+
+        raw = [make_raw_entry(eighteen_fee=55.0, eighteen_carriage=0)]  # no slots kwarg
+        await normalize_and_store(CENTRAL_COURSE, raw)
+
+    rows = supabase.table().upsert.call_args[0][0]
+    row_18 = next(r for r in rows if r["holes"] == 18)
+    assert row_18["spots_available"] is None
+
+
+async def test_slots_propagates_to_both_9_and_18_rows():
+    """When both 9 and 18 holes are available, Slots applies to both rows."""
+    supabase = make_supabase_mock()
+    with patch("app.services.eagleclub_service.create_supabase", AsyncMock(return_value=supabase)):
+        from app.services.eagleclub_service import normalize_and_store
+
+        raw = [make_raw_entry(nine_fee=30.0, nine_carriage=0,
+                              eighteen_fee=55.0, eighteen_carriage=0, slots=2)]
+        await normalize_and_store(CENTRAL_COURSE, raw)
+
+    rows = supabase.table().upsert.call_args[0][0]
+    for row in rows:
+        assert row["spots_available"] == 2
