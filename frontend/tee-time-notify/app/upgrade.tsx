@@ -382,34 +382,45 @@ export default function UpgradeScreen() {
 
               {/* Features */}
               <View style={styles.features}>
-                <View style={styles.featureRow}>
-                  <Text style={{ fontSize: 18, marginRight: 12 }}>🔔</Text>
-                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
-                    <Text style={{ fontWeight: "700" }}>{tier.max_alerts ?? 3}</Text> active alerts
-                  </Text>
-                </View>
-
-                <View style={styles.featureRow}>
-                  <Text style={{ fontSize: 18, marginRight: 12 }}>⚡️</Text>
-                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
-                    Refreshes every{" "}
-                    <Text style={{ fontWeight: "700" }}>
-                      {tier.scan_interval_seconds
-                        ? tier.scan_interval_seconds / 60
-                        : 10}
-                      {" min"}
-                    </Text>
-                  </Text>
-                </View>
-
-                {tier.name === "Pro" && (
+                <>
                   <View style={styles.featureRow}>
-                    <Text style={{ fontSize: 18, marginRight: 12 }}>🔁</Text>
+                    <Text style={{ fontSize: 18, marginRight: 12 }}>🔔</Text>
                     <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
-                      Set <Text style={{ fontWeight: "700" }}>Recurring</Text> alerts
+                      <Text style={{ fontWeight: "700" }}>{tier.max_alerts ?? 3}</Text> active alerts
                     </Text>
                   </View>
-                )}
+
+                  <View style={styles.featureRow}>
+                    <Text style={{ fontSize: 18, marginRight: 12 }}>⚡️</Text>
+                    <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                      Refreshes every{" "}
+                      <Text style={{ fontWeight: "700" }}>
+                        {tier.scan_interval_seconds
+                          ? tier.scan_interval_seconds / 60
+                          : 10}
+                        {" min"}
+                      </Text>
+                    </Text>
+                  </View>
+
+                  {tier.name !== "Free" && (
+                    <View style={styles.featureRow}>
+                      <Text style={{ fontSize: 18, marginRight: 12 }}>👥</Text>
+                      <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                        Filter by <Text style={{ fontWeight: "700" }}>group size</Text>
+                      </Text>
+                    </View>
+                  )}
+
+                  {tier.name === "Pro" && (
+                    <View style={styles.featureRow}>
+                      <Text style={{ fontSize: 18, marginRight: 12 }}>🔁</Text>
+                      <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                        Set <Text style={{ fontWeight: "700" }}>Recurring</Text> alerts
+                      </Text>
+                    </View>
+                  )}
+                </>
               </View>
 
               {/* Action Button - Only show if authenticated */}
