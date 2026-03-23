@@ -67,12 +67,16 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             provider_url = f"https://www.golfnow.com/tee-times/facility/{configs['facility_id']}"
         elif provider == "EagleClub":
             provider_url = course_item.get("provider_url", "")
+        elif provider == "WebTrac":
+            provider_url = f"{configs.get('base_url')}?module=GR"
 
         # Determine provider_course_id based on provider
         if provider == "GolfNow":
             provider_course_id = configs["facility_id"]
         elif provider == "EagleClub":
             provider_course_id = configs["dbname"]
+        elif provider == "WebTrac":
+            provider_course_id = configs.get("base_url", "").split("//")[-1].split("/")[0]
         else:
             provider_course_id = configs.get("course_id") or configs.get("facility_id")
 
@@ -121,6 +125,7 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             "base_url", "provider_type", # Quick18
             "facility_id", # GolfNow
             "dbname", "org_id", "operator_id", "price_class_id", "carriage_id", # EagleClub
+            "num_players", "num_holes", # WebTrac
         }
         
         if configs:

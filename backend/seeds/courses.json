@@ -49102,5 +49102,19 @@
       "api_key": "no_limits",
       "timezone": "America/New_York"
     }
+  },
+  {
+    "name": "Charleston Municipal Golf Course",
+    "address": "2110 Maybank Hwy, Charleston, SC 29412",
+    "city": "Charleston",
+    "state": "SC",
+    "website": "www.charleston-sc.gov/644/Golf",
+    "phone": "843-795-6517",
+    "provider": "WebTrac",
+    "active": true,
+    "configs": {
+      "base_url": "https://sccharlestonweb.myvscloud.com/webtrac/web/search.html",
+      "timezone": "America/New_York"
+    }
   }
 ]

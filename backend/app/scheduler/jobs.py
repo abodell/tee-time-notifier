@@ -5,6 +5,7 @@ from app.services.foreup_service import run_foreup_scan
 from app.services.chronogolf_service import run_chronogolf_scan
 from app.services.quick18_service import run_quick18_scan
 from app.services.eagleclub_service import run_eagleclub_scan
+from app.services.webtrac_service import run_webtrac_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
 from app.config import settings
@@ -100,6 +101,20 @@ async def scan_eagleclub_job():
         print("[Scheduler] EagleClub scan completed!")
     except Exception as e:
         print(f"[Scheduler] Error during EagleClub scan: {e}")
+
+
+async def scan_webtrac_job():
+    """
+    Global WebTrac availability scan
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running WebTrac scan at {now}")
+
+    try:
+        await run_webtrac_scan()
+        print("[Scheduler] WebTrac scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during WebTrac scan: {e}")
 
 
 async def get_all_tiers():

@@ -10,3 +10,4 @@ pydantic-settings
 python-dateutil
 beautifulsoup4
 timezonefinder
+curl_cffi
