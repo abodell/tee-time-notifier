@@ -8,6 +8,7 @@ from .jobs import (
     scan_golfnow_job,
     scan_eagleclub_job,
     scan_webtrac_job,
+    scan_cps_job,
     run_alert_engine_for_tier
 )
 from app.db import create_supabase
@@ -71,6 +72,12 @@ async def start_scheduler(app: FastAPI):
         scan_webtrac_job,
         trigger=IntervalTrigger(seconds=45, start_date=next_minute),
         name="WebTrac_GLOBAL_scan",
+    )
+
+    scheduler.add_job(
+        scan_cps_job,
+        trigger=IntervalTrigger(seconds=45, start_date=next_minute),
+        name="CPS_GLOBAL_scan",
     )
 
     for tier in tiers:

@@ -6,6 +6,7 @@ from app.services.chronogolf_service import run_chronogolf_scan
 from app.services.quick18_service import run_quick18_scan
 from app.services.eagleclub_service import run_eagleclub_scan
 from app.services.webtrac_service import run_webtrac_scan
+from app.services.cps_service import run_cps_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
 from app.config import settings
@@ -115,6 +116,20 @@ async def scan_webtrac_job():
         print("[Scheduler] WebTrac scan completed!")
     except Exception as e:
         print(f"[Scheduler] Error during WebTrac scan: {e}")
+
+
+async def scan_cps_job():
+    """
+    Global CPS (Club Prophet Systems) availability scan
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running CPS scan at {now}")
+
+    try:
+        await run_cps_scan()
+        print("[Scheduler] CPS scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during CPS scan: {e}")
 
 
 async def get_all_tiers():

@@ -49116,5 +49116,21 @@
       "base_url": "https://sccharlestonweb.myvscloud.com/webtrac/web/search.html",
       "timezone": "America/New_York"
     }
+  },
+  {
+    "name": "Emerald Lake Golf Club",
+    "address": "9750 Tournament Dr, Matthews, NC 28104",
+    "city": "Matthews",
+    "state": "NC",
+    "website": "https://emeraldlake.cps.golf",
+    "phone": "",
+    "provider": "CPS",
+    "active": true,
+    "configs": {
+      "site_name": "emeraldlake",
+      "course_id": "1",
+      "api_key": "8ea2914e-cac2-48a7-a3e5-e0f41350bf3a",
+      "timezone": "America/New_York"
+    }
   }
 ]

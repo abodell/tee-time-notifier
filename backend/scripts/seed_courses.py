@@ -69,6 +69,9 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             provider_url = course_item.get("provider_url", "")
         elif provider == "WebTrac":
             provider_url = f"{configs.get('base_url')}?module=GR"
+        elif provider == "CPS":
+            site_name = configs.get("site_name", "")
+            provider_url = f"https://{site_name}.cps.golf/onlineresweb/search-teetime" if site_name else ""
 
         # Determine provider_course_id based on provider
         if provider == "GolfNow":
@@ -77,6 +80,8 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             provider_course_id = configs["dbname"]
         elif provider == "WebTrac":
             provider_course_id = configs.get("base_url", "").split("//")[-1].split("/")[0]
+        elif provider == "CPS":
+            provider_course_id = f"{configs.get('site_name', '')}_{configs.get('course_id', '')}"
         else:
             provider_course_id = configs.get("course_id") or configs.get("facility_id")
 
@@ -126,6 +131,7 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             "facility_id", # GolfNow
             "dbname", "org_id", "operator_id", "price_class_id", "carriage_id", # EagleClub
             "num_players", "num_holes", # WebTrac
+            "site_name", "member_store_id", # CPS
         }
         
         if configs:
