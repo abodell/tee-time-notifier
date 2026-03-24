@@ -112,7 +112,7 @@ async def fetch_webtrac_times(
     """
     # Use a single session so cookies (including Cloudflare clearance) persist
     # between the seed request and the search request.
-    async with AsyncSession(impersonate="chrome120") as session:
+    async with AsyncSession(impersonate="chrome142") as session:
         # Step 1 — fetch the bare search page to get a fresh CSRF token
         seed_url = f"{base_url}?module=GR"
         print(f"[WebTrac] Fetching CSRF token from {seed_url}")
