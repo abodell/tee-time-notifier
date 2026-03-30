@@ -141,7 +141,8 @@ async def fetch_cps_times(
             headers=base_headers,
             timeout=20,
         )
-        opts = opts_resp.json() if opts_resp.is_success else {}
+        opts_data = opts_resp.json() if opts_resp.is_success else {}
+        opts = opts_data if isinstance(opts_data, dict) else {}
         website_id = opts.get("webSiteId", "")
         terminal_id = str(opts.get("reservationOptions", {}).get("terminalId", 3))
 
@@ -206,11 +207,12 @@ async def fetch_cps_times(
         resp.raise_for_status()
 
     body = resp.json()
-    if not body.get("isSuccess"):
+    if not isinstance(body, dict) or not body.get("isSuccess"):
         print(f"[CPS] isSuccess=False for {site_name} on {date_str}")
         return []
 
-    return body.get("content") or []
+    content = body.get("content")
+    return content if isinstance(content, list) else []
 
 
 # ---------------------------------------------------------------------------

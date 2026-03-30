@@ -12,6 +12,9 @@ import re
 from datetime import datetime
 from typing import Dict, List, Optional
 
+_WEBTRAC_MAX_RETRIES = 3
+_WEBTRAC_RETRY_DELAY = 5  # seconds between retries on 403
+
 from bs4 import BeautifulSoup
 from curl_cffi.requests import AsyncSession
 from dateutil import tz
@@ -110,40 +113,49 @@ async def fetch_webtrac_times(
     Returns:
         List of dicts with keys: time, date, holes, course_name, spots_available.
     """
-    # Use a single session so cookies (including Cloudflare clearance) persist
-    # between the seed request and the search request.
-    async with AsyncSession(impersonate="chrome142") as session:
-        # Step 1 — fetch the bare search page to get a fresh CSRF token
-        seed_url = f"{base_url}?module=GR"
-        print(f"[WebTrac] Fetching CSRF token from {seed_url}")
-        seed_resp = await session.get(seed_url, timeout=20)
-        seed_resp.raise_for_status()
+    for attempt in range(1, _WEBTRAC_MAX_RETRIES + 1):
+        try:
+            # Use a single session so cookies (including Cloudflare clearance) persist
+            # between the seed request and the search request.
+            async with AsyncSession(impersonate="chrome131") as session:
+                # Step 1 — fetch the bare search page to get a fresh CSRF token
+                seed_url = f"{base_url}?module=GR"
+                print(f"[WebTrac] Fetching CSRF token from {seed_url}")
+                seed_resp = await session.get(seed_url, timeout=20)
+                seed_resp.raise_for_status()
 
-        csrf = _extract_csrf_token(seed_resp.text)
-        if not csrf:
-            raise ValueError("[WebTrac] Could not extract CSRF token from seed page")
+                csrf = _extract_csrf_token(seed_resp.text)
+                if not csrf:
+                    raise ValueError("[WebTrac] Could not extract CSRF token from seed page")
 
-        # Step 2 — search for tee times
-        params = {
-            "Action": "Start",
-            "SubAction": "",
-            "_csrf_token": csrf,
-            "numberofplayers": str(num_players),
-            "secondarycode": "",
-            "begindate": date_str,
-            "begintime": "07:00 am",
-            "numberofholes": str(num_holes),
-            "display": "Detail",
-            "module": "GR",
-            "multiselectlist_value": "",
-            "grwebsearch_buttonsearch": "yes",
-        }
+                # Step 2 — search for tee times
+                params = {
+                    "Action": "Start",
+                    "SubAction": "",
+                    "_csrf_token": csrf,
+                    "numberofplayers": str(num_players),
+                    "secondarycode": "",
+                    "begindate": date_str,
+                    "begintime": "07:00 am",
+                    "numberofholes": str(num_holes),
+                    "display": "Detail",
+                    "module": "GR",
+                    "multiselectlist_value": "",
+                    "grwebsearch_buttonsearch": "yes",
+                }
 
-        print(f"[WebTrac] Searching {date_str} players={num_players} holes={num_holes}...")
-        resp = await session.get(base_url, params=params, timeout=20)
-        resp.raise_for_status()
+                print(f"[WebTrac] Searching {date_str} players={num_players} holes={num_holes}...")
+                resp = await session.get(base_url, params=params, timeout=20)
+                resp.raise_for_status()
 
-    return _parse_results(resp.text)
+            return _parse_results(resp.text)
+        except Exception as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status == 403 and attempt < _WEBTRAC_MAX_RETRIES:
+                print(f"[WebTrac] 403 on attempt {attempt}/{_WEBTRAC_MAX_RETRIES}, retrying in {_WEBTRAC_RETRY_DELAY}s...")
+                await asyncio.sleep(_WEBTRAC_RETRY_DELAY)
+                continue
+            raise
 
 
 def _parse_results(html: str) -> List[Dict]:

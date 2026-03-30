@@ -33768,24 +33768,6 @@
     }
   },
   {
-    "name": "Lido Golf Course",
-    "address": "255 Lido Blvd. , Lido Beach , NY 11561",
-    "city": "Lido Beach ",
-    "state": "NY",
-    "website": "",
-    "phone": "516-889-8181",
-    "provider": "ForeUp",
-    "active": true,
-    "configs": {
-      "course_id": "21829",
-      "schedule_id": "9011",
-      "schedule_ids": "[9011]",
-      "booking_class": "13654",
-      "api_key": "no_limits",
-      "timezone": "America/New_York"
-    }
-  },
-  {
     "name": "Lido Golf Course (9 Holes)",
     "address": "255 Lido Blvd. , Lido Beach , NY 11561",
     "city": "Lido Beach ",
@@ -49130,6 +49112,42 @@
       "site_name": "emeraldlake",
       "course_id": "1",
       "api_key": "8ea2914e-cac2-48a7-a3e5-e0f41350bf3a",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Bethpage State Park - Bethpage Red Course",
+    "address": "99 Quaker Meeting House Road, Farmingdale, NY 11735",
+    "city": "Farmingdale",
+    "state": "NY",
+    "website": "https://parks.ny.gov/golf-courses/11/details.aspx",
+    "phone": "516.249.0700",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "19765",
+      "schedule_id": "2432",
+      "schedule_ids": "[2432]",
+      "booking_class": "2139",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Bethpage State Park - Bethpage Yellow Course",
+    "address": "99 Quaker Meeting House Road, Farmingdale, NY 11735",
+    "city": "Farmingdale",
+    "state": "NY",
+    "website": "https://parks.ny.gov/golf-courses/11/details.aspx",
+    "phone": "516.249.0700",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "19765",
+      "schedule_id": "2435",
+      "schedule_ids": "[2435]",
+      "booking_class": "2145",
+      "api_key": "no_limits",
       "timezone": "America/New_York"
     }
   }

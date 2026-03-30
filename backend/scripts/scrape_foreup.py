@@ -457,8 +457,11 @@ async def scrape_range(start_id: int, end_id: int, output_file: str):
     # Use composite key (course_id + schedule_id) for merging
     # This allows multi-course facilities to have separate entries
     def get_merge_key(course: Dict) -> str:
-        cid = course["configs"]["course_id"]
-        sid = course["configs"]["schedule_id"] or "none"
+        configs = course.get("configs", {})
+        if "course_id" not in configs:
+            return f"name:{course.get('name', 'unknown')}"
+        cid = configs["course_id"]
+        sid = configs.get("schedule_id") or "none"
         return f"{cid}:{sid}"
     
     merged_map = {get_merge_key(c): c for c in existing}

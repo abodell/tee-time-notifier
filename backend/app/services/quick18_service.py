@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 from typing import List, Dict, Optional
 from dateutil import tz
@@ -9,20 +10,35 @@ from app.db import create_supabase
 
 logger = logging.getLogger(__name__)
 
+_QUICK18_RETRYABLE = (
+    httpx.ConnectError,
+    httpx.ReadError,
+    httpx.RemoteProtocolError,
+    httpx.ConnectTimeout,
+    httpx.ReadTimeout,
+)
+
 async def fetch_quick18_times(client: httpx.AsyncClient, base_url: str, date_str: str) -> Optional[str]:
     # date_str expected as YYYYMMDD for Quick18 URL
     url = f"{base_url}/teetimes/searchmatrix?teedate={date_str}"
-    try:
-        resp = await client.get(url, timeout=15.0, follow_redirects=True, headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
-        if resp.status_code != 200:
-            logger.error(f"Quick18 Fetch Error {url}: {resp.status_code}")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    for attempt in range(1, 4):
+        try:
+            resp = await client.get(url, timeout=15.0, follow_redirects=True, headers=headers)
+            if resp.status_code != 200:
+                logger.error(f"Quick18 Fetch Error {url}: {resp.status_code}")
+                return None
+            return resp.text
+        except _QUICK18_RETRYABLE as e:
+            logger.warning(f"Quick18 {type(e).__name__} {url} (attempt {attempt}/3): {e}")
+            if attempt < 3:
+                await asyncio.sleep(3 * attempt)
+        except Exception as e:
+            logger.error(f"Quick18 {type(e).__name__} {url}: {e}")
             return None
-        return resp.text
-    except Exception as e:
-        logger.error(f"Quick18 Exception {url}: {e}")
-        return None
+    return None
 
 def normalize_quick18(html: str, course_id: int, date_str: str, time_zone: str = "UTC") -> List[Dict]:
     soup = BeautifulSoup(html, 'html.parser')

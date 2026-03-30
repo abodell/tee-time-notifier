@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     GITHUB_PAT: str = ""
     GITHUB_OWNER: str = "abodell"
     GITHUB_REPO: str = "tee-time-notifier"
+    FOREUP_USERNAME: str = ""
+    FOREUP_PASSWORD: str = ""
 
     class Config:
         env_file = ".env"

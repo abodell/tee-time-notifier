@@ -6,8 +6,59 @@ from datetime import datetime
 from dateutil import tz
 from urllib.parse import urlencode
 
+from app.config import settings
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
+
+# In-memory JWT cache keyed by ForeUp facility course_id (e.g. "19765").
+# Only used for courses that have use_auth=true in their provider_configs.
+_jwt_cache: Dict[str, str] = {}
+
+
+async def _login_foreup(foreup_course_id: str, login_booking_class_id: str = "50293") -> Optional[str]:
+    """POST credentials to ForeUp and return a fresh JWT. Returns None on failure."""
+    username = settings.FOREUP_USERNAME
+    password = settings.FOREUP_PASSWORD
+    if not username or not password:
+        print("[ForeUp] Auth requested but FOREUP_USERNAME/FOREUP_PASSWORD not set in environment.")
+        return None
+
+    async with AsyncClient(
+        headers={
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+            "x-requested-with": "XMLHttpRequest",
+            "referer": f"https://foreupsoftware.com/index.php/booking/{foreup_course_id}/",
+        },
+        timeout=15.0,
+    ) as client:
+        resp = await client.post(
+            "https://foreupsoftware.com/index.php/api/booking/users/login",
+            data={
+                "username": username,
+                "password": password,
+                "booking_class_id": login_booking_class_id,
+                "api_key": "no_limits",
+                "course_id": foreup_course_id,
+            },
+        )
+        if not resp.is_success:
+            print(f"[ForeUp] Login failed ({resp.status_code})")
+            return None
+        jwt = resp.json().get("jwt")
+        if jwt:
+            print(f"[ForeUp] Authenticated, JWT cached for course_id={foreup_course_id}")
+            _jwt_cache[foreup_course_id] = jwt
+        return jwt
+
+
+async def _get_auth_token(configs: dict) -> Optional[str]:
+    """Return a cached JWT for this facility, re-logging in if the cache is empty.
+    Returns None for courses that don't have use_auth=true."""
+    if not configs.get("use_auth"):
+        return None
+    foreup_course_id = str(configs.get("course_id", ""))
+    login_booking_class_id = str(configs.get("login_booking_class_id", "50293"))
+    return _jwt_cache.get(foreup_course_id) or await _login_foreup(foreup_course_id, login_booking_class_id)
 
 async def get_active_foreup_targets():
     """ 
@@ -87,8 +138,30 @@ async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[
 
     full_url = f"{base_url}?{urlencode(params, doseq=True)}"
     print(f"[Fetch ForeUp Times] Fetching {course['name']} | holes={holes} | date={date_str}...")
-    async with AsyncClient(headers={"User-Agent": "Mozilla/5.0"}, timeout=30.0) as client:
+
+    base_headers = {
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+        "accept": "application/json, text/javascript, */*; q=0.01",
+        "x-requested-with": "XMLHttpRequest",
+        "x-fu-golfer-location": "foreup",
+        "referer": f"https://foreupsoftware.com/index.php/booking/{configs.get('course_id', '')}/",
+    }
+
+    token = await _get_auth_token(configs)
+    if token:
+        base_headers["x-authorization"] = f"Bearer {token}"
+
+    async with AsyncClient(headers=base_headers, timeout=30.0) as client:
         resp = await client.get(full_url)
+
+        # If JWT expired, evict cache, re-login once, and retry
+        if resp.status_code == 401 and configs.get("use_auth"):
+            foreup_course_id = str(configs.get("course_id", ""))
+            _jwt_cache.pop(foreup_course_id, None)
+            fresh_token = await _login_foreup(foreup_course_id, str(configs.get("login_booking_class_id", "50293")))
+            if fresh_token:
+                resp = await client.get(full_url, headers={**base_headers, "x-authorization": f"Bearer {fresh_token}"})
+
         resp.raise_for_status()
 
     return resp.json()
