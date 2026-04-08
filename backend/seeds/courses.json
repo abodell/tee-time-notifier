@@ -7524,6 +7524,24 @@
     }
   },
   {
+    "name": "Bethpage State Park - Bethpage Black Course",
+    "address": "99 Quaker Meeting House Road, Farmingdale, NY 11735",
+    "city": "Farmingdale",
+    "state": "NY",
+    "website": "https://parks.ny.gov/golf-courses/11/details.aspx",
+    "phone": "516.249.0700",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "19765",
+      "schedule_id": "2431",
+      "schedule_ids": "[2431]",
+      "booking_class": "2137",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
     "name": "Bethpage State Park - Bethpage Blue Course",
     "address": "99 Quaker Meeting House Road, Farmingdale, NY 11735",
     "city": "Farmingdale",
@@ -16602,14 +16620,11 @@
     "state": "NY",
     "website": "dykerbeachgc.com",
     "phone": "(718) 836-9722",
-    "provider": "ForeUp",
+    "provider": "TeeItUp",
     "active": true,
     "configs": {
-      "course_id": "20343",
-      "schedule_id": "4582",
-      "schedule_ids": "[4582]",
-      "booking_class": "6237",
-      "api_key": "no_limits",
+      "facility_id": "4048",
+      "be_alias": "dyker-beach-golf-course",
       "timezone": "America/New_York"
     }
   },
@@ -49148,6 +49163,38 @@
       "schedule_ids": "[2435]",
       "booking_class": "2145",
       "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Timberlin Golf Course",
+    "address": "330 Southington Rd, Berlin, CT 06037",
+    "city": "Berlin",
+    "state": "CT",
+    "website": "https://www.berlinct.gov/public-works/pages/timberlin-golf-course",
+    "phone": "860-828-3228",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "22212",
+      "schedule_id": "10124",
+      "schedule_ids": "[10124]",
+      "booking_class": "13712",
+      "api_key": "no_limits",
+      "timezone": "America/New_York"
+    }
+  },
+  {
+    "name": "Griffith E. Harris Golf Course",
+    "address": "1 Golf Course Rd, Greenwich, CT 06831",
+    "city": "Greenwich",
+    "state": "CT",
+    "website": "https://www.greenwichct.gov/734/Golf-Course",
+    "phone": "203-531-8253",
+    "provider": "WebTrac",
+    "active": true,
+    "configs": {
+      "base_url": "https://ctgreenwichweb.myvscloud.com/webtrac/web/search.html",
       "timezone": "America/New_York"
     }
   }

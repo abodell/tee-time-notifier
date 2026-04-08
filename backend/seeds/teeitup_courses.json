@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Dyker Beach Golf Course",
+    "address": "86th Street and 7th Avenue, Brooklyn, NY 11228",
+    "city": "Brooklyn",
+    "state": "NY",
+    "country": "US",
+    "time_zone": "America/New_York",
+    "provider": "TeeItUp",
+    "provider_url": "https://dyker-beach-golf-course.book.teeitup.com",
+    "active": true,
+    "configs": {
+      "facility_id": "4048",
+      "be_alias": "dyker-beach-golf-course"
+    }
+  }
+]

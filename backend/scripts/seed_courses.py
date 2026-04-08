@@ -51,6 +51,11 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
                 print(f"Skipping {course_item['name']} - Missing facility_id")
                 skipped += 1
                 continue
+        elif provider == "Whoosh":
+            if not configs.get("facility_id") or not configs.get("club_slug"):
+                print(f"Skipping {course_item['name']} - Missing facility_id or club_slug")
+                skipped += 1
+                continue
             
         provider_url = ""
         if provider == "ForeUp":
@@ -72,6 +77,9 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
         elif provider == "CPS":
             site_name = configs.get("site_name", "")
             provider_url = f"https://{site_name}.cps.golf/onlineresweb/search-teetime" if site_name else ""
+        elif provider == "Whoosh":
+            club_slug = configs.get("club_slug", "")
+            provider_url = course_item.get("provider_url") or (f"https://app.whoosh.io/patron/club/{club_slug}/agenda/golf-course" if club_slug else "")
 
         # Determine provider_course_id based on provider
         if provider == "GolfNow":
@@ -132,6 +140,8 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
             "dbname", "org_id", "operator_id", "price_class_id", "carriage_id", # EagleClub
             "num_players", "num_holes", # WebTrac
             "site_name", "member_store_id", # CPS
+            "club_slug", "membership_type_id", # Whoosh
+            "be_alias", # TeeItUp
         }
         
         if configs:

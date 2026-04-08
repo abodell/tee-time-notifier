@@ -141,6 +141,41 @@ async def _scan_provider_for_alert(supabase, course: dict, date_from: str, alert
                 data = await fetch_eagleclub_times(client, course, cfgs)
             await normalize_and_store(course, data)
 
+        elif provider == "teeitup":
+            from app.services.teeitup_service import get_provider_configs, fetch_teeitup_times, normalize_and_store
+            date_str = dt.strftime("%Y-%m-%d")
+            cfgs = await get_provider_configs(supabase, course["id"])
+            data = await fetch_teeitup_times(course, cfgs, date_str)
+            await normalize_and_store(course, data, date_str)
+
+        elif provider == "webtrac":
+            from app.services.webtrac_service import get_provider_configs, fetch_webtrac_times, normalize_and_store
+            date_str = dt.strftime("%m/%d/%Y")
+            cfgs = await get_provider_configs(supabase, course["id"])
+            base_url = cfgs.get("base_url")
+            num_players = int(cfgs.get("num_players", 4))
+            num_holes = int(cfgs.get("num_holes", 18))
+            data = await fetch_webtrac_times(base_url, date_str, num_players, num_holes)
+            await normalize_and_store(course, data, date_str)
+
+        elif provider == "cps":
+            from app.services.cps_service import get_provider_configs, fetch_cps_times, normalize_and_store
+            date_str = dt.strftime("%Y-%m-%d")
+            cfgs = await get_provider_configs(supabase, course["id"])
+            site_name = cfgs.get("site_name")
+            api_key = cfgs.get("api_key")
+            course_id = int(cfgs.get("course_id", 1))
+            member_store_id = int(cfgs.get("member_store_id", 1))
+            data = await fetch_cps_times(site_name, api_key, course_id, date_str, member_store_id, course.get("time_zone", "America/New_York"))
+            await normalize_and_store(course, data, date_str)
+
+        elif provider == "whoosh":
+            from app.services.whoosh_service import get_provider_configs, fetch_whoosh_times, normalize_and_store
+            date_str = dt.strftime("%Y-%m-%d")
+            cfgs = await get_provider_configs(supabase, course["id"])
+            data = await fetch_whoosh_times(course, cfgs, date_str)
+            await normalize_and_store(course, data, date_str)
+
         elif provider == "golfnow":
             from app.config import settings
             if not settings.GITHUB_PAT:

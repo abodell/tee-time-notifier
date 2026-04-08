@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Yale Golf Course",
+    "address": "200 Conrad Drive, New Haven, CT 06515",
+    "city": "New Haven",
+    "state": "CT",
+    "country": "US",
+    "time_zone": "America/New_York",
+    "provider": "Whoosh",
+    "provider_url": "https://app.whoosh.io/patron/club/yale-golf-course/agenda/golf-course",
+    "active": true,
+    "configs": {
+      "facility_id": "Facility:ce2884e5-7aaa-4ece-9e1c-e68c49566a00",
+      "course_id": "Course:8be549ae-18ed-40de-8ccd-b07d3c0825ba",
+      "club_slug": "yale-golf-course"
+    }
+  }
+]

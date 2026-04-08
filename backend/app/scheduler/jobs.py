@@ -7,6 +7,8 @@ from app.services.quick18_service import run_quick18_scan
 from app.services.eagleclub_service import run_eagleclub_scan
 from app.services.webtrac_service import run_webtrac_scan
 from app.services.cps_service import run_cps_scan
+from app.services.teeitup_service import run_teeitup_scan
+from app.services.whoosh_service import run_whoosh_scan
 from app.services.alert_service import run_alert_engine
 from app.db import create_supabase
 from app.config import settings
@@ -130,6 +132,34 @@ async def scan_cps_job():
         print("[Scheduler] CPS scan completed!")
     except Exception as e:
         print(f"[Scheduler] Error during CPS scan: {e}")
+
+
+async def scan_teeitup_job():
+    """
+    Global TeeItUp availability scan
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running TeeItUp scan at {now}")
+
+    try:
+        await run_teeitup_scan()
+        print("[Scheduler] TeeItUp scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during TeeItUp scan: {e}")
+
+
+async def scan_whoosh_job():
+    """
+    Global Whoosh availability scan
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    print(f"[Scheduler] Running Whoosh scan at {now}")
+
+    try:
+        await run_whoosh_scan()
+        print("[Scheduler] Whoosh scan completed!")
+    except Exception as e:
+        print(f"[Scheduler] Error during Whoosh scan: {e}")
 
 
 async def get_all_tiers():
