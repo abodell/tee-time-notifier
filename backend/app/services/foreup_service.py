@@ -2,13 +2,14 @@ import json
 import asyncio
 from httpx import AsyncClient, Limits
 from typing import List, Union, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from dateutil import tz
 from urllib.parse import urlencode
 
 from app.config import settings
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
+from app.services import config_cache
 
 # In-memory JWT cache keyed by ForeUp facility course_id (e.g. "19765").
 # Only used for courses that have use_auth=true in their provider_configs.
@@ -67,12 +68,14 @@ async def get_active_foreup_targets():
     """
     supabase = await create_supabase()
     
-    # 1. Get all active alerts
+    # 1. Get all active, non-expired alerts
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     alerts_res = await (
         supabase.table("alerts")
         .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
         .eq("active", True)
         .eq("courses.provider", "ForeUp")
+        .gte("date_to", cutoff)
         .execute()
     )
     
@@ -101,6 +104,10 @@ async def get_active_foreup_targets():
 
 async def get_provider_configs(supabase, course_id: int) -> dict:
     """ Fetch key/value pairs for provider configs """
+    cached = config_cache.get(course_id)
+    if cached is not None:
+        return cached
+
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
@@ -117,6 +124,7 @@ async def get_provider_configs(supabase, course_id: int) -> dict:
             except json.JSONDecodeError:
                 pass
 
+    config_cache.set(course_id, cfg)
     return cfg
 
 async def fetch_foreup_times(course, configs: dict, date_str: str, holes: Union[str, int] = "all"):

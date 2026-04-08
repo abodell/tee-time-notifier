@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.db import create_supabase
+from app.services import config_cache
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +54,13 @@ async def get_active_eagleclub_targets() -> Dict[int, Dict]:
     """
     supabase = await create_supabase()
 
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     alerts_res = await (
         supabase.table("alerts")
         .select("courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
         .eq("active", True)
         .eq("courses.provider", "EagleClub")
+        .gte("date_to", cutoff)
         .execute()
     )
 
@@ -75,13 +78,19 @@ async def get_active_eagleclub_targets() -> Dict[int, Dict]:
 # ---------------------------------------------------------------------------
 async def get_provider_configs(supabase, course_id: int) -> Dict[str, str]:
     """Fetch key/value provider configs for a course."""
+    cached = config_cache.get(course_id)
+    if cached is not None:
+        return cached
+
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
         .eq("course_id", course_id)
         .execute()
     )
-    return {r["key"]: r["value"] for r in (res.data or [])}
+    cfg = {r["key"]: r["value"] for r in (res.data or [])}
+    config_cache.set(course_id, cfg)
+    return cfg
 
 
 # ---------------------------------------------------------------------------

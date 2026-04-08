@@ -9,7 +9,7 @@ Scanning model: two HTTP requests per (course, date):
 
 import asyncio
 import re
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 
 _WEBTRAC_MAX_RETRIES = 3
@@ -21,6 +21,7 @@ from dateutil import tz
 
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
+from app.services import config_cache
 
 
 # ---------------------------------------------------------------------------
@@ -31,11 +32,13 @@ async def get_active_webtrac_targets() -> Dict:
     """Return unique (course_id, date_str) pairs for active WebTrac alerts."""
     supabase = await create_supabase()
 
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     alerts_res = await (
         supabase.table("alerts")
         .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
         .eq("active", True)
         .eq("courses.provider", "WebTrac")
+        .gte("date_to", cutoff)
         .execute()
     )
 
@@ -61,13 +64,19 @@ async def get_active_webtrac_targets() -> Dict:
 
 async def get_provider_configs(supabase, course_id: int) -> Dict[str, str]:
     """Fetch key/value provider configs for a course."""
+    cached = config_cache.get(course_id)
+    if cached is not None:
+        return cached
+
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
         .eq("course_id", course_id)
         .execute()
     )
-    return {r["key"]: r["value"] for r in (res.data or [])}
+    cfg = {r["key"]: r["value"] for r in (res.data or [])}
+    config_cache.set(course_id, cfg)
+    return cfg
 
 
 # ---------------------------------------------------------------------------

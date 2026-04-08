@@ -11,7 +11,7 @@ Mirrors the structure of foreup_service.py:
 import asyncio
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
 
 import httpx
@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.db import create_supabase
+from app.services import config_cache
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +81,13 @@ async def get_active_golfnow_targets() -> Dict[Tuple[int, str], Dict]:
     """
     supabase = await create_supabase()
 
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     alerts_res = await (
         supabase.table("alerts")
         .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
         .eq("active", True)
         .eq("courses.provider", "GolfNow")
+        .gte("date_to", cutoff)
         .execute()
     )
 
@@ -111,13 +114,19 @@ async def get_active_golfnow_targets() -> Dict[Tuple[int, str], Dict]:
 # ---------------------------------------------------------------------------
 async def get_provider_configs(supabase, course_id: int) -> Dict[str, str]:
     """Fetch key/value provider configs for a course."""
+    cached = config_cache.get(course_id)
+    if cached is not None:
+        return cached
+
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
         .eq("course_id", course_id)
         .execute()
     )
-    return {r["key"]: r["value"] for r in (res.data or [])}
+    cfg = {r["key"]: r["value"] for r in (res.data or [])}
+    config_cache.set(course_id, cfg)
+    return cfg
 
 
 # ---------------------------------------------------------------------------

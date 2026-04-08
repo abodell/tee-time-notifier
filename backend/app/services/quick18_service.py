@@ -2,11 +2,12 @@ import asyncio
 import httpx
 from typing import List, Dict, Optional
 from dateutil import tz
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from bs4 import BeautifulSoup
 import re
 import logging
 from app.db import create_supabase
+from app.services import config_cache
 
 logger = logging.getLogger(__name__)
 
@@ -125,12 +126,14 @@ async def get_active_quick18_targets():
     """
     supabase = await create_supabase()
     
-    # 1. Get all active alerts for Quick18
+    # 1. Get all active, non-expired alerts for Quick18
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     alerts_res = await (
         supabase.table("alerts")
         .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
         .eq("active", True)
         .eq("courses.provider", "Quick18")
+        .gte("date_to", cutoff)
         .execute()
     )
     
@@ -158,13 +161,19 @@ async def get_active_quick18_targets():
 
 async def get_provider_configs(supabase, course_id: int) -> dict:
     """ Fetch key/value pairs for provider configs """
+    cached = config_cache.get(course_id)
+    if cached is not None:
+        return cached
+
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
         .eq("course_id", course_id)
         .execute()
     )
-    return {r['key']: r['value'] for r in res.data or []}
+    cfg = {r['key']: r['value'] for r in res.data or []}
+    config_cache.set(course_id, cfg)
+    return cfg
 
 # Main Service Method called by Job
 async def scan_quick18_course(course: Dict, date_str: str):

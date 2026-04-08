@@ -2,12 +2,13 @@ import json
 import asyncio
 from httpx import AsyncClient, Limits
 from typing import List, Union, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from dateutil import tz
 from urllib.parse import urlencode
 
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
+from app.services import config_cache
 
 _CHRONO_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -21,12 +22,14 @@ async def get_active_chronogolf_targets():
     """
     supabase = await create_supabase()
 
-    # 1. Get all active alerts for ChronoGolf courses
+    # 1. Get all active, non-expired alerts for ChronoGolf courses
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     alerts_res = await (
         supabase.table("alerts")
         .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
         .eq("active", True)
         .eq("courses.provider", "ChronoGolf")
+        .gte("date_to", cutoff)
         .execute()
     )
 
@@ -52,13 +55,19 @@ async def get_active_chronogolf_targets():
 
 async def get_provider_configs(supabase, course_id: int) -> dict:
     """ Fetch key/value pairs for provider configs """
+    cached = config_cache.get(course_id)
+    if cached is not None:
+        return cached
+
     res = await (
         supabase.table("provider_configs")
         .select("key", "value")
         .eq("course_id", course_id)
         .execute()
     )
-    return {r['key']: r['value'] for r in res.data or []}
+    cfg = {r['key']: r['value'] for r in res.data or []}
+    config_cache.set(course_id, cfg)
+    return cfg
 
 async def _get_or_discover_course_uuid(
     supabase, course_db_id: int, configs: dict, date_str: str
@@ -136,6 +145,7 @@ async def _get_or_discover_course_uuid(
                 .insert({"course_id": course_db_id, "key": "course_uuid", "value": course_uuid, "provider": "ChronoGolf"})
                 .execute()
             )
+        config_cache.update_key(course_db_id, "course_uuid", course_uuid)
         print(f"[ChronoGolf] Discovered and cached course UUID {course_uuid} for course_db_id={course_db_id}")
         return course_uuid
 

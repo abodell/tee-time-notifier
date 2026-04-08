@@ -157,9 +157,11 @@ async def run_alert_engine(tier_id: int | None = None):
     # Step 0: Roll over expired recurring alerts before selecting what's active
     await rollover_recurring_alerts(supabase, start_time)
 
+    cutoff = (start_time - timedelta(days=1)).isoformat()
     query = supabase.table("alerts").select(
-        "*, user_profiles!alerts_user_id_fkey(membership_tier_id)"
-    ).eq("active", True)
+        "id, user_id, course_id, holes, players, start_time, end_time, date_from, date_to, "
+        "user_profiles!alerts_user_id_fkey(membership_tier_id)"
+    ).eq("active", True).gte("date_to", cutoff)
 
     query_execute = await query.execute()
     alerts = query_execute.data or []
