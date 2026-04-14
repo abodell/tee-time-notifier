@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
+from datetime import datetime, timezone
 
 
 BETHPAGE_COURSE = {"id": 9536, "name": "Bethpage Red", "time_zone": "America/New_York"}
@@ -91,7 +92,7 @@ async def test_get_auth_token_uses_cache_on_repeat_calls():
     """Subsequent calls for the same facility should use the cached JWT, not re-login."""
     import app.services.foreup_service as svc
     svc._jwt_cache.clear()
-    svc._jwt_cache["19765"] = FAKE_JWT
+    svc._jwt_cache["19765"] = (FAKE_JWT, datetime.now(timezone.utc))
 
     with patch.object(svc, "_login_foreup", new=AsyncMock()) as mock_login:
         token = await svc._get_auth_token(BETHPAGE_CONFIGS)
@@ -164,7 +165,7 @@ async def test_login_foreup_caches_and_returns_jwt():
         token = await svc._login_foreup("19765")
 
     assert token == FAKE_JWT
-    assert svc._jwt_cache["19765"] == FAKE_JWT
+    assert svc._jwt_cache["19765"][0] == FAKE_JWT
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +186,7 @@ async def test_fetch_foreup_times_includes_auth_header_for_bethpage():
     """x-authorization header is sent when use_auth=true."""
     import app.services.foreup_service as svc
     svc._jwt_cache.clear()
-    svc._jwt_cache["19765"] = FAKE_JWT
+    svc._jwt_cache["19765"] = (FAKE_JWT, datetime.now(timezone.utc))
 
     ok_resp = _make_http_response(200, [{"time": "2026-04-04T07:00:00", "holes": "18", "green_fee": 50}])
 
@@ -231,7 +232,7 @@ async def test_fetch_foreup_times_retries_after_401():
     """
     import app.services.foreup_service as svc
     svc._jwt_cache.clear()
-    svc._jwt_cache["19765"] = "expired.jwt"
+    svc._jwt_cache["19765"] = ("expired.jwt", datetime.now(timezone.utc))
 
     NEW_JWT = "new.fresh.jwt"
     ok_body = [{"time": "2026-04-04T07:00:00", "holes": "18", "green_fee": 50}]
