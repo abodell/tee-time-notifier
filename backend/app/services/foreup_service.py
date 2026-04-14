@@ -13,7 +13,9 @@ from app.services import config_cache
 
 # In-memory JWT cache keyed by ForeUp facility course_id (e.g. "19765").
 # Only used for courses that have use_auth=true in their provider_configs.
-_jwt_cache: Dict[str, str] = {}
+# Stores (jwt, fetched_at) tuples so we can proactively refresh before expiry.
+_JWT_TTL_SECONDS = 12 * 3600  # Refresh every 12 hours
+_jwt_cache: Dict[str, tuple] = {}  # course_id -> (jwt, fetched_at datetime)
 
 
 async def _login_foreup(foreup_course_id: str, login_booking_class_id: str = "50293") -> Optional[str]:
@@ -48,7 +50,7 @@ async def _login_foreup(foreup_course_id: str, login_booking_class_id: str = "50
         jwt = resp.json().get("jwt")
         if jwt:
             print(f"[ForeUp] Authenticated, JWT cached for course_id={foreup_course_id}")
-            _jwt_cache[foreup_course_id] = jwt
+            _jwt_cache[foreup_course_id] = (jwt, datetime.now(timezone.utc))
         return jwt
 
 
@@ -59,7 +61,15 @@ async def _get_auth_token(configs: dict) -> Optional[str]:
         return None
     foreup_course_id = str(configs.get("course_id", ""))
     login_booking_class_id = str(configs.get("login_booking_class_id", "50293"))
-    return _jwt_cache.get(foreup_course_id) or await _login_foreup(foreup_course_id, login_booking_class_id)
+    cached = _jwt_cache.get(foreup_course_id)
+    if cached:
+        jwt, fetched_at = cached
+        age = (datetime.now(timezone.utc) - fetched_at).total_seconds()
+        if age < _JWT_TTL_SECONDS:
+            return jwt
+        print(f"[ForeUp] JWT for course_id={foreup_course_id} is {age/3600:.1f}h old, refreshing...")
+        _jwt_cache.pop(foreup_course_id, None)
+    return await _login_foreup(foreup_course_id, login_booking_class_id)
 
 async def get_active_foreup_targets():
     """ 
