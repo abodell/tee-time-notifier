@@ -7524,6 +7524,26 @@
     }
   },
   {
+    "name": "Bethpage State Park - Bethpage Green Course",
+    "address": "99 Quaker Meeting House Road, Farmingdale, NY 11735",
+    "city": "Farmingdale",
+    "state": "NY",
+    "website": "https://parks.ny.gov/golf-courses/11/details.aspx",
+    "phone": "516.249.0700",
+    "provider": "ForeUp",
+    "active": true,
+    "configs": {
+      "course_id": "19765",
+      "schedule_id": "2434",
+      "schedule_ids": "[2431, 2432, 2433, 2434, 2435, 2517, 2539]",
+      "booking_class": "50296",
+      "api_key": "no_limits",
+      "timezone": "America/New_York",
+      "use_auth": "true",
+      "login_booking_class_id": "50296"
+    }
+  },
+  {
     "name": "Bethpage State Park - Bethpage Black Course",
     "address": "99 Quaker Meeting House Road, Farmingdale, NY 11735",
     "city": "Farmingdale",
@@ -7535,10 +7555,12 @@
     "configs": {
       "course_id": "19765",
       "schedule_id": "2431",
-      "schedule_ids": "[2431]",
-      "booking_class": "2137",
+      "schedule_ids": "[2431, 2432, 2433, 2434, 2435, 2517, 2539]",
+      "booking_class": "50294",
       "api_key": "no_limits",
-      "timezone": "America/New_York"
+      "timezone": "America/New_York",
+      "use_auth": "true",
+      "login_booking_class_id": "50294"
     }
   },
   {
@@ -7553,10 +7575,12 @@
     "configs": {
       "course_id": "19765",
       "schedule_id": "2433",
-      "schedule_ids": "[2433]",
-      "booking_class": "2141",
+      "schedule_ids": "[2431, 2432, 2433, 2434, 2435, 2517, 2539]",
+      "booking_class": "50293",
       "api_key": "no_limits",
-      "timezone": "America/New_York"
+      "timezone": "America/New_York",
+      "use_auth": "true",
+      "login_booking_class_id": "50293"
     }
   },
   {
@@ -7571,10 +7595,12 @@
     "configs": {
       "course_id": "19765",
       "schedule_id": "2539",
-      "schedule_ids": "[2539]",
-      "booking_class": "2164",
+      "schedule_ids": "[2431, 2432, 2433, 2434, 2435, 2517, 2539]",
+      "booking_class": "50300",
       "api_key": "no_limits",
-      "timezone": "America/New_York"
+      "timezone": "America/New_York",
+      "use_auth": "true",
+      "login_booking_class_id": "50300"
     }
   },
   {
@@ -49142,10 +49168,12 @@
     "configs": {
       "course_id": "19765",
       "schedule_id": "2432",
-      "schedule_ids": "[2432]",
-      "booking_class": "2139",
+      "schedule_ids": "[2431, 2432, 2433, 2434, 2435, 2517, 2539]",
+      "booking_class": "50295",
       "api_key": "no_limits",
-      "timezone": "America/New_York"
+      "timezone": "America/New_York",
+      "use_auth": "true",
+      "login_booking_class_id": "50295"
     }
   },
   {
@@ -49160,10 +49188,12 @@
     "configs": {
       "course_id": "19765",
       "schedule_id": "2435",
-      "schedule_ids": "[2435]",
-      "booking_class": "2145",
+      "schedule_ids": "[2431, 2432, 2433, 2434, 2435, 2517, 2539]",
+      "booking_class": "50297",
       "api_key": "no_limits",
-      "timezone": "America/New_York"
+      "timezone": "America/New_York",
+      "use_auth": "true",
+      "login_booking_class_id": "50297"
     }
   },
   {

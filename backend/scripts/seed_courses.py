@@ -133,7 +133,7 @@ async def seed_courses(json_file: str, filter_id: Optional[str] = None):
         # 2. Upsert Configs
         configs = course_item.get("configs", {})
         ALLOWED_CONFIG_KEYS = {
-            "booking_class", "schedule_id", "schedule_ids", "api_key", # ForeUp
+            "booking_class", "schedule_id", "schedule_ids", "api_key", "use_auth", "login_booking_class_id", # ForeUp
             "club_id", "course_id", "affiliation_id", "nb_holes", "timezone", "slug", # ChronoGolf
             "base_url", "provider_type", # Quick18
             "facility_id", # GolfNow
