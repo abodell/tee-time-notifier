@@ -67,11 +67,10 @@ export default function ProfileScreen() {
     };
   }, []);
 
-  // Fetch profile when coming into focus
+  // Fetch profile when coming into focus (silent refresh — no skeleton on revisit)
   useFocusEffect(
     useCallback(() => {
       if (session) {
-        setLoading(true);
         fetchProfile();
       }
     }, [session])
@@ -268,7 +267,7 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, opacity: 0.5, fontSize: 12 }}>
-            TeeSignal v1.0.6
+            TeeSignal v1.0.7
           </Text>
         </View>
       </SafeAreaView>
@@ -401,7 +400,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
-          TeeSignal v1.0.6
+          TeeSignal v1.0.7
         </Text>
       </ScrollView>
     </SafeAreaView>

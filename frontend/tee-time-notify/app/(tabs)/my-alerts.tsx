@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
-  FlatList,
   RefreshControl,
   StyleSheet,
   Alert as RNAlert,
@@ -10,13 +9,13 @@ import {
   DeviceEventEmitter,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { TextInput, Text, useTheme, IconButton, ActivityIndicator, Surface, Button, Divider } from "react-native-paper";
-import Animated, { FadeIn, Layout } from "react-native-reanimated";
+import { Text, useTheme, IconButton, ActivityIndicator, Surface, Button } from "react-native-paper";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import { useColorScheme } from "react-native";
-import { getUserAlerts, deleteAlert } from "@/lib/api";
+import { deleteAlert } from "@/lib/api";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -25,14 +24,16 @@ import { Colors } from "@/constants/theme";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import DraggableFlatList, { ScaleDecorator, RenderItemParams } from "react-native-draggable-flatlist";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-/**
- * Robustly format a UTC ISO string into a specific timezone's local time string.
- * Uses native Intl.DateTimeFormat which is more reliable in React Native than dayjs.tz()
- */
+const ALERT_ORDER_KEY = "@alert_order_v1";
+const REORDER_TIP_KEY = "@reorder_tip_seen";
+
 function formatInTimeZone(
   utcString: string | undefined,
   tz: string,
@@ -41,26 +42,16 @@ function formatInTimeZone(
   if (!utcString) return "";
   try {
     const date = new Date(utcString);
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      ...options,
-    }).format(date);
+    return new Intl.DateTimeFormat("en-US", { timeZone: tz, ...options }).format(date);
   } catch (e) {
     console.warn(`Timezone conversion failed for ${tz}:`, e);
-    return dayjs.utc(utcString).format("h:mm A"); // Fallback
+    return dayjs.utc(utcString).format("h:mm A");
   }
 }
 
-/**
- * Helper to construct the true expiration time by merging:
- * - Date from `date_from` (User's target date)
- * - Time from `end_time` (User's target end time, in UTC)
- */
 function getExpirationTime(alert: AlertType) {
   const datePart = dayjs.utc(alert.date_from);
   const timePart = dayjs.utc(alert.end_time);
-
-  // Combine them into a single UTC datetime
   return datePart
     .hour(timePart.hour())
     .minute(timePart.minute())
@@ -81,14 +72,32 @@ export default function MyAlertsScreen() {
   const [fetchingQuota, setFetchingQuota] = useState(false);
   const [hasData, setHasData] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
+  const [showReorderTip, setShowReorderTip] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const params = useLocalSearchParams();
 
+  const savedOrderRef = useRef<number[]>([]);
+
+  // Load saved order and check if tip has been seen
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    AsyncStorage.getItem(ALERT_ORDER_KEY).then((val) => {
+      if (val) savedOrderRef.current = JSON.parse(val);
     });
+    AsyncStorage.getItem(REORDER_TIP_KEY).then((val) => {
+      if (!val) setShowReorderTip(true);
+    });
+  }, []);
+
+  // Auto-dismiss tip after 6 seconds
+  useEffect(() => {
+    if (!showReorderTip) return;
+    const t = setTimeout(dismissTip, 6000);
+    return () => clearTimeout(t);
+  }, [showReorderTip]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       loadQuotaData();
@@ -96,15 +105,9 @@ export default function MyAlertsScreen() {
 
     loadQuotaData();
 
-    const sub1 = DeviceEventEmitter.addListener("membershipUpdated", () => {
-      loadQuotaData();
-    });
-    const sub2 = DeviceEventEmitter.addListener("alertsUpdated", () => {
-      loadQuotaData();
-    });
-    const sub3 = DeviceEventEmitter.addListener("notificationReceived", () => {
-      loadQuotaData();
-    });
+    const sub1 = DeviceEventEmitter.addListener("membershipUpdated", () => loadQuotaData());
+    const sub2 = DeviceEventEmitter.addListener("alertsUpdated", () => loadQuotaData());
+    const sub3 = DeviceEventEmitter.addListener("notificationReceived", () => loadQuotaData());
 
     return () => {
       sub1.remove();
@@ -114,13 +117,21 @@ export default function MyAlertsScreen() {
     };
   }, []);
 
+  const applyOrder = (fetchedAlerts: AlertType[]) => {
+    const savedOrder = savedOrderRef.current;
+    if (!savedOrder.length) return fetchedAlerts;
+    const orderMap = new Map(savedOrder.map((id, i) => [id, i]));
+    return [...fetchedAlerts].sort((a, b) => {
+      const posA = orderMap.has(a.id!) ? orderMap.get(a.id!)! : Infinity;
+      const posB = orderMap.has(b.id!) ? orderMap.get(b.id!)! : Infinity;
+      return posA - posB;
+    });
+  };
+
   const loadQuotaData = async () => {
     setLoading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setFetchingQuota(false);
         setHasData(false);
@@ -129,9 +140,7 @@ export default function MyAlertsScreen() {
         return;
       }
 
-      if (!hasData) {
-        setFetchingQuota(true);
-      }
+      if (!hasData) setFetchingQuota(true);
 
       const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
       const [profileRes, alertsRes] = await Promise.all([
@@ -145,25 +154,13 @@ export default function MyAlertsScreen() {
       setMaxAlerts(tier?.max_alerts ?? null);
 
       const userAlerts = await alertsRes.json();
-      // Sort: Active first, Expired last
-      userAlerts.sort((a: AlertType, b: AlertType) => {
-        const aExpired = dayjs.utc().isAfter(dayjs.utc(a.end_time));
-        const bExpired = dayjs.utc().isAfter(dayjs.utc(b.end_time));
-        if (aExpired === bExpired) return 0;
-        return aExpired ? 1 : -1;
-      });
-
-      setAlerts(userAlerts);
+      const ordered = applyOrder(userAlerts);
+      setAlerts(ordered);
       setAlertCount(userAlerts.length);
       setHasData(true);
-
     } catch (err: any) {
       console.log("Quota load failed", err);
-      Toast.show({
-        type: "error",
-        text1: "Failed to load data",
-        text2: err.message,
-      });
+      Toast.show({ type: "error", text1: "Failed to load data", text2: err.message });
     } finally {
       setFetchingQuota(false);
       setLoading(false);
@@ -171,7 +168,6 @@ export default function MyAlertsScreen() {
     }
   };
 
-  // React to deep link params changing (works in background and foreground)
   useEffect(() => {
     if (params.alertId && hasData) {
       const idNum = Number(params.alertId);
@@ -186,6 +182,18 @@ export default function MyAlertsScreen() {
     }
   }, [params.alertId, hasData]);
 
+  const dismissTip = () => {
+    setShowReorderTip(false);
+    AsyncStorage.setItem(REORDER_TIP_KEY, "1");
+  };
+
+  const handleDragEnd = async ({ data }: { data: AlertType[] }) => {
+    setAlerts(data);
+    const ids = data.map((a) => a.id!);
+    savedOrderRef.current = ids;
+    await AsyncStorage.setItem(ALERT_ORDER_KEY, JSON.stringify(ids));
+  };
+
   const deleteConfirm = (id: number) =>
     RNAlert.alert("Delete Alert", "Are you sure you want to remove this alert?", [
       { text: "Cancel", style: "cancel" },
@@ -196,8 +204,11 @@ export default function MyAlertsScreen() {
     try {
       await deleteAlert(id);
       setAlerts((p) => p.filter((a) => a.id !== id));
+      // Keep saved order in sync
+      const newOrder = savedOrderRef.current.filter((oid) => oid !== id);
+      savedOrderRef.current = newOrder;
+      await AsyncStorage.setItem(ALERT_ORDER_KEY, JSON.stringify(newOrder));
       Toast.show({ type: "success", text1: "Alert deleted", visibilityTime: 1000 });
-      // Notify other screens to refresh data
       DeviceEventEmitter.emit("alertsUpdated");
     } catch (err: any) {
       Toast.show({ type: "error", text1: "Failed", text2: err.message });
@@ -207,11 +218,7 @@ export default function MyAlertsScreen() {
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
@@ -221,42 +228,50 @@ export default function MyAlertsScreen() {
       Toast.show({ type: "error", text1: "No booking URL available" });
       return;
     }
-    // Construct ForeUp URL with date parameter in course local time
     const dateStr = dayjs(date).tz(tz || "UTC").format("MM-DD-YYYY");
-    const bookingUrl = `${url}?date=${dateStr}`;
-    Linking.openURL(bookingUrl).catch((err) =>
+    Linking.openURL(`${url}?date=${dateStr}`).catch((err) =>
       Toast.show({ type: "error", text1: "Could not open link", text2: err.message })
     );
   };
-  const reachedQuota =
-    maxAlerts !== null && alertCount >= (maxAlerts || 0) && hasData;
 
-  const renderItem = ({ item, index }: { item: AlertType; index: number }) => {
+  const reachedQuota = maxAlerts !== null && alertCount >= (maxAlerts || 0) && hasData;
+
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<AlertType>) => {
     const course = item.courses || {};
     const isExpanded = item.id ? expandedIds.has(item.id) : false;
     const notifications = item.alert_notifications || [];
     const hasNotifications = notifications.length > 0;
     const itemTz = course.time_zone || "UTC";
-
-    // Check expiration using UTC comparison, recurring alerts never "expire" in UI
     const isExpired = !item.is_recurring && dayjs.utc().isAfter(dayjs.utc(item.end_time));
 
     return (
-      <Animated.View layout={Layout.springify()}>
+      <ScaleDecorator activeScale={0.97}>
         <Surface
           style={[
             {
               backgroundColor: theme.colors.surface,
               borderRadius: 12,
               marginBottom: 12,
-              elevation: 1,
-              opacity: isExpired ? 0.6 : 1, // Dim expired alerts
+              elevation: isActive ? 6 : 1,
+              opacity: isActive ? 0.95 : isExpired ? 0.6 : 1,
             },
           ]}
-          elevation={1}
+          elevation={isActive ? 6 : 1}
         >
           <View style={{ overflow: "hidden", borderRadius: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center", padding: 16 }}>
+
+              {/* Always-on drag handle */}
+              <TouchableOpacity
+                onPressIn={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  drag();
+                }}
+                style={styles.dragHandle}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
+              >
+                <MaterialCommunityIcons name="drag-vertical" size={20} color={theme.colors.onSurfaceVariant} style={{ opacity: 0.3 }} />
+              </TouchableOpacity>
 
               <View style={{ flex: 1 }}>
                 <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
@@ -266,14 +281,9 @@ export default function MyAlertsScreen() {
                       {"  "}EXPIRED
                     </Text>
                   )}
-                  {item.is_recurring && (
-                    <Text style={{ color: theme.colors.primary, fontWeight: "800", fontSize: 12 }}>
-                      {"  "}RECURRING
-                    </Text>
-                  )}
                 </Text>
                 <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
-                  {dayjs.utc(item.date_from).format("ddd, MMM D")} • {item.holes} Holes
+                  {dayjs.utc(item.date_from).format("ddd, MMM D")} • {item.holes} Holes{item.is_recurring ? " • Recurring" : ""}
                   {item.players ? (
                     <>
                       {" • "}
@@ -296,10 +306,7 @@ export default function MyAlertsScreen() {
                     iconColor={theme.colors.onSurfaceVariant}
                   />
                 )}
-                <TouchableOpacity
-                  onPress={() => deleteConfirm(item.id!)}
-                  style={{ padding: 8 }}
-                >
+                <TouchableOpacity onPress={() => deleteConfirm(item.id!)} style={{ padding: 8 }}>
                   <MaterialCommunityIcons name="trash-can-outline" size={22} color={theme.colors.error} style={{ opacity: 0.8 }} />
                 </TouchableOpacity>
               </View>
@@ -318,11 +325,8 @@ export default function MyAlertsScreen() {
                 ) : (
                   notifications
                     .filter((n) => {
-                      // Hide tee times where live spots_available has dropped below the alert's requirement.
                       const spotsNow = n.availability?.spots_available;
-                      if (item.players != null && spotsNow != null && spotsNow < item.players) {
-                        return false;
-                      }
+                      if (item.players != null && spotsNow != null && spotsNow < item.players) return false;
                       return true;
                     })
                     .sort((a, b) => {
@@ -365,15 +369,13 @@ export default function MyAlertsScreen() {
                       );
                     })
                 )}
-
               </View>
             )}
           </View>
         </Surface>
-      </Animated.View>
+      </ScaleDecorator>
     );
   };
-
 
   if (loading && !refreshing && !hasData)
     return (
@@ -383,14 +385,29 @@ export default function MyAlertsScreen() {
     );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={["top"]}>
       <View style={styles.header}>
         <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
           My Alerts
         </Text>
       </View>
 
-      {/* Quota Banner - Only for logged-in users */}
+      {/* First-time reorder tip */}
+      {showReorderTip && alerts.length > 1 && (
+        <Animated.View entering={FadeInDown.duration(400).delay(600)} style={{ paddingHorizontal: 16, marginBottom: 10 }}>
+          <View style={[styles.tipCard, { backgroundColor: theme.colors.primaryContainer }]}>
+            <MaterialCommunityIcons name="drag-vertical" size={18} color={theme.colors.primary} style={{ marginRight: 8 }} />
+            <Text style={[styles.tipText, { color: theme.colors.onPrimaryContainer, flex: 1 }]}>
+              Use the <Text style={{ fontWeight: "700" }}>grip handle</Text> on the left to reorder your alerts
+            </Text>
+            <TouchableOpacity onPress={dismissTip} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <MaterialCommunityIcons name="close" size={16} color={theme.colors.onPrimaryContainer} style={{ opacity: 0.6 }} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Quota Banner */}
       {fetchingQuota && !hasData && session ? (
         <View style={{ marginBottom: 16, paddingHorizontal: 16 }}>
           <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={60} radius={12} />
@@ -406,18 +423,16 @@ export default function MyAlertsScreen() {
                   color={reachedQuota ? theme.colors.error : theme.colors.primary}
                   style={{ marginRight: 4 }}
                 />
-
                 <View style={{ flex: 1, marginLeft: 4 }}>
                   <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
                     {reachedQuota ? (
                       <>
                         Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
-                        <Text
-                          style={{ color: theme.colors.primary, fontWeight: "600" }}
-                          onPress={() => router.push("/upgrade")}
-                        >
-                          Upgrade
-                        </Text>
+                        {tierName !== "Pro" && (
+                          <Text style={{ color: theme.colors.primary, fontWeight: "600" }} onPress={() => router.push("/upgrade")}>
+                            Upgrade
+                          </Text>
+                        )}
                       </>
                     ) : (
                       <>
@@ -426,10 +441,7 @@ export default function MyAlertsScreen() {
                         {tierName === "Plus" && (
                           <>
                             {" "}
-                            <Text
-                              style={{ color: theme.colors.primary, fontWeight: "600" }}
-                              onPress={() => router.push("/upgrade")}
-                            >
+                            <Text style={{ color: theme.colors.primary, fontWeight: "600" }} onPress={() => router.push("/upgrade")}>
                               Upgrade
                             </Text>
                           </>
@@ -444,7 +456,7 @@ export default function MyAlertsScreen() {
         </Animated.View>
       )}
 
-      {/* 🚀 Integrated Trial Promotion Banner */}
+      {/* Free trial promo */}
       {(!session || tierName === "Free") && (
         <Animated.View entering={FadeIn.delay(300).duration(500)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
           <LinearGradient
@@ -455,21 +467,14 @@ export default function MyAlertsScreen() {
           >
             <View style={styles.promoContent}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.promoTextBold}>
-                  Try Pro Free for 14 Days
-                </Text>
-                <Text style={styles.promoSubtext}>
-                  Unlock 10 alerts and 1-minute scans.
-                </Text>
+                <Text style={styles.promoTextBold}>Try Pro Free for 14 Days</Text>
+                <Text style={styles.promoSubtext}>Unlock 10 concurrent alerts and more.</Text>
               </View>
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
-                  if (!session) {
-                    router.push("/(auth)/sign-up?redirectTo=/upgrade");
-                  } else {
-                    router.push("/upgrade");
-                  }
+                  if (!session) router.push("/(auth)/sign-up?redirectTo=/upgrade");
+                  else router.push("/upgrade");
                 }}
                 style={styles.promoButton}
               >
@@ -480,11 +485,14 @@ export default function MyAlertsScreen() {
         </Animated.View>
       )}
 
-      <FlatList
+      <DraggableFlatList
         data={alerts}
         keyExtractor={(i) => i.id!.toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+        onDragEnd={handleDragEnd}
+        dragItemOverflow
+        activationDistance={10}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -497,22 +505,17 @@ export default function MyAlertsScreen() {
         }
         ListFooterComponent={
           alerts.length > 0 ? (
-            <View style={styles.footerContainer}>
-              <Surface
-                style={[styles.footerAction, { backgroundColor: theme.colors.surface }]}
-                elevation={1}
-              >
-                <View style={{ overflow: "hidden", borderRadius: 30, width: "100%", height: "100%" }}>
-                  <TouchableOpacity
-                    onPress={() => router.push("/")}
-                    style={styles.fullTouch}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialCommunityIcons name="plus" size={32} color={theme.colors.primary} />
-                  </TouchableOpacity>
-                </View>
-              </Surface>
-            </View>
+            !reachedQuota ? (
+              <View style={styles.footerContainer}>
+                <Surface style={[styles.footerAction, { backgroundColor: theme.colors.surface }]} elevation={1}>
+                  <View style={{ overflow: "hidden", borderRadius: 30, width: "100%", height: "100%" }}>
+                    <TouchableOpacity onPress={() => router.push("/")} style={styles.fullTouch} activeOpacity={0.7}>
+                      <MaterialCommunityIcons name="plus" size={32} color={theme.colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </Surface>
+              </View>
+            ) : null
           ) : null
         }
         ListEmptyComponent={
@@ -520,35 +523,19 @@ export default function MyAlertsScreen() {
             <View style={[styles.emptyIcon, { backgroundColor: theme.colors.surface }]}>
               <MaterialCommunityIcons name="bell-off-outline" size={32} color={theme.colors.onSurfaceVariant} />
             </View>
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.onSurface, marginTop: 16, fontWeight: "600" }}
-            >
+            <Text variant="titleMedium" style={{ color: theme.colors.onSurface, marginTop: 16, fontWeight: "600" }}>
               No alerts yet
             </Text>
-            <Text
-              variant="bodyMedium"
-              style={{
-                color: theme.colors.onSurfaceVariant,
-                textAlign: "center",
-                marginTop: 8,
-                maxWidth: 250,
-              }}
-            >
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, textAlign: "center", marginTop: 8, maxWidth: 250 }}>
               Create an alert to get notified when tee times become available.
             </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/")}
-              style={{ marginTop: 24 }}
-            >
-              <Text style={{ color: theme.colors.primary, fontSize: 16, fontWeight: "600" }}>
-                Find a Course
-              </Text>
+            <TouchableOpacity onPress={() => router.push("/")} style={{ marginTop: 24 }}>
+              <Text style={{ color: theme.colors.primary, fontSize: 16, fontWeight: "600" }}>Find a Course</Text>
             </TouchableOpacity>
           </View>
         }
       />
-    </SafeAreaView >
+    </SafeAreaView>
   );
 }
 
@@ -559,17 +546,31 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 10,
   },
+  tipCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  tipText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
   noticeCard: {
     borderRadius: 12,
     padding: 12,
-  },
-  listItem: {
   },
   notificationRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 8,
+  },
+  dragHandle: {
+    paddingRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
   center: {
     flex: 1,

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   Text,
   SegmentedButtons,
@@ -190,14 +191,16 @@ export default function CreateDetailsScreen() {
         </View>
 
         <Text style={[styles.subtitle, { color: onSurfaceVariant }]}>
-          Set your preferences for this course.
+          Set your preferences for this alert.
         </Text>
 
         {/* Grouped Form: Holes */}
         <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-            HOLES
-          </Text>
+          <View style={styles.sectionLabelRow}>
+            <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
+              HOLES
+            </Text>
+          </View>
           <Surface
             style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
             elevation={0}
@@ -234,15 +237,26 @@ export default function CreateDetailsScreen() {
           const isPaidTier = tierName === "Plus" || tierName === "Pro";
           return (
             <View style={styles.sectionContainer}>
-              <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-                PLAYERS
-              </Text>
+              <View style={styles.sectionLabelRow}>
+                <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
+                  PLAYERS
+                </Text>
+                {!isPaidTier && tierName !== null && (
+                  <TouchableOpacity
+                    onPress={() => router.push("/upgrade")}
+                    style={[styles.lockChip, { backgroundColor: theme.colors.primaryContainer }]}
+                  >
+                    <MaterialCommunityIcons name="lock-outline" size={11} color={theme.colors.primary} />
+                    <Text style={[styles.lockChipText, { color: theme.colors.primary }]}>Upgrade</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               <Surface
                 style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
                 elevation={0}
               >
                 <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface }]}>
-                  <View pointerEvents={isPaidTier ? "auto" : "none"} style={{ opacity: isPaidTier ? 1 : 0.4 }}>
+                  <View pointerEvents={isPaidTier ? "auto" : "none"} style={{ opacity: isPaidTier ? 1 : 0.35 }}>
                     <SegmentedButtons
                       value={players}
                       onValueChange={setPlayers}
@@ -257,20 +271,6 @@ export default function CreateDetailsScreen() {
                     />
                   </View>
                 </View>
-
-                {!isPaidTier && tierName !== null && (
-                  <View style={{ marginHorizontal: 16, marginBottom: 16, backgroundColor: theme.colors.surfaceVariant + "40", padding: 12, borderRadius: 8 }}>
-                    <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 13, lineHeight: 18 }}>
-                      Filter by group size with Plus or Pro.{" "}
-                      <Text
-                        style={{ color: theme.colors.primary, fontWeight: "700" }}
-                        onPress={() => router.push("/upgrade")}
-                      >
-                        Upgrade
-                      </Text>
-                    </Text>
-                  </View>
-                )}
               </Surface>
             </View>
           );
@@ -278,24 +278,26 @@ export default function CreateDetailsScreen() {
 
         {/* Grouped Form: Window */}
         <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-            TIME WINDOW
-          </Text>
+          <View style={styles.sectionLabelRow}>
+            <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
+              TIME WINDOW
+            </Text>
+          </View>
           <Surface
             style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
             elevation={0}
           >
-            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface, padding: 16 }]}>
+            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface, padding: 12 }]}>
 
-              <View style={{ marginBottom: 16 }}>
+              <View style={{ marginBottom: 12 }}>
                 <DatePickerField
                   label="Date"
                   value={date}
                   onChange={setDate}
                 />
               </View>
-              <Divider style={{ marginBottom: 16, opacity: 0.5 }} />
-              <View style={{ marginBottom: 16 }}>
+              <Divider style={{ marginBottom: 12, opacity: 0.5 }} />
+              <View style={{ marginBottom: 12 }}>
                 <TimePickerField
                   label="Start Time"
                   value={startTime}
@@ -319,65 +321,51 @@ export default function CreateDetailsScreen() {
 
         {/* Grouped Form: Recurring Alert (Pro Only) */}
         <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-            AUTOMATION
-          </Text>
+          <View style={styles.sectionLabelRow}>
+            <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
+              AUTOMATION
+            </Text>
+            {tierName !== "Pro" && tierName !== null && (
+              <TouchableOpacity
+                onPress={() => router.push("/upgrade")}
+                style={[styles.lockChip, { backgroundColor: theme.colors.primaryContainer }]}
+              >
+                <MaterialCommunityIcons name="lock-outline" size={11} color={theme.colors.primary} />
+                <Text style={[styles.lockChipText, { color: theme.colors.primary }]}>Upgrade</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <Surface
             style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
             elevation={0}
           >
-            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface, padding: 16 }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View style={[
+              styles.groupedSurface,
+              { backgroundColor: theme.colors.surface, padding: 16 },
+              tierName !== "Pro" && tierName !== null ? { opacity: 0.35 } : null,
+            ]}>
+              <View pointerEvents={tierName === "Pro" ? "auto" : "none"} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flex: 1, paddingRight: 16 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                    <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                      Recurring Alert
-                    </Text>
-                    {tierName === "Pro" && (
-                      <View style={{ backgroundColor: theme.colors.primaryContainer, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
-                        <Text style={{ fontSize: 10, fontWeight: "700", color: theme.colors.onPrimaryContainer }}>PRO</Text>
-                      </View>
-                    )}
-                  </View>
+                  <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface, marginBottom: 4 }}>
+                    Recurring Alert
+                  </Text>
                   <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Automatically set this exact same alert for 7 days later once the time window passes.
+                    Automatically re-set this alert 7 days later once the time window passes.
                   </Text>
                 </View>
-
                 <Switch
                   value={isRecurring}
-                  onValueChange={(val) => {
-                    if (tierName !== "Pro") {
-                      // Optional: could auto-route them or show a native alert
-                      return;
-                    }
-                    setIsRecurring(val);
-                  }}
+                  onValueChange={setIsRecurring}
                   color={theme.colors.primary}
                   disabled={tierName !== "Pro"}
                 />
               </View>
-
-              {/* Pro Nudge if not Pro */}
-              {tierName !== "Pro" && tierName !== null && (
-                <View style={{ marginTop: 16, backgroundColor: theme.colors.surfaceVariant + "40", padding: 12, borderRadius: 8 }}>
-                  <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 13, lineHeight: 18 }}>
-                    Want to automatically repeat this alert every week without hitting your quota?{" "}
-                    <Text
-                      style={{ color: theme.colors.primary, fontWeight: "700" }}
-                      onPress={() => router.push("/upgrade")}
-                    >
-                      Upgrade to Pro
-                    </Text>
-                  </Text>
-                </View>
-              )}
             </View>
           </Surface>
         </View>
 
         {/* Gradient Action Button */}
-        <View style={{ marginTop: 32, marginBottom: 20 }}>
+        <View style={{ marginTop: 16, marginBottom: 20 }}>
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={buttonDisabled}
@@ -421,7 +409,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingTop: 10,
-    paddingBottom: 40,
+    paddingBottom: 24,
     paddingHorizontal: 16,
   },
   headerRow: {
@@ -438,27 +426,44 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   subtitle: {
-    marginBottom: 24,
+    marginBottom: 16,
     textAlign: "center",
-    fontSize: 15,
+    fontSize: 14,
     paddingHorizontal: 20,
   },
   sectionContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  sectionLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    marginLeft: 12,
   },
   sectionLabel: {
     fontSize: 13,
     fontWeight: "600",
-    marginBottom: 8,
-    marginLeft: 12,
     textTransform: "uppercase",
     opacity: 0.7,
+  },
+  lockChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    marginLeft: 8,
+    gap: 3,
+  },
+  lockChipText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   groupedSurface: {
     borderRadius: 12,
   },
   segmentedBtn: {
-    margin: 16,
+    margin: 12,
   },
   gradientButton: {
     height: 50,

@@ -26,6 +26,7 @@ import {
   Colors,
 } from "@/constants/theme";
 import { View, ActivityIndicator, Platform, useColorScheme, DeviceEventEmitter } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import Toast, { ToastConfig } from "react-native-toast-message";
 import * as Notifications from "expo-notifications";
@@ -274,6 +275,7 @@ export default function RootLayout() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={navTheme}>
       <PaperProvider theme={theme}>
         <StatusBar style={isDark ? "light" : "dark"} />
@@ -366,5 +368,6 @@ export default function RootLayout() {
         />
       </PaperProvider>
     </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
