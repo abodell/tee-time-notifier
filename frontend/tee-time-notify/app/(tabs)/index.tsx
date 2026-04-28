@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   DeviceEventEmitter,
   Keyboard,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -141,7 +142,7 @@ export default function CourseSearchScreen() {
   };
 
   React.useEffect(() => {
-    if (!query.trim() || reachedQuota) {
+    if (!query.trim()) {
       setCourses([]);
       setDebouncing(false);
       return;
@@ -155,6 +156,24 @@ export default function CourseSearchScreen() {
 
   const handleSelectCourse = (course: Course) => {
     Keyboard.dismiss();
+    if (reachedQuota) {
+      Alert.alert(
+        "Alert Limit Reached",
+        tierName === "Pro"
+          ? "You've used all your alert slots. Remove an existing alert to track a new course."
+          : "You've reached your plan's alert limit. Upgrade to add more.",
+        tierName === "Pro"
+          ? [
+              { text: "Manage Alerts", onPress: () => router.push("/(tabs)/my-alerts") },
+              { text: "OK", style: "cancel" },
+            ]
+          : [
+              { text: "Manage Alerts", onPress: () => router.push("/(tabs)/my-alerts") },
+              { text: "Upgrade", onPress: () => router.push("/upgrade") },
+            ]
+      );
+      return;
+    }
     router.push({
       pathname: "/create-details",
       params: { id: course.id, name: course.name, tierName },
@@ -206,12 +225,14 @@ export default function CourseSearchScreen() {
                       {reachedQuota ? (
                         <>
                           Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
-                          <Text
-                            style={{ color: theme.colors.primary, fontWeight: "600" }}
-                            onPress={() => router.push("/upgrade")}
-                          >
-                            Upgrade
-                          </Text>
+                          {tierName !== "Pro" && (
+                            <Text
+                              style={{ color: theme.colors.primary, fontWeight: "600" }}
+                              onPress={() => router.push("/upgrade")}
+                            >
+                              Upgrade
+                            </Text>
+                          )}
                         </>
                       ) : (
                         <>
@@ -253,7 +274,7 @@ export default function CourseSearchScreen() {
                     Try Pro Free for 14 Days
                   </Text>
                   <Text style={styles.promoSubtext}>
-                    Unlock 10 alerts and 1-minute scans.
+                    Unlock 10 concurrent alerts and more.
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -289,20 +310,12 @@ export default function CourseSearchScreen() {
             outlineStyle={{ borderRadius: 12, borderWidth: 0 }}
             textColor={theme.colors.onSurface}
             placeholderTextColor={theme.colors.onSurfaceVariant}
-            disabled={reachedQuota}
             returnKeyType="search"
           />
         </View>
 
         {/* Content */}
-        {reachedQuota ? (
-          <View style={styles.center}>
-            <MaterialCommunityIcons name="lock-outline" size={48} color={theme.colors.onSurfaceVariant} style={{ opacity: 0.5 }} />
-            <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, maxWidth: 250 }}>
-              Upgrade your plan to track more courses and never miss a tee time.
-            </Text>
-          </View>
-        ) : loading || debouncing ? (
+        {loading || debouncing ? (
           <View style={styles.center}>
             <ActivityIndicator animating color={theme.colors.primary} />
           </View>
