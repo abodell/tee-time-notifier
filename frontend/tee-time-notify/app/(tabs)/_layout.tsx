@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "react-native-paper";
+import { StyleSheet } from "react-native";
 
 export default function TabsLayout() {
   const theme = useTheme();
@@ -11,26 +12,29 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.colors.elevation.level2,
+          borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: theme.colors.outline,
           elevation: 0,
-          height: 90, // Increased height for safe area
-          paddingBottom: 30, // Padding for home indicator
-          paddingTop: 8,
+          shadowOpacity: 0,
+          height: 90,
+          paddingBottom: 30,
+          paddingTop: 6,
         },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         tabBarLabelStyle: {
           fontWeight: "600",
-          fontSize: 12,
+          fontSize: 11,
+          marginTop: 4,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle-outline" size={size} color={color} />
+          title: "Find",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="compass-outline" size={26} color={color} />
           ),
         }}
       />
@@ -38,8 +42,8 @@ export default function TabsLayout() {
         name="my-alerts"
         options={{
           title: "My Alerts",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="golf-outline" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="notifications-outline" size={26} color={color} />
           ),
         }}
       />
@@ -47,11 +51,13 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="person-outline" size={26} color={color} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({});

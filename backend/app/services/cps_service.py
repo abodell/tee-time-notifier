@@ -320,7 +320,7 @@ async def normalize_and_store(course: Dict, raw_data: List[Dict], date_str: str)
 
     if tee_times:
         payload = [t.to_dict() for t in tee_times]
-        await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
+        await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes", returning="minimal").execute()
         print(f"[CPS] Sync complete for {course['name']} on {date_str}. Stored {len(tee_times)} slots.")
     else:
         print(f"[CPS] No times found for {course['name']} on {date_str}.")

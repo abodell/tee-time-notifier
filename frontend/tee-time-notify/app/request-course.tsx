@@ -11,9 +11,7 @@ import {
 } from "react-native";
 import {
     Text,
-    Button,
     useTheme,
-    IconButton,
     ActivityIndicator,
     TextInput as PaperInput,
 } from "react-native-paper";
@@ -22,8 +20,14 @@ import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import Toast from "react-native-toast-message";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "@/constants/theme";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+
+const AVATAR_GRAD_START = "#052e16";
+const AVATAR_GRAD_END = "#14532d";
 
 // Debounce helper
 function useDebounce<T extends (...args: any[]) => void>(
@@ -57,6 +61,7 @@ interface CourseResult {
 export default function RequestCourseScreen() {
     const theme = useTheme();
     const router = useRouter();
+    const isDark = theme.dark;
 
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -76,6 +81,14 @@ export default function RequestCourseScreen() {
     const [city, setCity] = useState("");
     const [state, setState] = useState("");
     const [placeId, setPlaceId] = useState("");
+
+    const cardBg = isDark ? "rgba(255,255,255,0.06)" : "#fff";
+    const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
+    const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+    const accent = theme.colors.primary;
+    const gradColors = isDark
+        ? (Colors.dark.gradients.primary as [string, string])
+        : (Colors.light.gradients.primary as [string, string]);
 
     const searchCourses = async (query: string) => {
         if (query.length < 2) {
@@ -136,14 +149,11 @@ export default function RequestCourseScreen() {
     };
 
     const handleSelectCourse = (course: CourseResult) => {
-        // Populate form
         setName(course.name);
         setAddress(course.address);
         setCity(course.city);
         setState(course.state);
         setPlaceId(course.place_id);
-
-        // Update search input and hide dropdown
         setSearchQuery(course.name);
         setHasSelected(true);
         setShowDropdown(false);
@@ -202,11 +212,9 @@ export default function RequestCourseScreen() {
             }
 
             const data = await res.json();
-
             if (data.was_previously_requested) {
                 setWasRequested(true);
             }
-
             setSuccess(true);
         } catch (err: any) {
             Toast.show({
@@ -220,68 +228,108 @@ export default function RequestCourseScreen() {
         }
     };
 
+    const buttonDisabled = !name || !placeId || loading;
+
+    // ── Success state ──
     if (success) {
         return (
-            <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-                <View style={[styles.inner, { justifyContent: "center", alignItems: "center" }]}>
-                    <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + "20" }]}>
-                        <MaterialCommunityIcons name="check-circle" size={64} color={theme.colors.primary} />
-                    </View>
-                    <Text variant="headlineSmall" style={{ fontWeight: "700", marginTop: 24, color: theme.colors.onBackground, textAlign: "center" }}>
+            <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+                <Animated.View
+                    entering={FadeIn.duration(400)}
+                    style={styles.successWrap}
+                >
+                    <LinearGradient
+                        colors={gradColors}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.successIconWrap}
+                    >
+                        <MaterialCommunityIcons
+                            name={wasRequested ? "thumb-up-outline" : "check-bold"}
+                            size={34}
+                            color="#fff"
+                        />
+                    </LinearGradient>
+
+                    <Text style={[styles.successTitle, { color: theme.colors.onSurface }]}>
                         {wasRequested ? "Suggestion Noted!" : "Request Received!"}
                     </Text>
-                    <Text variant="bodyLarge" style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 12, paddingHorizontal: 32 }}>
-                        {wasRequested ? (
-                            <>
-                                <Text style={{ fontWeight: "700" }}>{name}</Text> has already been requested. We've added your vote to help us prioritize it!
-                            </>
-                        ) : (
-                            <>
-                                Thanks for suggesting <Text style={{ fontWeight: "700" }}>{name}</Text>. We'll review it and add it to the platform soon.
-                            </>
-                        )}
+                    <Text style={[styles.successSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                        {wasRequested
+                            ? `${name} has already been requested. We've added your vote to help us prioritize it!`
+                            : `Thanks for suggesting ${name}. We'll review it and add it to the platform soon.`}
                     </Text>
-                    <Button
-                        mode="contained"
+
+                    <TouchableOpacity
                         onPress={() => router.back()}
-                        style={{ marginTop: 32, borderRadius: 12 }}
-                        contentStyle={{ height: 48 }}
+                        activeOpacity={0.88}
+                        style={{ borderRadius: 26, overflow: "hidden", marginTop: 32 }}
                     >
-                        Back to Search
-                    </Button>
-                </View>
+                        <LinearGradient
+                            colors={gradColors}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.submitButton}
+                        >
+                            <MaterialCommunityIcons name="arrow-left" size={17} color="#fff" />
+                            <Text style={styles.submitText}>Back to Search</Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </Animated.View>
             </SafeAreaView>
         );
     }
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
             >
-                <View style={styles.header}>
-                    <IconButton
-                        icon="arrow-left"
-                        size={24}
-                        onPress={() => router.back()}
-                        style={{ marginLeft: -8 }}
-                    />
-                    <Text variant="headlineSmall" style={{ fontWeight: "700", marginLeft: 8 }}>
-                        Request a Course
-                    </Text>
-                </View>
+                <View style={styles.container}>
 
-                <View style={styles.contentContainer}>
-                    <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 24 }}>
+                    {/* ── Nav row ── */}
+                    <View style={styles.navRow}>
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            activeOpacity={0.75}
+                            style={[
+                                styles.backBtn,
+                                {
+                                    backgroundColor: isDark
+                                        ? "rgba(255,255,255,0.06)"
+                                        : "rgba(0,0,0,0.05)",
+                                    borderColor: cardBorder,
+                                },
+                            ]}
+                        >
+                            <MaterialCommunityIcons
+                                name="arrow-left"
+                                size={18}
+                                color={theme.colors.onSurface}
+                            />
+                        </TouchableOpacity>
+                        <Text
+                            style={[styles.navTitle, { color: theme.colors.onSurface }]}
+                            numberOfLines={1}
+                        >
+                            Request a Course
+                        </Text>
+                        <View style={styles.navSpacer} />
+                    </View>
+
+                    {/* ── Description ── */}
+                    <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
                         Can't find your home course? Search for it below and we'll get it added.
                     </Text>
 
-                    <Text style={[styles.label, { color: theme.colors.onSurface }]}>SEARCH FOR A GOLF COURSE</Text>
+                    {/* ── Search ── */}
+                    <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
+                        SEARCH FOR A GOLF COURSE
+                    </Text>
 
-                    {/* Custom Search Input with Dropdown */}
                     <View style={{ zIndex: 10 }}>
-                        <View style={styles.searchInputContainer}>
+                        <View style={styles.searchWrap}>
                             <PaperInput
                                 placeholder="Search golf courses..."
                                 value={searchQuery}
@@ -294,31 +342,40 @@ export default function RequestCourseScreen() {
                                 }}
                                 onBlur={() => {
                                     setIsFocused(false);
-                                    setShowDropdown(false);
+                                    setTimeout(() => setShowDropdown(false), 150);
                                 }}
                                 mode="outlined"
-                                style={{ flex: 1, backgroundColor: theme.colors.surface }}
-                                outlineStyle={{ borderRadius: 12 }}
+                                left={<PaperInput.Icon icon="magnify" color={theme.colors.onSurfaceVariant} />}
                                 right={
                                     searching ? (
-                                        <PaperInput.Icon icon={() => <ActivityIndicator size={20} />} />
+                                        <PaperInput.Icon icon={() => <ActivityIndicator size={20} color={accent} />} />
                                     ) : hasSelected ? (
-                                        <PaperInput.Icon icon="close" onPress={handleClearSelection} />
-                                    ) : (
-                                        <PaperInput.Icon icon="magnify" />
-                                    )
+                                        <PaperInput.Icon icon="close" onPress={handleClearSelection} color={theme.colors.onSurfaceVariant} />
+                                    ) : undefined
                                 }
+                                style={[
+                                    styles.searchBar,
+                                    { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : theme.colors.surface },
+                                ]}
+                                outlineStyle={{
+                                    borderRadius: 14,
+                                    borderWidth: isDark ? 1 : 0,
+                                    borderColor: isDark ? "rgba(255,255,255,0.08)" : "transparent",
+                                }}
+                                textColor={theme.colors.onSurface}
+                                placeholderTextColor={theme.colors.onSurfaceVariant}
                             />
                         </View>
 
-                        {/* Dropdown Results */}
+                        {/* ── Dropdown ── */}
                         {showDropdown && isFocused && searchResults.length > 0 && !hasSelected && (
                             <View
                                 style={[
                                     styles.dropdown,
                                     {
-                                        backgroundColor: theme.colors.surface,
-                                        borderColor: theme.colors.outline,
+                                        backgroundColor: isDark ? "#1E2A23" : "#fff",
+                                        borderColor: cardBorder,
+                                        shadowColor: isDark ? "transparent" : "#000",
                                     },
                                 ]}
                             >
@@ -326,33 +383,53 @@ export default function RequestCourseScreen() {
                                     data={searchResults}
                                     keyExtractor={(item) => item.place_id}
                                     keyboardShouldPersistTaps="handled"
-                                    renderItem={({ item }) => (
+                                    renderItem={({ item, index }) => (
                                         <TouchableOpacity
                                             style={[
                                                 styles.dropdownItem,
-                                                { borderBottomColor: theme.colors.outlineVariant },
+                                                index < searchResults.length - 1 && {
+                                                    borderBottomWidth: StyleSheet.hairlineWidth,
+                                                    borderBottomColor: dividerColor,
+                                                },
                                             ]}
                                             onPressIn={() => handleSelectCourse(item)}
+                                            activeOpacity={0.72}
                                         >
-                                            <MaterialCommunityIcons
-                                                name="golf"
-                                                size={20}
-                                                color={theme.colors.primary}
-                                                style={{ marginRight: 12 }}
-                                            />
+                                            {/* Badge */}
+                                            <View style={styles.courseBadge}>
+                                                <LinearGradient
+                                                    colors={[AVATAR_GRAD_START, AVATAR_GRAD_END]}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={StyleSheet.absoluteFillObject}
+                                                />
+                                                <View style={styles.courseBadgeInner} />
+                                                <MaterialCommunityIcons
+                                                    name="flag-variant"
+                                                    size={18}
+                                                    color="rgba(255,255,255,0.88)"
+                                                />
+                                            </View>
+
+                                            {/* Info */}
                                             <View style={{ flex: 1 }}>
                                                 <Text
-                                                    style={{ fontWeight: "600", color: theme.colors.onSurface }}
-                                                    numberOfLines={2}
+                                                    style={[styles.dropdownName, { color: isDark ? "#F1F5F9" : "#1E293B" }]}
+                                                    numberOfLines={1}
                                                 >
                                                     {item.name}
                                                 </Text>
                                                 <Text
-                                                    style={{ fontSize: 13, color: theme.colors.onSurfaceVariant, marginTop: 2 }}
-                                                    numberOfLines={2}
+                                                    style={[styles.dropdownMeta, { color: isDark ? "rgba(255,255,255,0.42)" : "#64748B" }]}
+                                                    numberOfLines={1}
                                                 >
                                                     {item.city}{item.city && item.state ? ", " : ""}{item.state}
                                                 </Text>
+                                            </View>
+
+                                            {/* Arrow */}
+                                            <View style={[styles.arrowChip, { backgroundColor: `${accent}18` }]}>
+                                                <MaterialCommunityIcons name="arrow-right" size={12} color={accent} />
                                             </View>
                                         </TouchableOpacity>
                                     )}
@@ -361,51 +438,135 @@ export default function RequestCourseScreen() {
                         )}
                     </View>
 
-                    {/* Form Fields (shown after selection) */}
+                    {/* ── Selected course card ── */}
                     <ScrollView
                         style={{ flex: 1, zIndex: 1, marginTop: 16 }}
                         contentContainerStyle={{ paddingBottom: 40 }}
                         keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
                     >
-                        <View style={{ opacity: name ? 1 : 0.5 }}>
-                            <PaperInput
-                                label="Course Name"
-                                value={name}
-                                editable={false}
-                                mode="outlined"
-                                style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
-                            />
+                        {hasSelected && name ? (
+                            <Animated.View entering={FadeIn.duration(300)}>
+                                <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginBottom: 8 }]}>
+                                    SELECTED COURSE
+                                </Text>
+                                <View
+                                    style={[
+                                        styles.selectedCard,
+                                        { backgroundColor: cardBg, borderColor: cardBorder },
+                                    ]}
+                                >
+                                    {/* Course name row */}
+                                    <View style={styles.selectedRow}>
+                                        <View style={styles.rowLeft}>
+                                            <MaterialCommunityIcons
+                                                name="flag-variant-outline"
+                                                size={16}
+                                                color={accent}
+                                                style={styles.rowIcon}
+                                            />
+                                            <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>
+                                                Course
+                                            </Text>
+                                        </View>
+                                        <Text
+                                            style={[styles.rowValue, { color: theme.colors.onSurface }]}
+                                            numberOfLines={1}
+                                        >
+                                            {name}
+                                        </Text>
+                                    </View>
 
-                            <View style={{ flexDirection: "row", gap: 12 }}>
-                                <PaperInput
-                                    label="City"
-                                    value={city}
-                                    editable={false}
-                                    mode="outlined"
-                                    style={{ flex: 1, marginBottom: 16, backgroundColor: theme.colors.surface }}
+                                    {(city || state) && (
+                                        <>
+                                            <View style={[styles.divider, { backgroundColor: dividerColor }]} />
+                                            <View style={styles.selectedRow}>
+                                                <View style={styles.rowLeft}>
+                                                    <MaterialCommunityIcons
+                                                        name="map-marker-outline"
+                                                        size={16}
+                                                        color={theme.colors.onSurfaceVariant}
+                                                        style={[styles.rowIcon, { opacity: 0.7 }]}
+                                                    />
+                                                    <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>
+                                                        Location
+                                                    </Text>
+                                                </View>
+                                                <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
+                                                    {city}{city && state ? ", " : ""}{state}
+                                                </Text>
+                                            </View>
+                                        </>
+                                    )}
+                                </View>
+                            </Animated.View>
+                        ) : (
+                            <View style={styles.emptyHint}>
+                                <MaterialCommunityIcons
+                                    name="golf"
+                                    size={24}
+                                    color={isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)"}
                                 />
-                                <PaperInput
-                                    label="State"
-                                    value={state}
-                                    editable={false}
-                                    mode="outlined"
-                                    style={{ width: 80, marginBottom: 16, backgroundColor: theme.colors.surface }}
-                                />
+                                <Text style={[styles.emptyHintText, { color: theme.colors.onSurfaceVariant }]}>
+                                    Search for a course above to get started
+                                </Text>
                             </View>
-                        </View>
-
-                        <Button
-                            mode="contained"
-                            onPress={handleSubmit}
-                            loading={loading}
-                            disabled={!name || !placeId || loading}
-                            style={{ borderRadius: 12, marginTop: 8 }}
-                            contentStyle={{ height: 50 }}
-                            labelStyle={{ fontSize: 16, fontWeight: "600" }}
-                        >
-                            Submit Request
-                        </Button>
+                        )}
                     </ScrollView>
+
+                    {/* ── Submit ── */}
+                    <View style={styles.submitWrap}>
+                        <TouchableOpacity
+                            onPress={handleSubmit}
+                            disabled={buttonDisabled}
+                            activeOpacity={0.82}
+                        >
+                            <LinearGradient
+                                colors={
+                                    buttonDisabled
+                                        ? isDark
+                                            ? ["rgba(255,255,255,0.08)", "rgba(255,255,255,0.08)"]
+                                            : ["#E2E8F0", "#E2E8F0"]
+                                        : gradColors
+                                }
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.submitButton}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator animating size="small" color="#fff" />
+                                ) : (
+                                    <View style={styles.submitInner}>
+                                        <MaterialCommunityIcons
+                                            name="send-outline"
+                                            size={17}
+                                            color={
+                                                buttonDisabled
+                                                    ? isDark
+                                                        ? "rgba(255,255,255,0.25)"
+                                                        : "#94A3B8"
+                                                    : "#fff"
+                                            }
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.submitText,
+                                                {
+                                                    color: buttonDisabled
+                                                        ? isDark
+                                                            ? "rgba(255,255,255,0.25)"
+                                                            : "#94A3B8"
+                                                        : "#fff",
+                                                },
+                                            ]}
+                                        >
+                                            Submit Request
+                                        </Text>
+                                    </View>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -413,61 +574,227 @@ export default function RequestCourseScreen() {
 }
 
 const styles = StyleSheet.create({
+    safe: { flex: 1 },
     container: {
         flex: 1,
-    },
-    inner: {
-        flex: 1,
-        padding: 24,
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
         paddingHorizontal: 16,
-        paddingVertical: 12,
-    },
-    contentContainer: {
-        flex: 1,
-        padding: 24,
         paddingTop: 8,
+        paddingBottom: 16,
     },
-    label: {
-        fontSize: 12,
-        fontWeight: "700",
-        marginBottom: 8,
-        opacity: 0.7,
-    },
-    iconCircle: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    searchInputContainer: {
+
+    // Nav
+    navRow: {
         flexDirection: "row",
         alignItems: "center",
+        marginBottom: 16,
     },
-    dropdown: {
-        position: "absolute",
-        top: 60,
-        left: 0,
-        right: 0,
-        maxHeight: 300,
+    backBtn: {
+        width: 38,
+        height: 38,
         borderRadius: 12,
         borderWidth: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        flexShrink: 0,
+    },
+    navTitle: {
+        flex: 1,
+        textAlign: "center",
+        fontSize: 17,
+        fontWeight: "700",
+        letterSpacing: -0.3,
+        marginHorizontal: 8,
+    },
+    navSpacer: {
+        width: 38,
+        flexShrink: 0,
+    },
+
+    description: {
+        fontSize: 14,
+        fontWeight: "400",
+        lineHeight: 20,
+        marginBottom: 20,
+    },
+
+    sectionLabel: {
+        fontSize: 10,
+        fontWeight: "700",
+        letterSpacing: 1.1,
+        marginBottom: 8,
+        marginLeft: 4,
+    },
+
+    // Search
+    searchWrap: { marginBottom: 0 },
+    searchBar: {
+        height: 46,
+        fontSize: 16,
+    },
+
+    // Dropdown
+    dropdown: {
+        position: "absolute",
+        top: 52,
+        left: 0,
+        right: 0,
+        maxHeight: 280,
+        borderRadius: 18,
+        borderWidth: 1,
         elevation: 5,
-        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
         zIndex: 1000,
+        overflow: "hidden",
     },
     dropdownItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        gap: 12,
+    },
+    courseBadge: {
+        width: 38,
+        height: 38,
+        borderRadius: 11,
+        overflow: "hidden",
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
+        flexShrink: 0,
+    },
+    courseBadgeInner: {
+        position: "absolute",
+        inset: 0,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "rgba(34,197,94,0.18)",
+    },
+    dropdownName: {
+        fontSize: 14,
+        fontWeight: "600",
+        letterSpacing: -0.2,
+    },
+    dropdownMeta: {
+        fontSize: 12,
+        fontWeight: "400",
+        marginTop: 2,
+    },
+    arrowChip: {
+        width: 24,
+        height: 24,
+        borderRadius: 8,
+        justifyContent: "center",
+        alignItems: "center",
+        flexShrink: 0,
+    },
+
+    // Selected card
+    selectedCard: {
+        borderRadius: 18,
+        borderWidth: 1,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+        overflow: "hidden",
+        marginBottom: 16,
+    },
+    selectedRow: {
+        flexDirection: "row",
+        alignItems: "center",
         paddingHorizontal: 16,
-        borderBottomWidth: 1,
+        paddingVertical: 14,
+        justifyContent: "space-between",
+        minHeight: 52,
+    },
+    rowLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+    },
+    rowIcon: {
+        marginRight: 10,
+        opacity: 0.7,
+    },
+    rowLabel: {
+        fontSize: 15,
+        fontWeight: "400",
+    },
+    rowValue: {
+        fontSize: 15,
+        fontWeight: "500",
+        maxWidth: 180,
+        textAlign: "right",
+    },
+    divider: {
+        height: StyleSheet.hairlineWidth,
+        marginLeft: 16,
+    },
+
+    // Empty hint
+    emptyHint: {
+        alignItems: "center",
+        paddingTop: 40,
+        gap: 12,
+    },
+    emptyHintText: {
+        fontSize: 14,
+        fontWeight: "400",
+        textAlign: "center",
+    },
+
+    // Submit
+    submitWrap: {
+        marginTop: "auto" as any,
+    },
+    submitButton: {
+        height: 52,
+        borderRadius: 26,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    submitInner: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
+    submitText: {
+        fontWeight: "700",
+        fontSize: 16,
+        letterSpacing: -0.2,
+    },
+
+    // Success
+    successWrap: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 32,
+    },
+    successIconWrap: {
+        width: 80,
+        height: 80,
+        borderRadius: 26,
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 24,
+    },
+    successTitle: {
+        fontSize: 26,
+        fontWeight: "800",
+        letterSpacing: -0.6,
+        textAlign: "center",
+        lineHeight: 32,
+        marginBottom: 12,
+    },
+    successSubtitle: {
+        fontSize: 15,
+        fontWeight: "400",
+        textAlign: "center",
+        lineHeight: 22,
+        maxWidth: 300,
     },
 });

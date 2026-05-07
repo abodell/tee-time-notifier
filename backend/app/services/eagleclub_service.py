@@ -300,6 +300,7 @@ async def normalize_and_store(
         await supabase.table("availability").upsert(
             upsert_list,
             on_conflict="course_id, tee_time, holes",
+            returning="minimal",
         ).execute()
         print(f"[EagleClub] Sync complete for {course['name']}. Stored {len(upsert_list)} slots.")
     else:

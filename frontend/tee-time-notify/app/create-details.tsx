@@ -1,32 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { createAlert } from "@/lib/api";
 import Toast from "react-native-toast-message";
 import {
   StyleSheet,
   View,
-  ScrollView,
-  useWindowDimensions,
   TouchableOpacity,
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  Text,
-  SegmentedButtons,
-  Button,
-  IconButton,
-  useTheme,
-  Divider,
-  Surface,
-} from "react-native-paper";
+import { Text, useTheme, Switch, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { Switch } from "react-native-paper";
-import DatePickerField from "../components/DatePickerField";
-import TimePickerField from "../components/TimePickerField";
+import PickerModal from "../components/PickerModal";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import Animated, {
+  useSharedValue,
+  withSpring,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -40,14 +34,141 @@ function combinedDateAndTime(date: Date, time: Date, tz: string) {
   return dayjs.tz(`${datePart} ${timePart}`, tz);
 }
 
+type PillOption = { value: string; label: string };
+
+const PILL_PADDING = 4;
+const PILL_GAP = 4;
+
+function PillGroup({
+  options,
+  value,
+  onChange,
+  disabled,
+  isDark,
+  accent,
+}: {
+  options: PillOption[];
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  isDark: boolean;
+  accent: string;
+}) {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const activeIndex = options.findIndex((o) => o.value === value);
+  const thumbX = useSharedValue(0);
+  const isFirstLayout = useRef(true);
+
+  const pillWidth =
+    trackWidth > 0
+      ? (trackWidth - PILL_PADDING * 2 - PILL_GAP * (options.length - 1)) /
+        options.length
+      : 0;
+
+  useEffect(() => {
+    if (pillWidth > 0) {
+      const target = activeIndex * (pillWidth + PILL_GAP);
+      if (isFirstLayout.current) {
+        thumbX.value = target;
+        isFirstLayout.current = false;
+      } else {
+        thumbX.value = withSpring(target, {
+          damping: 24,
+          stiffness: 320,
+          mass: 0.7,
+        });
+      }
+    }
+  }, [activeIndex, pillWidth]);
+
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: thumbX.value }],
+  }));
+
+  const activeTextColor = isDark ? "#052e16" : "#fff";
+  const inactiveTextColor = isDark ? "rgba(255,255,255,0.45)" : "#64748B";
+
+  return (
+    <View
+      style={[
+        pillStyles.track,
+        {
+          backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#F1F5F9",
+          opacity: disabled ? 0.38 : 1,
+        },
+      ]}
+      onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+    >
+      {trackWidth > 0 && (
+        <Animated.View
+          style={[
+            {
+              position: "absolute",
+              left: PILL_PADDING,
+              top: PILL_PADDING,
+              bottom: PILL_PADDING,
+              width: pillWidth,
+              borderRadius: 11,
+              backgroundColor: accent,
+            },
+            thumbStyle,
+          ]}
+        />
+      )}
+      {options.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <TouchableOpacity
+            key={opt.value}
+            onPress={() => !disabled && onChange(opt.value)}
+            activeOpacity={0.75}
+            style={pillStyles.pill}
+          >
+            <Text
+              style={[
+                pillStyles.pillText,
+                {
+                  color: active ? activeTextColor : inactiveTextColor,
+                  fontWeight: active ? "700" : "500",
+                },
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const pillStyles = StyleSheet.create({
+  track: {
+    flexDirection: "row",
+    borderRadius: 14,
+    padding: PILL_PADDING,
+    gap: PILL_GAP,
+  },
+  pill: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillText: {
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+});
+
 export default function CreateDetailsScreen() {
   const { id, name, tierName: tierNameParam } = useLocalSearchParams();
   const router = useRouter();
   const theme = useTheme();
-  const { width } = useWindowDimensions();
 
   const [holes, setHoles] = useState<string>("18");
-  const [players, setPlayers] = useState<string>("0"); // "0" = Any
+  const [players, setPlayers] = useState<string>("0");
   const [date, setDate] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
@@ -60,9 +181,61 @@ export default function CreateDetailsScreen() {
     typeof tierNameParam === "string" ? tierNameParam : null
   );
 
+  // Picker visibility
+  const [dateVisible, setDateVisible] = useState(false);
+  const [startVisible, setStartVisible] = useState(false);
+  const [endVisible, setEndVisible] = useState(false);
+  const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [tempStart, setTempStart] = useState<Date>(new Date());
+  const [tempEnd, setTempEnd] = useState<Date>(new Date());
+  const [timeError, setTimeError] = useState<string | null>(null);
+
+  const isDark = theme.dark;
+  const accent = theme.colors.primary;
+  const gradColors = isDark
+    ? (Colors.dark.gradients.primary as [string, string])
+    : (Colors.light.gradients.primary as [string, string]);
+
+  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "#fff";
+  const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
+  const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+
+  // Validate time fields
+  useEffect(() => {
+    if (!startTime) {
+      setStartValid(false);
+      setTimeError(null);
+      return;
+    }
+    const now = new Date();
+    const isToday = date && dayjs(date).isSame(dayjs(now), "day");
+    if (isToday && dayjs(startTime).isBefore(dayjs(now))) {
+      setStartValid(false);
+      setEndValid(false);
+      setTimeError("Start time has already passed today.");
+      return;
+    }
+    setStartValid(true);
+
+    if (!endTime) {
+      setEndValid(false);
+      setTimeError(null);
+      return;
+    }
+    if (dayjs(endTime).isBefore(dayjs(startTime))) {
+      setEndValid(false);
+      setTimeError("End time must be after start time.");
+      return;
+    }
+    setEndValid(true);
+    setTimeError(null);
+  }, [startTime, endTime, date]);
+
   React.useEffect(() => {
     const fetchCourseAndProfile = async () => {
-      const courseId = Array.isArray(id) ? parseInt(id[0]) : parseInt(id || "0");
+      const courseId = Array.isArray(id)
+        ? parseInt(id[0])
+        : parseInt(id || "0");
       if (courseId) {
         const { data } = await supabase
           .from("courses")
@@ -72,12 +245,16 @@ export default function CreateDetailsScreen() {
         if (data) setCourse(data);
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.user?.id) {
-        // Fetch profile to get tier info using the backend endpoint for consistency
         try {
-          const baseUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
-          const profileRes = await fetch(`${baseUrl}/membership/profile/${session.user.id}`);
+          const baseUrl =
+            process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+          const profileRes = await fetch(
+            `${baseUrl}/membership/profile/${session.user.id}`
+          );
           if (profileRes.ok) {
             const profile = await profileRes.json();
             if (profile?.membership_tiers?.name) {
@@ -98,23 +275,19 @@ export default function CreateDetailsScreen() {
       router.push("/(auth)/sign-in");
       return;
     }
-
     try {
       setSubmitting(true);
-      // Combine the selected date with the chosen times
-      // Use the course's timezone or fallback to local guess
       const tz = course?.time_zone || dayjs.tz.guess();
-
       const combinedStart =
         date && startTime ? combinedDateAndTime(date, startTime, tz) : null;
       const combinedEnd =
         date && endTime ? combinedDateAndTime(date, endTime, tz) : null;
-
-      // Parse course ID from params
-      const courseId = Array.isArray(id) ? parseInt(id[0]) : parseInt(id || "0");
+      const courseId = Array.isArray(id)
+        ? parseInt(id[0])
+        : parseInt(id || "0");
       if (!courseId) throw new Error("Invalid course ID");
 
-      const alertPayload = {
+      await createAlert({
         user_id: data.session.user.id,
         holes: parseInt(holes),
         players: players === "0" ? null : parseInt(players),
@@ -124,8 +297,7 @@ export default function CreateDetailsScreen() {
         start_time: combinedStart?.toISOString(),
         end_time: combinedEnd?.toISOString(),
         is_recurring: tierName === "Pro" ? isRecurring : false,
-      };
-      await createAlert(alertPayload);
+      });
 
       Toast.show({
         type: "success",
@@ -133,12 +305,7 @@ export default function CreateDetailsScreen() {
         position: "top",
         visibilityTime: 2000,
       });
-
-      // Short pause to let toast appear
-      setTimeout(() => {
-        // Navigate to My Alerts tab
-        router.push("/(tabs)/my-alerts");
-      }, 600);
+      setTimeout(() => router.push("/(tabs)/my-alerts"), 600);
     } catch (err: any) {
       Toast.show({
         type: "error",
@@ -153,327 +320,576 @@ export default function CreateDetailsScreen() {
 
   const buttonDisabled =
     !date || !startTime || !endTime || !startValid || !endValid || submitting;
+  const isPaidTier = tierName === "Plus" || tierName === "Pro";
 
-  const { onBackground, onSurfaceVariant } = theme.colors;
-  const containerWidth = Math.min(width - 32, 480);
-  const isDark = theme.dark;
+  const labelColor = theme.colors.onSurfaceVariant;
 
   return (
     <SafeAreaView
-      style={[
-        styles.safe,
-        { backgroundColor: theme.colors.background, alignItems: "center" },
-      ]}
+      style={[styles.safe, { backgroundColor: theme.colors.background }]}
     >
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { width: containerWidth }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
+      <View style={styles.container}>
+        {/* ── Nav row ── */}
+        <View style={styles.navRow}>
+          <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
-            iconColor={theme.colors.primary}
+            activeOpacity={0.75}
+            style={[
+              styles.backBtn,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.05)",
+                borderColor: cardBorder,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={18}
+              color={theme.colors.onSurface}
+            />
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.navTitle,
+              { color: theme.colors.onSurface },
+            ]}
+            numberOfLines={1}
+          >
+            {name || "Create Alert"}
+          </Text>
+          {/* Spacer to balance the back button */}
+          <View style={styles.navSpacer} />
+        </View>
+
+        {/* ── HOLES ── */}
+        <Text style={[styles.sectionLabel, { color: labelColor }]}>HOLES</Text>
+        <View style={styles.section}>
+          <PillGroup
+            options={[
+              { value: "9", label: "9 Holes" },
+              { value: "18", label: "18 Holes" },
+            ]}
+            value={holes}
+            onChange={setHoles}
+            isDark={isDark}
+            accent={accent}
           />
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text
-              variant="titleMedium"
-              style={[styles.title, { color: onBackground }]}
-              numberOfLines={1}
+        </View>
+
+        {/* ── PLAYERS ── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionLabel, { color: labelColor }]}>
+            PLAYERS
+          </Text>
+          {!isPaidTier && tierName !== null && (
+            <TouchableOpacity
+              onPress={() => router.push("/upgrade")}
+              style={[styles.lockChip, { backgroundColor: `${accent}18` }]}
             >
-              {name || "Create Alert"}
-            </Text>
-          </View>
-          <View style={{ width: 40 }} />
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={11}
+                color={accent}
+              />
+              <Text style={[styles.lockChipText, { color: accent }]}>
+                Upgrade
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.section}>
+          <PillGroup
+            options={[
+              { value: "0", label: "Any" },
+              { value: "1", label: "1" },
+              { value: "2", label: "2" },
+              { value: "3", label: "3" },
+              { value: "4", label: "4" },
+            ]}
+            value={players}
+            onChange={setPlayers}
+            disabled={!isPaidTier && tierName !== null}
+            isDark={isDark}
+            accent={accent}
+          />
         </View>
 
-        <Text style={[styles.subtitle, { color: onSurfaceVariant }]}>
-          Set your preferences for this alert.
+        {/* ── TIME WINDOW ── */}
+        <Text style={[styles.sectionLabel, { color: labelColor }]}>
+          TIME WINDOW
         </Text>
-
-        {/* Grouped Form: Holes */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionLabelRow}>
-            <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-              HOLES
-            </Text>
-          </View>
-          <Surface
-            style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
-            elevation={0}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: cardBg, borderColor: cardBorder },
+            styles.section,
+          ]}
+        >
+          {/* Date row */}
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => {
+              setTempDate(date || new Date());
+              setDateVisible(true);
+            }}
+            activeOpacity={0.7}
           >
-            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface }]}>
-              <SegmentedButtons
-                value={holes}
-                onValueChange={setHoles}
-                buttons={[
-                  {
-                    value: "9",
-                    label: "9 Holes",
-                    style: { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-                  },
-                  {
-                    value: "18",
-                    label: "18 Holes",
-                    style: {
-                      borderTopRightRadius: 12,
-                      borderBottomRightRadius: 12,
-                    },
-                  },
-                ]}
-                style={styles.segmentedBtn}
-                density="medium"
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="calendar-outline"
+                size={16}
+                color={labelColor}
+                style={styles.rowIcon}
               />
+              <Text style={[styles.rowLabel, { color: labelColor }]}>Date</Text>
             </View>
-          </Surface>
+            <Text
+              style={[
+                styles.rowValue,
+                {
+                  color: date
+                    ? theme.colors.onSurface
+                    : theme.colors.onSurfaceVariant,
+                },
+              ]}
+            >
+              {date ? dayjs(date).format("MMM D, YYYY") : "Select"}
+            </Text>
+          </TouchableOpacity>
 
+          <View
+            style={[styles.divider, { backgroundColor: dividerColor }]}
+          />
+
+          {/* Start time row */}
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => {
+              setTempStart(startTime || new Date());
+              setStartVisible(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="weather-sunset-up"
+                size={16}
+                color={labelColor}
+                style={styles.rowIcon}
+              />
+              <Text style={[styles.rowLabel, { color: labelColor }]}>
+                Start
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.rowValue,
+                {
+                  color: startTime
+                    ? theme.colors.onSurface
+                    : theme.colors.onSurfaceVariant,
+                },
+              ]}
+            >
+              {startTime ? dayjs(startTime).format("h:mm A") : "Select"}
+            </Text>
+          </TouchableOpacity>
+
+          <View
+            style={[styles.divider, { backgroundColor: dividerColor }]}
+          />
+
+          {/* End time row */}
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => {
+              setTempEnd(endTime || new Date());
+              setEndVisible(true);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="weather-sunset-down"
+                size={16}
+                color={labelColor}
+                style={styles.rowIcon}
+              />
+              <Text style={[styles.rowLabel, { color: labelColor }]}>End</Text>
+            </View>
+            <Text
+              style={[
+                styles.rowValue,
+                {
+                  color: endTime
+                    ? theme.colors.onSurface
+                    : theme.colors.onSurfaceVariant,
+                },
+              ]}
+            >
+              {endTime ? dayjs(endTime).format("h:mm A") : "Select"}
+            </Text>
+          </TouchableOpacity>
         </View>
+        {timeError ? (
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            {timeError}
+          </Text>
+        ) : null}
 
-        {/* Grouped Form: Players */}
-        {(() => {
-          const isPaidTier = tierName === "Plus" || tierName === "Pro";
-          return (
-            <View style={styles.sectionContainer}>
-              <View style={styles.sectionLabelRow}>
-                <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-                  PLAYERS
-                </Text>
-                {!isPaidTier && tierName !== null && (
-                  <TouchableOpacity
-                    onPress={() => router.push("/upgrade")}
-                    style={[styles.lockChip, { backgroundColor: theme.colors.primaryContainer }]}
+        {/* ── AUTOMATION ── */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionLabel, { color: labelColor }]}>
+            AUTOMATION
+          </Text>
+          {tierName !== "Pro" && tierName !== null && (
+            <TouchableOpacity
+              onPress={() => router.push("/upgrade")}
+              style={[styles.lockChip, { backgroundColor: `${accent}18` }]}
+            >
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={11}
+                color={accent}
+              />
+              <Text style={[styles.lockChipText, { color: accent }]}>Upgrade</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View
+          style={[
+            styles.card,
+            styles.section,
+            {
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+              opacity: tierName !== "Pro" && tierName !== null ? 0.4 : 1,
+            },
+          ]}
+        >
+          <View pointerEvents={tierName === "Pro" ? "auto" : "none"}>
+            <View style={[styles.row, { minHeight: 52 }]}>
+              <View style={styles.rowLeft}>
+                <MaterialCommunityIcons
+                  name="refresh-auto"
+                  size={16}
+                  color={tierName === "Pro" ? accent : labelColor}
+                  style={styles.rowIcon}
+                />
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text
+                    style={[
+                      styles.rowLabel,
+                      { color: theme.colors.onSurface },
+                    ]}
                   >
-                    <MaterialCommunityIcons name="lock-outline" size={11} color={theme.colors.primary} />
-                    <Text style={[styles.lockChipText, { color: theme.colors.primary }]}>Upgrade</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <Surface
-                style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
-                elevation={0}
-              >
-                <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface }]}>
-                  <View pointerEvents={isPaidTier ? "auto" : "none"} style={{ opacity: isPaidTier ? 1 : 0.35 }}>
-                    <SegmentedButtons
-                      value={players}
-                      onValueChange={setPlayers}
-                      buttons={[
-                        { value: "1", label: "1", style: { borderTopLeftRadius: 12, borderBottomLeftRadius: 12 } },
-                        { value: "2", label: "2" },
-                        { value: "3", label: "3" },
-                        { value: "4", label: "4", style: { borderTopRightRadius: 12, borderBottomRightRadius: 12 } },
-                      ]}
-                      style={styles.segmentedBtn}
-                      density="medium"
-                    />
-                  </View>
-                </View>
-              </Surface>
-            </View>
-          );
-        })()}
-
-        {/* Grouped Form: Window */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionLabelRow}>
-            <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-              TIME WINDOW
-            </Text>
-          </View>
-          <Surface
-            style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
-            elevation={0}
-          >
-            <View style={[styles.groupedSurface, { backgroundColor: theme.colors.surface, padding: 12 }]}>
-
-              <View style={{ marginBottom: 12 }}>
-                <DatePickerField
-                  label="Date"
-                  value={date}
-                  onChange={setDate}
-                />
-              </View>
-              <Divider style={{ marginBottom: 12, opacity: 0.5 }} />
-              <View style={{ marginBottom: 12 }}>
-                <TimePickerField
-                  label="Start Time"
-                  value={startTime}
-                  onChange={setStartTime}
-                  selectedDate={date}
-                  onValidityChange={setStartValid}
-                />
-              </View>
-              <TimePickerField
-                label="End Time"
-                value={endTime}
-                onChange={setEndTime}
-                selectedDate={date}
-                startTime={startTime}
-                onValidityChange={setEndValid}
-              />
-            </View>
-          </Surface>
-
-        </View>
-
-        {/* Grouped Form: Recurring Alert (Pro Only) */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionLabelRow}>
-            <Text style={[styles.sectionLabel, { color: onSurfaceVariant }]}>
-              AUTOMATION
-            </Text>
-            {tierName !== "Pro" && tierName !== null && (
-              <TouchableOpacity
-                onPress={() => router.push("/upgrade")}
-                style={[styles.lockChip, { backgroundColor: theme.colors.primaryContainer }]}
-              >
-                <MaterialCommunityIcons name="lock-outline" size={11} color={theme.colors.primary} />
-                <Text style={[styles.lockChipText, { color: theme.colors.primary }]}>Upgrade</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <Surface
-            style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }}
-            elevation={0}
-          >
-            <View style={[
-              styles.groupedSurface,
-              { backgroundColor: theme.colors.surface, padding: 16 },
-              tierName !== "Pro" && tierName !== null ? { opacity: 0.35 } : null,
-            ]}>
-              <View pointerEvents={tierName === "Pro" ? "auto" : "none"} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                <View style={{ flex: 1, paddingRight: 16 }}>
-                  <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface, marginBottom: 4 }}>
                     Recurring Alert
                   </Text>
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Automatically re-set this alert 7 days later once the time window passes.
+                  <Text
+                    style={[styles.rowMeta, { color: labelColor }]}
+                  >
+                    Automatically repeats for the same window each week
                   </Text>
                 </View>
-                <Switch
-                  value={isRecurring}
-                  onValueChange={setIsRecurring}
-                  color={theme.colors.primary}
-                  disabled={tierName !== "Pro"}
-                />
               </View>
+              <Switch
+                value={isRecurring}
+                onValueChange={setIsRecurring}
+                color={accent}
+                disabled={tierName !== "Pro"}
+              />
             </View>
-          </Surface>
+          </View>
         </View>
 
-        {/* Gradient Action Button */}
-        <View style={{ marginTop: 16, marginBottom: 20 }}>
+        {/* ── Submit ── */}
+        <View style={styles.submitWrap}>
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={buttonDisabled}
-            activeOpacity={0.8}
+            activeOpacity={0.82}
           >
             <LinearGradient
               colors={
-                (buttonDisabled
-                  ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
-                  : Colors.light.gradients.primary) as [string, string, ...string[]]
+                buttonDisabled
+                  ? isDark
+                    ? ["rgba(255,255,255,0.08)", "rgba(255,255,255,0.08)"]
+                    : ["#E2E8F0", "#E2E8F0"]
+                  : gradColors
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[
-                styles.gradientButton,
-                { opacity: buttonDisabled ? 0.6 : 1 },
-              ]}
+              style={styles.submitButton}
             >
-              <Text
-                style={{
-                  color: buttonDisabled
-                    ? theme.colors.onSurfaceDisabled
-                    : "#FFF",
-                  fontWeight: "700",
-                  fontSize: 16,
-                }}
-              >
-                {submitting ? "Creating..." : "Create Alert"}
-              </Text>
+              {submitting ? (
+                <ActivityIndicator animating size="small" color="#fff" />
+              ) : (
+                <View style={styles.submitInner}>
+                  <MaterialCommunityIcons
+                    name="bell-plus-outline"
+                    size={17}
+                    color={
+                      buttonDisabled
+                        ? isDark
+                          ? "rgba(255,255,255,0.25)"
+                          : "#94A3B8"
+                        : "#fff"
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.submitText,
+                      {
+                        color: buttonDisabled
+                          ? isDark
+                            ? "rgba(255,255,255,0.25)"
+                            : "#94A3B8"
+                          : "#fff",
+                      },
+                    ]}
+                  >
+                    Create Alert
+                  </Text>
+                </View>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
+
+      {/* ── Picker modals ── */}
+      <PickerModal
+        visible={dateVisible}
+        title="Select Date"
+        onClose={() => setDateVisible(false)}
+        onConfirm={() => {
+          setDate(tempDate);
+          setDateVisible(false);
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: isDark ? theme.colors.surface : "#fff",
+            borderRadius: 12,
+            paddingVertical: 4,
+          }}
+        >
+          <DateTimePicker
+            value={tempDate}
+            mode="date"
+            display={Platform.OS === "ios" ? "inline" : "default"}
+            themeVariant={isDark ? "dark" : "light"}
+            minimumDate={new Date()}
+            onChange={(_, d) => {
+              if (d) setTempDate(d);
+            }}
+          />
+        </View>
+      </PickerModal>
+
+      <PickerModal
+        visible={startVisible}
+        title="Start Time"
+        onClose={() => setStartVisible(false)}
+        onConfirm={() => {
+          setStartTime(tempStart);
+          setStartVisible(false);
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: isDark ? theme.colors.surface : "#fff",
+            borderRadius: 12,
+            paddingVertical: 4,
+          }}
+        >
+          <DateTimePicker
+            value={tempStart}
+            mode="time"
+            display="spinner"
+            is24Hour={false}
+            themeVariant={isDark ? "dark" : "light"}
+            onChange={(_, t) => {
+              if (t) setTempStart(t);
+            }}
+          />
+        </View>
+      </PickerModal>
+
+      <PickerModal
+        visible={endVisible}
+        title="End Time"
+        onClose={() => setEndVisible(false)}
+        onConfirm={() => {
+          setEndTime(tempEnd);
+          setEndVisible(false);
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: isDark ? theme.colors.surface : "#fff",
+            borderRadius: 12,
+            paddingVertical: 4,
+          }}
+        >
+          <DateTimePicker
+            value={tempEnd}
+            mode="time"
+            display="spinner"
+            is24Hour={false}
+            themeVariant={isDark ? "dark" : "light"}
+            onChange={(_, t) => {
+              if (t) setTempEnd(t);
+            }}
+          />
+        </View>
+      </PickerModal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
+  safe: { flex: 1 },
+  container: {
     flex: 1,
-  },
-  scroll: {
-    paddingTop: 10,
-    paddingBottom: 24,
     paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  headerRow: {
+
+  // Nav
+  navRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-    justifyContent: "space-between",
+    marginBottom: 20,
   },
   backBtn: {
-    margin: 0,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
   },
-  title: {
-    fontWeight: "700",
-    fontSize: 17,
-  },
-  subtitle: {
-    marginBottom: 16,
+  navTitle: {
+    flex: 1,
     textAlign: "center",
-    fontSize: 14,
-    paddingHorizontal: 20,
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    marginHorizontal: 8,
   },
-  sectionContainer: {
-    marginBottom: 16,
+  navSpacer: {
+    width: 38,
+    flexShrink: 0,
   },
-  sectionLabelRow: {
+
+  // Section labels
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.1,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
-    marginLeft: 12,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    opacity: 0.7,
+    marginLeft: 4,
   },
   lockChip: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 20,
-    marginLeft: 8,
     gap: 3,
+    marginRight: 4,
   },
   lockChipText: {
     fontSize: 11,
     fontWeight: "700",
   },
-  groupedSurface: {
-    borderRadius: 12,
+
+  section: {
+    marginBottom: 16,
   },
-  segmentedBtn: {
-    margin: 12,
+
+  // Cards (profile-style)
+  card: {
+    borderRadius: 18,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: "hidden",
   },
-  gradientButton: {
-    height: 50,
-    borderRadius: 25,
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: "space-between",
+    minHeight: 52,
+  },
+  rowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  rowIcon: {
+    marginRight: 10,
+    opacity: 0.7,
+  },
+  rowLabel: {
+    fontSize: 15,
+    fontWeight: "400",
+  },
+  rowMeta: {
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 1,
+  },
+  rowValue: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 16,
+  },
+  errorText: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: -10,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+
+  // Submit
+  submitWrap: {
+    marginTop: "auto" as any,
+  },
+  submitButton: {
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#2F80ED",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+  },
+  submitInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  submitText: {
+    fontWeight: "700",
+    fontSize: 16,
+    letterSpacing: -0.2,
   },
 });

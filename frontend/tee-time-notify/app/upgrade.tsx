@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform, DeviceEventEmitter, Animated } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  Platform,
+  DeviceEventEmitter,
+} from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import {
   Text,
-  Button,
   useTheme,
   ActivityIndicator,
-  IconButton,
-  Surface,
-  Divider,
 } from "react-native-paper";
 import { supabase } from "@/lib/supabase";
 import Toast from "react-native-toast-message";
@@ -19,12 +23,22 @@ import { Colors } from "@/constants/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { MembershipTier, UserProfileResponse } from "@/types/membership";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+
+const FEATURE_ICONS: Record<string, string> = {
+  alerts: "bell-outline",
+  scan: "radar",
+  group: "account-group-outline",
+  recurring: "refresh-auto",
+};
 
 export default function UpgradeScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const isDark = theme.dark;
   const [loading, setLoading] = useState(true);
   const [redirectingTier, setRedirectingTier] = useState<number | null>(null);
   const [tiers, setTiers] = useState<MembershipTier[]>([]);
@@ -33,6 +47,13 @@ export default function UpgradeScreen() {
   const [cancelAt, setCancelAt] = useState<string | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [session, setSession] = useState<any>(null);
+
+  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "#fff";
+  const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
+  const accent = theme.colors.primary;
+  const gradColors = isDark
+    ? (Colors.dark.gradients.primary as [string, string])
+    : (Colors.light.gradients.primary as [string, string]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -69,29 +90,24 @@ export default function UpgradeScreen() {
         setCancelAt(profileData.cancel_at || null);
       }
 
-      // Fetch RevenueCat Offerings or Products
       try {
         const offerings = await Purchases.getOfferings();
 
         if (offerings.current && offerings.current.availablePackages.length > 0) {
           setPackages(offerings.current.availablePackages);
         } else {
-          // Fallback: Fetch products directly using IDs from our DB
           const productIds = tierList
             .map(t => t.revenuecat_entitlement_id)
             .filter((id): id is string => !!id);
 
           if (productIds.length > 0) {
             const products = await Purchases.getProducts(productIds);
-
-            // Wrap products in synthetic packages to match existing state structure
             const syntheticPackages: any[] = products.map(product => ({
               identifier: product.identifier,
               packageType: "CUSTOM",
               product: product,
               offeringIdentifier: "fallback"
             }));
-
             setPackages(syntheticPackages);
           }
         }
@@ -122,7 +138,6 @@ export default function UpgradeScreen() {
         return;
       }
 
-      // 🟡 Downgrade flow: user chooses Free plan
       if (tier.price_cents === 0 && userTier && userTier !== 1) {
         Alert.alert(
           "Manage Subscription",
@@ -132,10 +147,10 @@ export default function UpgradeScreen() {
             {
               text: "Open Settings",
               onPress: async () => {
-                if (Platform.OS === 'ios') {
-                  Linking.openURL('https://apps.apple.com/account/subscriptions');
+                if (Platform.OS === "ios") {
+                  Linking.openURL("https://apps.apple.com/account/subscriptions");
                 } else {
-                  Linking.openURL('https://play.google.com/store/account/subscriptions');
+                  Linking.openURL("https://play.google.com/store/account/subscriptions");
                 }
               }
             }
@@ -144,10 +159,8 @@ export default function UpgradeScreen() {
         return;
       }
 
-      // 🟢 Regular upgrade flow (Native IAP)
       setRedirectingTier(tier.id);
 
-      // Find matching package
       const packageToBuy = packages.find(
         (pkg) => pkg.product.identifier === tier.revenuecat_entitlement_id || pkg.identifier === tier.revenuecat_entitlement_id
       );
@@ -158,7 +171,6 @@ export default function UpgradeScreen() {
 
       const { customerInfo } = await Purchases.purchasePackage(packageToBuy);
 
-      // Check if entitlement is active
       if (customerInfo.entitlements.active[tier.revenuecat_entitlement_id || ""]) {
         Toast.show({
           type: "success",
@@ -166,7 +178,6 @@ export default function UpgradeScreen() {
           text2: "Your plan has been updated.",
           position: "top",
         });
-        // Refresh profile
         DeviceEventEmitter.emit("membershipUpdated");
         loadData();
       }
@@ -189,9 +200,6 @@ export default function UpgradeScreen() {
     try {
       setLoading(true);
       const customerInfo = await Purchases.restorePurchases();
-
-      // improvements: check if active entitlements exist and sync with DB if needed
-      // For now, just show success message as per requirement
       if (Object.keys(customerInfo.entitlements.active).length > 0) {
         Toast.show({
           type: "success",
@@ -227,306 +235,343 @@ export default function UpgradeScreen() {
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={accent} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <IconButton
-            icon="arrow-left"
-            size={24}
+        {/* ── Nav row ── */}
+        <View style={styles.navRow}>
+          <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.backBtn}
-            iconColor={theme.colors.primary}
-          />
-          <View style={{ flex: 1, alignItems: "center" }}>
-            <Text
-              variant="titleMedium"
-              style={{ color: theme.colors.onBackground, fontWeight: "700" }}
-            >
-              Manage Plan
-            </Text>
-          </View>
-          <View style={{ width: 40 }} />
+            activeOpacity={0.75}
+            style={[
+              styles.backBtn,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.06)"
+                  : "rgba(0,0,0,0.05)",
+                borderColor: cardBorder,
+              },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="arrow-left"
+              size={18}
+              color={theme.colors.onSurface}
+            />
+          </TouchableOpacity>
+          <Text style={[styles.navTitle, { color: theme.colors.onSurface }]}>
+            Manage Plan
+          </Text>
+          <View style={styles.navSpacer} />
         </View>
 
-        <View style={styles.headerContainer}>
-          <Text
-            variant="headlineSmall"
-            style={{
-              color: theme.colors.onBackground,
-              fontWeight: "800",
-              textAlign: "center",
-              marginBottom: 8,
-            }}
-          >
+        {/* ── Hero ── */}
+        <Animated.View entering={FadeInDown.duration(400).delay(60)} style={styles.hero}>
+          <MaterialCommunityIcons
+            name="crown"
+            size={36}
+            color={accent}
+            style={{ marginBottom: 14 }}
+          />
+          <Text style={[styles.heroTitle, { color: theme.colors.onSurface }]}>
             Upgrade Your Game
           </Text>
-          <Text
-            style={{
-              color: theme.colors.secondary,
-              textAlign: "center",
-              fontSize: 16,
-              paddingHorizontal: 20,
-            }}
-          >
+          <Text style={[styles.heroSubtitle, { color: theme.colors.onSurfaceVariant }]}>
             Unlock faster scans and more alerts to never miss a tee time.
           </Text>
-        </View>
+        </Animated.View>
 
-        {/* Membership Cards */}
-        {tiers.map((tier) => {
+        {/* ── Tier cards ── */}
+        {tiers.map((tier, idx) => {
           const isCurrent = tier.id === userTier;
           const isRedirecting = redirectingTier === tier.id;
           const isFree = tier.price_cents === 0;
+          const isPro = tier.name === "Pro";
 
-          // Find matching RevenueCat package
           const rcPackage = packages.find(
             (pkg) =>
               pkg.product.identifier === tier.revenuecat_entitlement_id ||
               pkg.product.identifier === tier.revenuecat_entitlement_id
           );
 
-          // Use RevenueCat price if available, otherwise fallback to DB price
           const priceDisplay = rcPackage
             ? rcPackage.product.priceString
             : toPriceText(tier.price_cents);
 
-          // Disable purchase if not free, not current, and no package found
           const isUnavailable = !isFree && !isCurrent && !rcPackage;
+          const hasTrial = !!rcPackage?.product?.introPrice;
 
           return (
-            <Surface
+            <Animated.View
               key={tier.id}
-              style={[
-                styles.card,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: isCurrent ? theme.colors.primary : "transparent",
-                  borderWidth: isCurrent ? 2 : 0,
-                },
-              ]}
-              elevation={isCurrent ? 4 : 1}
+              entering={FadeInDown.duration(400).delay(120 + idx * 80)}
             >
-              <View style={styles.cardHeader}>
-                <Text
-                  variant="titleLarge"
-                  style={{
-                    color: theme.colors.onSurface,
-                    fontWeight: "800",
-                  }}
-                >
-                  {tier.name}
-                </Text>
-                {isCurrent && (
-                  <View style={[styles.badge, { backgroundColor: theme.colors.primaryContainer }]}>
-                    <Text style={[styles.badgeText, { color: theme.colors.onPrimaryContainer }]}>
-                      Current
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <Text
-                variant="displaySmall"
-                style={{
-                  color: theme.colors.primary,
-                  marginTop: 12,
-                  marginBottom: 4,
-                  fontWeight: "800",
-                  fontSize: 32,
-                }}
+              <View
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: isCurrent
+                      ? isDark ? "rgba(255,255,255,0.08)" : "#fff"
+                      : cardBg,
+                    borderColor: isCurrent ? accent : cardBorder,
+                    borderWidth: isCurrent ? 2 : 1,
+                    shadowColor: isDark ? "transparent" : "#000",
+                  },
+                ]}
               >
-                {isFree ? "Free" : priceDisplay}
-                {!isFree && (
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      fontWeight: "600",
-                      color: theme.colors.onSurfaceVariant,
-                      lineHeight: 32,
-                    }}
-                  >
-                    {" /mo"}
+                {/* Card header */}
+                <View style={styles.cardHeader}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <Text style={[styles.tierName, { color: theme.colors.onSurface }]}>
+                        {isFree ? "Free" : tier.name}
+                      </Text>
+                      {isCurrent && (
+                        <View style={[styles.currentBadge, { backgroundColor: `${accent}20` }]}>
+                          <Text style={[styles.currentBadgeText, { color: accent }]}>
+                            Current
+                          </Text>
+                        </View>
+                      )}
+                      {isPro && !isCurrent && hasTrial && (
+                        <View style={[styles.trialBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0FDF4" }]}>
+                          <Text style={[styles.trialBadgeText, { color: accent }]}>
+                            14-Day Trial
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Price */}
+                    <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 8, gap: 3 }}>
+                      <Text style={[styles.priceText, { color: isCurrent ? accent : theme.colors.onSurface }]}>
+                        {isFree ? "Free" : priceDisplay}
+                      </Text>
+                      {!isFree && (
+                        <Text style={[styles.pricePeriod, { color: theme.colors.onSurfaceVariant }]}>
+                          /mo
+                        </Text>
+                      )}
+                    </View>
+
+                    {!isFree && hasTrial && (
+                      <Text style={[styles.trialNote, { color: theme.colors.onSurfaceVariant }]}>
+                        After 14 days, you'll be charged {priceDisplay}/mo
+                      </Text>
+                    )}
+                    {!isFree && !hasTrial && (
+                      <Text style={[styles.trialNote, { color: theme.colors.onSurfaceVariant }]}>
+                        Auto-renewable, billed monthly
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                {/* Divider */}
+                <View style={[styles.divider, {
+                  backgroundColor: isCurrent
+                    ? `${accent}20`
+                    : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                  marginHorizontal: 0,
+                }]} />
+
+                {/* Description */}
+                {tier.description ? (
+                  <Text style={[styles.tierDesc, { color: theme.colors.onSurfaceVariant }]}>
+                    {tier.description}
                   </Text>
-                )}
-              </Text>
+                ) : null}
 
-              {!isFree && (
-                <Text style={{ fontSize: 13, color: theme.colors.primary, marginBottom: 12, fontWeight: "700" }}>
-                  {rcPackage?.product?.introPrice ? "Includes 14-Day Free Trial" : "Monthly Subscription"}
-                </Text>
-              )}
-
-              {!isFree && (
-                <Text style={{ fontSize: 12, color: theme.colors.onSurfaceVariant, marginBottom: 16, fontWeight: "500" }}>
-                  {rcPackage?.product?.introPrice
-                    ? `After 14 days, you'll be charged ${priceDisplay}/mo`
-                    : "Auto-renewable subscription, billed monthly"}
-                </Text>
-              )}
-
-              <Text style={{ color: theme.colors.onSurfaceVariant, marginBottom: 20 }}>
-                {tier.description || "Everything you need to find your next tee time."}
-              </Text>
-
-              <Divider style={{ marginBottom: 20, opacity: 0.5 }} />
-
-              {/* Features */}
-              <View style={styles.features}>
-                <>
+                {/* Features */}
+                <View style={styles.features}>
                   <View style={styles.featureRow}>
-                    <Text style={{ fontSize: 18, marginRight: 12 }}>🔔</Text>
+                    <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                      <MaterialCommunityIcons name="bell-outline" size={14} color={accent} />
+                    </View>
                     <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
-                      <Text style={{ fontWeight: "700" }}>{tier.max_alerts ?? 3}</Text> active alerts
+                      <Text style={{ fontWeight: "700" }}>{tier.max_alerts ?? 3}</Text> active {(tier.max_alerts ?? 3) === 1 ? "alert" : "alerts"}
                     </Text>
                   </View>
 
                   <View style={styles.featureRow}>
-                    <Text style={{ fontSize: 18, marginRight: 12 }}>⚡️</Text>
+                    <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                      <MaterialCommunityIcons name="radar" size={14} color={accent} />
+                    </View>
                     <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
                       Refreshes every{" "}
                       <Text style={{ fontWeight: "700" }}>
                         {tier.scan_interval_seconds
                           ? tier.scan_interval_seconds / 60
-                          : 10}
-                        {" min"}
+                          : 10} min
                       </Text>
                     </Text>
                   </View>
 
                   {tier.name !== "Free" && (
                     <View style={styles.featureRow}>
-                      <Text style={{ fontSize: 18, marginRight: 12 }}>👥</Text>
+                      <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                        <MaterialCommunityIcons name="account-group-outline" size={14} color={accent} />
+                      </View>
                       <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
                         Filter by <Text style={{ fontWeight: "700" }}>group size</Text>
                       </Text>
                     </View>
                   )}
 
-                  {tier.name === "Pro" && (
+                  {isPro && (
                     <View style={styles.featureRow}>
-                      <Text style={{ fontSize: 18, marginRight: 12 }}>🔁</Text>
+                      <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                        <MaterialCommunityIcons name="refresh-auto" size={14} color={accent} />
+                      </View>
                       <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
-                        Set <Text style={{ fontWeight: "700" }}>Recurring</Text> alerts
+                        Set <Text style={{ fontWeight: "700" }}>recurring</Text> alerts
                       </Text>
                     </View>
                   )}
-                </>
-              </View>
+                </View>
 
-              {/* Action Button - Only show if authenticated */}
-              {session && (
-                <View style={{ marginTop: 24 }}>
-                  {isCurrent ? (
-                    <Button
-                      mode="outlined"
-                      disabled={true}
-                      style={{ borderRadius: 12, borderColor: theme.colors.outline }}
-                      labelStyle={{ color: theme.colors.onSurfaceDisabled }}
-                    >
-                      {pendingDowngrade && cancelAt && userTier !== 1
-                        ? `Ends ${new Date(cancelAt).toLocaleDateString()}`
-                        : "Active Plan"}
-                    </Button>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={() => handleSelectPlan(tier)}
-                      disabled={isRedirecting || isUnavailable}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={
-                          (isRedirecting || isUnavailable
-                            ? [theme.colors.surfaceDisabled, theme.colors.surfaceDisabled]
-                            : Colors.light.gradients.primary) as [string, string, ...string[]]
-                        }
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
+                {/* CTA — only for authenticated users */}
+                {session && (
+                  <View style={{ marginTop: 20 }}>
+                    {isCurrent ? (
+                      <View
                         style={[
-                          styles.gradientButton,
-                          { opacity: isRedirecting || isUnavailable ? 0.7 : 1 },
+                          styles.currentPlanBtn,
+                          {
+                            borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
+                            backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                          },
                         ]}
                       >
-                        <Text
-                          style={{
-                            color: "#FFF",
-                            fontWeight: "700",
-                            fontSize: 16,
-                          }}
-                        >
-                          {isRedirecting
-                            ? "Processing..."
-                            : isUnavailable
-                              ? "Unavailable"
-                              : rcPackage?.product?.introPrice
-                                ? `Start 14-Day Free Trial`
-                                : `Switch to ${tier.name}`}
+                        <MaterialCommunityIcons
+                          name="check-circle-outline"
+                          size={16}
+                          color={accent}
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={[styles.currentPlanText, { color: theme.colors.onSurfaceVariant }]}>
+                          {pendingDowngrade && cancelAt && userTier !== 1
+                            ? `Ends ${new Date(cancelAt).toLocaleDateString()}`
+                            : "Active Plan"}
                         </Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </Surface>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => handleSelectPlan(tier)}
+                        disabled={isRedirecting || isUnavailable}
+                        activeOpacity={0.82}
+                      >
+                        <LinearGradient
+                          colors={
+                            (isRedirecting || isUnavailable
+                              ? isDark
+                                ? ["rgba(255,255,255,0.08)", "rgba(255,255,255,0.08)"]
+                                : ["#E2E8F0", "#E2E8F0"]
+                              : gradColors) as [string, string, ...string[]]
+                          }
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[
+                            styles.upgradeBtn,
+                            { opacity: isRedirecting || isUnavailable ? 0.7 : 1 },
+                          ]}
+                        >
+                          {isRedirecting ? (
+                            <ActivityIndicator animating size="small" color="#fff" />
+                          ) : (
+                            <View style={styles.upgradeBtnInner}>
+                              <Text
+                                style={[
+                                  styles.upgradeBtnText,
+                                  {
+                                    color: isRedirecting || isUnavailable
+                                      ? isDark ? "rgba(255,255,255,0.3)" : "#94A3B8"
+                                      : "#fff",
+                                  },
+                                ]}
+                              >
+                                {isUnavailable
+                                  ? "Unavailable"
+                                  : hasTrial
+                                    ? "Start 14-Day Free Trial"
+                                    : isFree
+                                      ? "Downgrade to Free"
+                                      : `Switch to ${tier.name}`}
+                              </Text>
+                              {!isUnavailable && (
+                                <MaterialCommunityIcons
+                                  name="arrow-right"
+                                  size={16}
+                                  color={isRedirecting || isUnavailable
+                                    ? isDark ? "rgba(255,255,255,0.3)" : "#94A3B8"
+                                    : "#fff"}
+                                />
+                              )}
+                            </View>
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            </Animated.View>
           );
         })}
 
-        {/* Global Sign Up Footer for Guests */}
+        {/* ── Guest CTA ── */}
         {!session && (
-          <View style={{ marginTop: 24, paddingBottom: 16 }}>
+          <Animated.View entering={FadeInDown.duration(400).delay(300)} style={{ marginTop: 8, marginBottom: 16 }}>
             <TouchableOpacity
               onPress={() => router.push("/(auth)/sign-up")}
-              activeOpacity={0.8}
+              activeOpacity={0.82}
             >
               <LinearGradient
-                colors={Colors.light.gradients.primary as [string, string, ...string[]]}
+                colors={gradColors as [string, string, ...string[]]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
+                style={styles.upgradeBtn}
               >
-                <Text
-                  style={{
-                    color: "#FFF",
-                    fontWeight: "700",
-                    fontSize: 16,
-                  }}
-                >
-                  Create Your Account
-                </Text>
+                <View style={styles.upgradeBtnInner}>
+                  <Text style={[styles.upgradeBtnText, { color: "#fff" }]}>
+                    Create Your Account
+                  </Text>
+                  <MaterialCommunityIcons name="arrow-right" size={16} color="#fff" />
+                </View>
               </LinearGradient>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         )}
 
-        {/* Legal & Compliance Footer */}
+        {/* ── Footer ── */}
         <View style={styles.footer}>
           {session && (
-            <Button
-              mode="text"
+            <TouchableOpacity
               onPress={handleRestorePurchases}
-              textColor={theme.colors.secondary}
-              style={{ marginBottom: 24 }}
+              activeOpacity={0.7}
+              style={styles.restoreBtn}
             >
-              Restore Purchases
-            </Button>
+              <Text style={[styles.restoreBtnText, { color: theme.colors.onSurfaceVariant }]}>
+                Restore Purchases
+              </Text>
+            </TouchableOpacity>
           )}
 
           <View style={styles.legalLinks}>
             <TouchableOpacity onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}>
-              <Text style={[styles.legalText, { color: theme.colors.primary }]}>Privacy Policy</Text>
+              <Text style={[styles.legalText, { color: accent }]}>Privacy Policy</Text>
             </TouchableOpacity>
-            <Text style={[styles.legalText, { color: theme.colors.outline }]}> • </Text>
+            <Text style={[styles.legalDot, { color: theme.colors.onSurfaceVariant }]}> · </Text>
             <TouchableOpacity onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}>
-              <Text style={[styles.legalText, { color: theme.colors.primary }]}>Terms of Use</Text>
+              <Text style={[styles.legalText, { color: accent }]}>Terms of Use</Text>
             </TouchableOpacity>
           </View>
 
@@ -537,79 +582,223 @@ export default function UpgradeScreen() {
             You can manage and cancel your subscriptions by going to your account settings on the App Store after purchase.
           </Text>
         </View>
-      </ScrollView >
-    </SafeAreaView >
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: { flex: 1 },
   scroll: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingTop: 8,
+    paddingBottom: 48,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerRow: {
+
+  // Nav
+  navRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
-    justifyContent: "space-between",
+    marginBottom: 20,
   },
   backBtn: {
-    margin: 0,
-  },
-  headerContainer: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 32,
-    marginTop: 10,
+    flexShrink: 0,
   },
-  card: {
+  navTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    marginHorizontal: 8,
+  },
+  navSpacer: {
+    width: 38,
+    flexShrink: 0,
+  },
+
+  // Hero
+  hero: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  heroIconWrap: {
+    width: 64,
+    height: 64,
     borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+    textAlign: "center",
+    lineHeight: 32,
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    textAlign: "center",
+    lineHeight: 21,
+    maxWidth: 280,
+  },
+
+  // Tier card
+  card: {
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 16,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
   },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+  tierName: {
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.4,
   },
-  badgeText: {
-    fontSize: 12,
+  currentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  currentBadgeText: {
+    fontSize: 11,
     fontWeight: "700",
+    letterSpacing: 0.2,
   },
+  trialBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  trialBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  priceText: {
+    fontSize: 32,
+    fontWeight: "800",
+    letterSpacing: -1,
+  },
+  pricePeriod: {
+    fontSize: 16,
+    fontWeight: "500",
+    letterSpacing: -0.2,
+    marginBottom: 4,
+  },
+  freeTagline: {
+    fontSize: 13,
+    fontWeight: "400",
+    marginTop: 8,
+    lineHeight: 18,
+  },
+  trialNote: {
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 4,
+    lineHeight: 17,
+  },
+
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 12,
+  },
+
+  tierDesc: {
+    fontSize: 14,
+    fontWeight: "400",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+
+  // Features
   features: {
-    gap: 16,
+    gap: 12,
   },
   featureRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+  },
+  featureIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
   },
   featureText: {
-    fontSize: 15,
+    fontSize: 14,
+    fontWeight: "400",
+    lineHeight: 20,
   },
-  gradientButton: {
-    height: 50,
-    borderRadius: 25,
+
+  // CTA buttons
+  upgradeBtn: {
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#2F80ED",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  footer: {
-    marginTop: 20,
+  upgradeBtnInner: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    gap: 8,
+  },
+  upgradeBtnText: {
+    fontWeight: "700",
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+  currentPlanBtn: {
+    height: 48,
+    borderRadius: 26,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+  },
+  currentPlanText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  // Footer
+  footer: {
+    marginTop: 8,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  restoreBtn: {
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  restoreBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   legalLinks: {
     flexDirection: "row",
@@ -620,6 +809,10 @@ const styles = StyleSheet.create({
   legalText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  legalDot: {
+    fontSize: 12,
+    opacity: 0.4,
   },
   disclaimer: {
     fontSize: 11,

@@ -1,13 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, DeviceEventEmitter } from "react-native";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  DeviceEventEmitter,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
-  Button,
   useTheme,
   ActivityIndicator,
-  IconButton,
-  Surface,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -17,6 +21,7 @@ import { Skeleton } from "moti/skeleton";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import { Image } from "react-native";
 import OAuthSection from "@/components/auth/OAuthSection";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -38,6 +43,7 @@ interface UserProfile {
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const isDark = theme.dark;
   const { success } = useLocalSearchParams();
 
   const [loading, setLoading] = useState(true);
@@ -67,7 +73,6 @@ export default function ProfileScreen() {
     };
   }, []);
 
-  // Fetch profile when coming into focus (silent refresh — no skeleton on revisit)
   useFocusEffect(
     useCallback(() => {
       if (session) {
@@ -76,7 +81,6 @@ export default function ProfileScreen() {
     }, [session])
   );
 
-  // Handle Stripe success redirect
   useEffect(() => {
     if (success && session) {
       Toast.show({
@@ -106,7 +110,6 @@ export default function ProfileScreen() {
       });
     } catch (err: any) {
       console.error("Profile fetch error:", err);
-      // Only show toast if it's not a "No active session" error which might happen on logout/switch
       if (err.message !== "No active session") {
         Toast.show({
           type: "error",
@@ -156,7 +159,6 @@ export default function ProfileScreen() {
                 throw new Error(err.detail || "Failed to delete account");
               }
 
-              // Sign out locally
               await supabase.auth.signOut();
               Toast.show({
                 type: "success",
@@ -169,127 +171,186 @@ export default function ProfileScreen() {
             } finally {
               setLoading(false);
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
-  // -------------------------------------------------------
-  // 🟥 If NOT logged in → Show GUEST VIEW
-  // -------------------------------------------------------
+  // ── Guest view ──────────────────────────────────────────────────────
   if (!session) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        edges={["top"]}
+      >
         <View style={styles.header}>
-          <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+          <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
             Profile
           </Text>
         </View>
 
-        <View style={styles.guestContainer}>
-          <Surface style={{ backgroundColor: "transparent", borderRadius: 24 }} elevation={0}>
-            <View style={[styles.guestCard, { backgroundColor: "transparent" }]}>
+        <ScrollView
+          contentContainerStyle={styles.guestScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Icon */}
+          <LinearGradient
+            colors={
+              isDark
+                ? (Colors.dark.gradients.primary as [string, string])
+                : (Colors.light.gradients.primary as [string, string])
+            }
+            style={styles.guestIconWrap}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="golf" size={36} color="#fff" />
+          </LinearGradient>
 
-              <View style={[styles.iconCircle, { backgroundColor: theme.colors.primary + "15" }]}>
-                <MaterialCommunityIcons name="account-circle-outline" size={48} color={theme.colors.primary} />
-              </View>
+          <Text style={[styles.guestHeading, { color: theme.colors.onSurface }]}>
+            Welcome to TeeSignal
+          </Text>
+          <Text style={[styles.guestSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+            Sign in to manage your alerts, membership, and account settings.
+          </Text>
 
-              <Text variant="titleLarge" style={{ fontWeight: "700", color: theme.colors.onSurface, marginBottom: 8 }}>
-                Welcome to TeeSignal
-              </Text>
+          {/* OAuth */}
+          <View style={styles.guestAuthWrap}>
+            <OAuthSection
+              loading={loading}
+              setLoading={setLoading}
+              setError={(err) => {
+                if (err) {
+                  Toast.show({
+                    type: "error",
+                    text1: "Sign-In Error",
+                    text2: err,
+                    position: "top",
+                  });
+                }
+              }}
+              onSuccess={() => {
+                fetchProfile();
+              }}
+              showSeparator={true}
+            />
 
-              <Text variant="bodyMedium" style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginBottom: 32, paddingHorizontal: 16 }}>
-                Sign in to manage your membership, view your subscription details, and configure your alerts.
-              </Text>
-
-              <OAuthSection
-                loading={loading}
-                setLoading={setLoading}
-                setError={(err) => {
-                  if (err) {
-                    Toast.show({
-                      type: "error",
-                      text1: "Sign-In Error",
-                      text2: err,
-                      position: "top",
-                    });
-                  }
-                }}
-                onSuccess={() => {
-                  fetchProfile();
-                }}
-                showSeparator={true}
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/sign-in")}
+              style={[
+                styles.emailBtn,
+                {
+                  borderColor: isDark
+                    ? "rgba(255,255,255,0.12)"
+                    : "rgba(0,0,0,0.10)",
+                },
+              ]}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="email-outline"
+                size={18}
+                color={theme.colors.onSurfaceVariant}
+                style={{ marginRight: 8 }}
               />
-
-              <Button
-                mode="text"
-                onPress={() => router.push("/(auth)/sign-in")}
-                style={{ width: "100%", marginTop: 8 }}
-                labelStyle={{ fontWeight: "600", color: theme.colors.primary }}
-              >
+              <Text style={[styles.emailBtnText, { color: theme.colors.onSurface }]}>
                 Continue with Email
-              </Button>
-
-              <View style={{ marginTop: 32, width: '100%' }}>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => router.push("/(auth)/sign-up?redirectTo=/upgrade")}
-                >
-                  <LinearGradient
-                    colors={Colors.light.gradients.primary as [string, string, ...string[]]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.promoBanner}
-                  >
-                    <View style={styles.promoContent}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.promoTextBold}>Free 14-Day Trial</Text>
-                        <Text style={styles.promoSubtext}>Get Pro features free. No credit card required.</Text>
-                      </View>
-                      <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Surface>
-
-
-          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24, gap: 16 }}>
-            <TouchableOpacity onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}>
-              <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: "600" }}>Privacy Policy</Text>
-            </TouchableOpacity>
-            <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 12, opacity: 0.5 }}>•</Text>
-            <TouchableOpacity onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}>
-              <Text style={{ color: theme.colors.primary, fontSize: 12, fontWeight: "600" }}>Terms of Use</Text>
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 16, opacity: 0.5, fontSize: 12 }}>
-            TeeSignal v1.0.7
+          {/* Promo banner */}
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => router.push("/(auth)/sign-up?redirectTo=/upgrade")}
+            style={styles.promoWrap}
+          >
+            <LinearGradient
+              colors={
+                isDark
+                  ? ["#14532D", "#166534", "#15803d"]
+                  : ["#15803d", "#16a34a", "#22c55e"]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.promoBanner}
+            >
+              <View style={styles.promoOrb} />
+              <View style={styles.promoOrb2} />
+              <View style={styles.promoInner}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.promoEyebrow}>PRO TRIAL</Text>
+                  <Text style={styles.promoHeadline}>14 Days Free</Text>
+                  <Text style={styles.promoSub}>No credit card required</Text>
+                </View>
+                <View style={styles.promoChevron}>
+                  <MaterialCommunityIcons
+                    name="arrow-right"
+                    size={18}
+                    color={isDark ? "#166534" : "#15803d"}
+                  />
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Legal links */}
+          <View style={styles.legalRow}>
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")
+              }
+            >
+              <Text style={[styles.legalLink, { color: theme.colors.primary }]}>
+                Privacy Policy
+              </Text>
+            </TouchableOpacity>
+            <Text style={[styles.legalDot, { color: theme.colors.onSurfaceVariant }]}>
+              ·
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL(
+                  "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+                )
+              }
+            >
+              <Text style={[styles.legalLink, { color: theme.colors.primary }]}>
+                Terms of Use
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.versionLabel, { color: theme.colors.onSurfaceVariant }]}>
+            TeeSignal v1.0.8
           </Text>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // -------------------------------------------------------
-  // -------------------------------------------------------
-  // 🟩 If logged in → Normal PROFILE UI
-  // -------------------------------------------------------
-  // Removed full screen loading to show Skeleton instead
-
+  // ── Logged-in view ──────────────────────────────────────────────────
   const tier = user?.membership_tiers;
   const price =
     tier?.price_cents && tier.price_cents > 0
       ? `$${(tier.price_cents / 100).toFixed(2)}/mo`
       : "Free";
+  const isPro = tier?.name === "Pro";
+
+  const cardStyle = {
+    backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+    borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+    shadowColor: isDark ? "transparent" : "#000",
+  };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      edges={["top"]}
+    >
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+        <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
           Profile
         </Text>
       </View>
@@ -298,109 +359,245 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Membership Section */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>MEMBERSHIP</Text>
-        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
-          <View style={styles.row}>
-            <View style={[styles.iconBox, { backgroundColor: theme.colors.primary + "20" }]}>
-              <MaterialCommunityIcons name="crown" size={22} color={theme.colors.primary} />
-            </View>
+        {/* ── Membership ── */}
+        <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant }]}>
+          MEMBERSHIP
+        </Text>
+        <View style={[styles.card, cardStyle]}>
+          {/* Tier row */}
+          <View style={styles.membershipTopRow}>
+            <Image
+              source={require("../../assets/images/icon.png")}
+              style={styles.tierIconWrap}
+              resizeMode="cover"
+            />
             <View style={{ flex: 1, marginLeft: 12 }}>
               {loading ? (
-                <Skeleton colorMode={theme.dark ? "dark" : "light"} width={120} height={20} />
+                <Skeleton colorMode={isDark ? "dark" : "light"} width={100} height={18} />
               ) : (
-                <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                  {tier?.name}
+                <Text style={[styles.tierName, { color: theme.colors.onSurface }]}>
+                  {tier?.name || "—"}
                 </Text>
               )}
-              <View style={{ marginTop: 4 }}>
+              <View style={{ marginTop: 3 }}>
                 {loading ? (
-                  <Skeleton colorMode={theme.dark ? "dark" : "light"} width={180} height={16} />
+                  <Skeleton
+                    colorMode={isDark ? "dark" : "light"}
+                    width={150}
+                    height={14}
+                  />
                 ) : (
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    {price} {tier?.max_alerts ? `• ${tier.max_alerts} Active Alerts` : ""}
+                  <Text style={[styles.tierMeta, { color: theme.colors.onSurfaceVariant }]}>
+                    {price}
+                    {tier?.max_alerts ? `  ·  ${tier.max_alerts} alerts` : ""}
                   </Text>
                 )}
               </View>
             </View>
-            <Button
-              mode="text"
-              compact
-              textColor={theme.colors.primary}
-              labelStyle={{ fontWeight: "600" }}
+            <TouchableOpacity
               onPress={() => router.push("/upgrade")}
+              style={styles.manageBtn}
+              activeOpacity={0.6}
             >
-              Manage
-            </Button>
+              <Text style={[styles.manageBtnText, { color: theme.colors.primary }]}>
+                Manage
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
+          <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
 
+          {/* Scan interval row */}
           <View style={styles.row}>
-            <Text style={{ color: theme.colors.onSurfaceVariant, flex: 1 }}>
-              Scan Interval
-            </Text>
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="radar"
+                size={16}
+                color={theme.colors.primary}
+                style={{ marginRight: 10 }}
+              />
+              <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>
+                Scan interval
+              </Text>
+            </View>
             {loading ? (
-              <Skeleton colorMode={theme.dark ? "dark" : "light"} width={100} height={20} />
+              <Skeleton colorMode={isDark ? "dark" : "light"} width={90} height={16} />
             ) : (
-              <Text style={{ color: theme.colors.onSurface, fontWeight: "500" }}>
-                {tier?.scan_interval_seconds ? `Every ${tier.scan_interval_seconds / 60} mins` : ""}
+              <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
+                {tier?.scan_interval_seconds
+                  ? `Every ${tier.scan_interval_seconds / 60} min`
+                  : "—"}
               </Text>
             )}
           </View>
         </View>
 
-        {/* Account Section */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant, marginTop: 24 }]}>ACCOUNT</Text>
-        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
+        {/* ── Account ── */}
+        <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
+          ACCOUNT
+        </Text>
+        <View style={[styles.card, cardStyle]}>
+          {/* Email row */}
           <View style={styles.row}>
-            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Email</Text>
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="email-outline"
+                size={16}
+                color={theme.colors.onSurfaceVariant}
+                style={{ marginRight: 10, opacity: 0.7 }}
+              />
+              <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>
+                Email
+              </Text>
+            </View>
             {loading ? (
-              <Skeleton colorMode={theme.dark ? "dark" : "light"} width={180} height={20} />
+              <Skeleton colorMode={isDark ? "dark" : "light"} width={160} height={16} />
             ) : (
-              <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 16 }}>{user?.email}</Text>
+              <Text
+                style={[styles.rowValue, { color: theme.colors.onSurface }]}
+                numberOfLines={1}
+              >
+                {user?.email}
+              </Text>
             )}
           </View>
 
-          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
+          <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
 
-          <TouchableOpacity style={styles.row} onPress={handleLogout}>
-            <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "500" }}>Log Out</Text>
-            <MaterialCommunityIcons name="logout" size={20} color={theme.colors.error} />
-          </TouchableOpacity>
-
-          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
-
-          <TouchableOpacity style={styles.row} onPress={handleDeleteAccount}>
-            <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: "700" }}>Delete Account</Text>
-            <MaterialCommunityIcons name="delete-forever" size={20} color={theme.colors.error} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Legal Section */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant, marginTop: 24 }]}>LEGAL</Text>
-        <View style={[styles.sectionContainer, { backgroundColor: theme.colors.surface }]}>
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")}
-          >
-            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Privacy Policy</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-
-          <View style={[styles.separator, { backgroundColor: theme.colors.outline }]} />
-
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => Linking.openURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")}
-          >
-            <Text style={{ color: theme.colors.onSurface, fontSize: 16 }}>Terms of Use (EULA)</Text>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
+          {/* Log out row */}
+          <TouchableOpacity style={styles.row} onPress={handleLogout} activeOpacity={0.7}>
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="logout"
+                size={16}
+                color={theme.colors.error}
+                style={{ marginRight: 10 }}
+              />
+              <Text style={[styles.rowActionLabel, { color: theme.colors.error }]}>
+                Log Out
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={theme.colors.error}
+              style={{ opacity: 0.45 }}
+            />
           </TouchableOpacity>
         </View>
 
-        <Text style={{ textAlign: "center", color: theme.colors.onSurfaceVariant, marginTop: 32, opacity: 0.5, fontSize: 12 }}>
-          TeeSignal v1.0.7
+        {/* ── Danger zone ── */}
+        <Text
+          style={[
+            styles.sectionLabel,
+            { color: theme.colors.error + "99", marginTop: 28 },
+          ]}
+        >
+          DANGER ZONE
+        </Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark
+                ? "rgba(255,59,48,0.08)"
+                : "rgba(255,59,48,0.04)",
+              borderColor: isDark
+                ? "rgba(255,59,48,0.18)"
+                : "rgba(255,59,48,0.12)",
+              shadowColor: "transparent",
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.row}
+            onPress={handleDeleteAccount}
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="delete-forever-outline"
+                size={16}
+                color={theme.colors.error}
+                style={{ marginRight: 10 }}
+              />
+              <Text style={[styles.rowActionLabel, { color: theme.colors.error }]}>
+                Delete Account
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={theme.colors.error}
+              style={{ opacity: 0.45 }}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Legal ── */}
+        <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
+          LEGAL
+        </Text>
+        <View style={[styles.card, cardStyle]}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() =>
+              Linking.openURL("https://abodell.github.io/tee-time-notifier/privacy.html")
+            }
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="shield-check-outline"
+                size={16}
+                color={theme.colors.onSurfaceVariant}
+                style={{ marginRight: 10, opacity: 0.7 }}
+              />
+              <Text style={[styles.rowLabel, { color: theme.colors.onSurface }]}>
+                Privacy Policy
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={theme.colors.onSurfaceVariant}
+              style={{ opacity: 0.35 }}
+            />
+          </TouchableOpacity>
+
+          <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
+
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() =>
+              Linking.openURL(
+                "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+              )
+            }
+            activeOpacity={0.7}
+          >
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="file-document-outline"
+                size={16}
+                color={theme.colors.onSurfaceVariant}
+                style={{ marginRight: 10, opacity: 0.7 }}
+              />
+              <Text style={[styles.rowLabel, { color: theme.colors.onSurface }]}>
+                Terms of Use (EULA)
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={theme.colors.onSurfaceVariant}
+              style={{ opacity: 0.35 }}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.versionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 32 }]}>
+          TeeSignal v1.0.8
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -409,92 +606,242 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  // Header
   header: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 8,
+    paddingBottom: 14,
   },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.8,
+    lineHeight: 36,
+  },
+
+  // ── Logged-in ──
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
+
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.1,
     marginBottom: 8,
-    marginLeft: 16,
-    letterSpacing: 0.5,
+    marginLeft: 4,
   },
-  sectionContainer: {
-    borderRadius: 12,
+
+  card: {
+    borderRadius: 18,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: "hidden",
   },
-  row: {
+
+  // Membership card header
+  membershipTopRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
     paddingHorizontal: 16,
-    justifyContent: "space-between",
+    paddingVertical: 14,
   },
-  separator: {
+  tierIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tierName: {
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  tierMeta: {
+    fontSize: 12,
+    fontWeight: "400",
+  },
+  manageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 8,
+  },
+  manageBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  divider: {
     height: StyleSheet.hairlineWidth,
     marginLeft: 16,
   },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: "center",
+
+  row: {
+    flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: "space-between",
+    minHeight: 52,
+  },
+  rowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  rowLabel: {
+    fontSize: 15,
+    fontWeight: "400",
+  },
+  rowActionLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  rowValue: {
+    fontSize: 15,
+    fontWeight: "400",
+    maxWidth: 180,
+    textAlign: "right",
   },
 
-  guestContainer: {
-    flex: 1,
-    justifyContent: "center",
+  // ── Guest ──
+  guestScroll: {
+    flexGrow: 1,
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingBottom: 40,
+    paddingTop: 12,
   },
-  guestCard: {
-    padding: 32,
-    borderRadius: 24,
-    alignItems: "center",
-  },
-  iconCircle: {
+  guestIconWrap: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
   },
-  center: {
-    flex: 1,
-    justifyContent: "center",
+  guestHeading: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+    textAlign: "center",
+    lineHeight: 32,
+    marginBottom: 10,
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    textAlign: "center",
+    lineHeight: 21,
+    maxWidth: 280,
+    marginBottom: 32,
+  },
+  guestAuthWrap: {
+    width: "100%",
+    marginBottom: 24,
+  },
+  emailBtn: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 10,
   },
+  emailBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  // Promo banner (guest)
+  promoWrap: { width: "100%", marginBottom: 28 },
   promoBanner: {
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: "hidden",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    shadowColor: "#2F80ED",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
   },
-  promoContent: {
+  promoOrb: {
+    position: "absolute",
+    right: -25,
+    top: -35,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  promoOrb2: {
+    position: "absolute",
+    right: 50,
+    bottom: -45,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  promoInner: {
     flexDirection: "row",
     alignItems: "center",
   },
-  promoTextBold: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "800",
+  promoEyebrow: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    marginBottom: 4,
   },
-  promoSubtext: {
-    color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 13,
-    marginTop: 1,
+  promoHeadline: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+    lineHeight: 26,
+  },
+  promoSub: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
     fontWeight: "500",
+    marginTop: 4,
+  },
+  promoChevron: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 16,
+  },
+
+  // Legal & version
+  legalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 14,
+  },
+  legalLink: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  legalDot: {
+    fontSize: 12,
+    opacity: 0.4,
+  },
+  versionLabel: {
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "400",
+    opacity: 0.45,
+    marginBottom: 8,
   },
 });
