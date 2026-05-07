@@ -328,7 +328,7 @@ async def normalize_and_store(course, raw_data, date_str: str, is_v2: bool = Fal
             if key not in unique_map or t.price < unique_map[key].price:
                 unique_map[key] = t
         payload = [t.to_dict() for t in unique_map.values()]
-        await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
+        await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes", returning="minimal").execute()
 
     num_available = len([t for t in tee_times if t.available])
     api_ver = "v2" if is_v2 else "v1"

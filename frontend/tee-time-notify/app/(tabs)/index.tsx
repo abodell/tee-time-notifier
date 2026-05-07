@@ -4,7 +4,6 @@ import {
   View,
   FlatList,
   StyleSheet,
-  Platform,
   TouchableOpacity,
   DeviceEventEmitter,
   Keyboard,
@@ -16,8 +15,6 @@ import {
   TextInput,
   ActivityIndicator,
   useTheme,
-  Surface,
-  IconButton,
   Button,
 } from "react-native-paper";
 import Animated, { FadeIn } from "react-native-reanimated";
@@ -27,6 +24,7 @@ import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import GolfEmptyState from "@/components/icons/GolfEmptyState";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ONBOARDING_KEY } from "@/app/onboarding";
 
@@ -43,10 +41,15 @@ interface MembershipTierInfo {
   max_alerts: number | null;
 }
 
+const AVATAR_GRAD_START = "#052e16";
+const AVATAR_GRAD_END = "#14532d";
+
 export default function CourseSearchScreen() {
   const theme = useTheme();
   const router = useRouter();
   const isDark = theme.dark;
+
+  const accent = theme.colors.primary;
 
   const [query, setQuery] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
@@ -67,7 +70,6 @@ export default function CourseSearchScreen() {
     }, [])
   );
 
-  // Listen for global alert updates (e.g. from My Alerts deletion)
   React.useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data: authSub } = supabase.auth.onAuthStateChange((_event, sess) => {
@@ -100,7 +102,6 @@ export default function CourseSearchScreen() {
         return;
       }
 
-      // Only show skeleton if we don't have data yet
       if (!hasData) {
         setFetchingQuota(true);
       }
@@ -129,6 +130,7 @@ export default function CourseSearchScreen() {
 
   const reachedQuota =
     maxAlerts !== null && alertCount >= (maxAlerts || 0) && hasData;
+  const usagePercent = maxAlerts ? Math.min(alertCount / maxAlerts, 1) : 0;
 
   const fetchCourses = async (search: string) => {
     setLoading(true);
@@ -183,12 +185,14 @@ export default function CourseSearchScreen() {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       <View style={styles.container}>
+
+        {/* ── Header ── */}
         <View style={styles.header}>
-          <Text variant="headlineMedium" style={{ fontWeight: "700", color: theme.colors.onBackground }}>
+          <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
             Find a Course
           </Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
-            Search for a course to start tracking.
+          <Text style={[styles.headerSub, { color: theme.colors.onSurfaceVariant }]}>
+            Search by name or city to set an alert.
           </Text>
           {__DEV__ && (
             <TouchableOpacity
@@ -203,82 +207,124 @@ export default function CourseSearchScreen() {
           )}
         </View>
 
-        {/* Quota Banner - Only for logged-in users */}
+        {/* ── Quota card ── */}
         {fetchingQuota && !hasData && session ? (
-          <View style={{ marginBottom: 16, paddingHorizontal: 16 }}>
-            <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={60} radius={12} />
+          <View style={styles.quotaWrap}>
+            <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={72} radius={18} />
           </View>
-        ) : session && hasData && (
-          <Animated.View entering={FadeIn.duration(400)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-            <Surface style={{ backgroundColor: theme.colors.surface, borderRadius: 12 }} elevation={0}>
-              <View style={[styles.noticeCard, { backgroundColor: theme.colors.surface }]}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <MaterialCommunityIcons
-                    name={reachedQuota ? "alert-circle-outline" : "information-outline"}
-                    size={20}
-                    color={reachedQuota ? theme.colors.error : theme.colors.primary}
-                    style={{ marginRight: 4 }}
-                  />
-
-                  <View style={{ flex: 1, marginLeft: 4 }}>
-                    <Text style={{ color: theme.colors.onSurface, fontSize: 15, lineHeight: 20 }}>
-                      {reachedQuota ? (
-                        <>
-                          Alert limit reached on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.{" "}
-                          {tierName !== "Pro" && (
-                            <Text
-                              style={{ color: theme.colors.primary, fontWeight: "600" }}
-                              onPress={() => router.push("/upgrade")}
-                            >
-                              Upgrade
-                            </Text>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          Using <Text style={{ fontWeight: "600" }}>{alertCount}</Text>
-                          {maxAlerts ? `/${maxAlerts}` : ""} alerts on <Text style={{ fontWeight: "600" }}>{tierName}</Text>.
-                          {tierName === "Plus" && (
-                            <>
-                              {" "}
-                              <Text
-                                style={{ color: theme.colors.primary, fontWeight: "600" }}
-                                onPress={() => router.push("/upgrade")}
-                              >
-                                Upgrade
-                              </Text>
-                            </>
-                          )}
-                        </>
-                      )}
+        ) : session && hasData ? (
+          <Animated.View entering={FadeIn.duration(400)} style={styles.quotaWrap}>
+            <View
+              style={[
+                styles.quotaCard,
+                {
+                  backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+                  borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)",
+                  shadowColor: isDark ? "transparent" : "#000",
+                },
+              ]}
+            >
+              <View style={styles.quotaTopRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3 }}>
+                    <Text style={[styles.quotaBigNum, { color: theme.colors.onSurface }]}>
+                      {alertCount}
+                    </Text>
+                    <Text style={[styles.quotaOfMax, { color: theme.colors.onSurfaceVariant }]}>
+                      /{maxAlerts ?? "∞"}
                     </Text>
                   </View>
+                  <Text style={[styles.quotaSubLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    alerts active
+                  </Text>
                 </View>
+                {tierName !== "Pro" && !reachedQuota && (
+                  <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.upgradeBtn}>
+                    <Text style={[styles.upgradeBtnText, { color: accent }]}>Upgrade</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            </Surface>
+              {maxAlerts != null && (
+                maxAlerts <= 10 ? (
+                  <View style={styles.pipRow}>
+                    {Array.from({ length: maxAlerts }).map((_, i) => (
+                      <View
+                        key={i}
+                        style={[
+                          styles.pip,
+                          {
+                            backgroundColor:
+                              i < alertCount
+                                ? accent
+                                : isDark
+                                ? "rgba(255,255,255,0.08)"
+                                : "rgba(0,0,0,0.07)",
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <View
+                    style={[
+                      styles.progressTrack,
+                      {
+                        backgroundColor: isDark
+                          ? "rgba(255,255,255,0.08)"
+                          : "rgba(0,0,0,0.07)",
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.round(usagePercent * 100)}%` as any,
+                          backgroundColor: accent,
+                        },
+                      ]}
+                    />
+                  </View>
+                )
+              )}
+              {reachedQuota && tierName !== "Pro" && (
+                <>
+                  <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
+                  <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
+                    <Text style={[styles.quotaLimitText, { color: theme.colors.onSurfaceVariant }]}>
+                      Alert limit reached
+                    </Text>
+                    <Text style={[styles.quotaUpgradeLink, { color: accent }]}>Upgrade</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           </Animated.View>
-        )}
+        ) : null}
 
-        {/* 🚀 Integrated Trial Promotion Banner */}
+        {/* ── Pro promo banner ── */}
         {(!session || tierName === "Free") && (
-          <Animated.View entering={FadeIn.delay(300).duration(500)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <Animated.View entering={FadeIn.delay(300).duration(500)} style={styles.promoWrap}>
             <LinearGradient
-              colors={Colors.light.gradients.primary as [string, string, ...string[]]}
+              colors={
+                isDark
+                  ? ["#14532D", "#166534", "#15803d"]
+                  : ["#15803d", "#16a34a", "#22c55e"]
+              }
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.promoBanner}
             >
-              <View style={styles.promoContent}>
+              <View style={styles.promoOrb} />
+              <View style={styles.promoOrb2} />
+              <View style={styles.promoInner}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.promoTextBold}>
-                    Try Pro Free for 14 Days
-                  </Text>
-                  <Text style={styles.promoSubtext}>
-                    Unlock 10 concurrent alerts and more.
-                  </Text>
+                  <Text style={styles.promoEyebrow}>PRO TRIAL</Text>
+                  <Text style={styles.promoHeadline}>14 Days Free</Text>
+                  <Text style={styles.promoSub}>10 alerts · real-time scanning</Text>
                 </View>
                 <TouchableOpacity
-                  activeOpacity={0.8}
+                  activeOpacity={0.88}
                   onPress={() => {
                     if (!session) {
                       router.push("/(auth)/sign-up?redirectTo=/upgrade");
@@ -286,17 +332,19 @@ export default function CourseSearchScreen() {
                       router.push("/upgrade");
                     }
                   }}
-                  style={styles.promoButton}
+                  style={styles.promoBtn}
                 >
-                  <Text style={styles.promoButtonText}>Start Trial</Text>
+                  <Text style={[styles.promoBtnText, { color: isDark ? "#166534" : "#15803d" }]}>
+                    Try Free
+                  </Text>
                 </TouchableOpacity>
               </View>
             </LinearGradient>
           </Animated.View>
         )}
 
-        {/* Search Bar */}
-        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+        {/* ── Search bar ── */}
+        <View style={styles.searchWrap}>
           <TextInput
             placeholder="Search courses..."
             value={query}
@@ -306,73 +354,217 @@ export default function CourseSearchScreen() {
             }}
             mode="outlined"
             left={<TextInput.Icon icon="magnify" color={theme.colors.onSurfaceVariant} />}
-            style={[styles.searchBar, { backgroundColor: theme.colors.surface }]}
-            outlineStyle={{ borderRadius: 12, borderWidth: 0 }}
+            style={[
+              styles.searchBar,
+              { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : theme.colors.surface },
+            ]}
+            outlineStyle={{
+              borderRadius: 14,
+              borderWidth: isDark ? 1 : 0,
+              borderColor: isDark ? "rgba(255,255,255,0.08)" : "transparent",
+            }}
             textColor={theme.colors.onSurface}
             placeholderTextColor={theme.colors.onSurfaceVariant}
             returnKeyType="search"
           />
         </View>
 
-        {/* Content */}
+        {/* ── Results / Loading / Empty ── */}
         {loading || debouncing ? (
-          <View style={styles.center}>
-            <ActivityIndicator animating color={theme.colors.primary} />
+          <View style={styles.skeletonWrap}>
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={{ marginBottom: 8 }}>
+                <Skeleton
+                  colorMode={isDark ? "dark" : "light"}
+                  width="100%"
+                  height={68}
+                  radius={18}
+                />
+              </View>
+            ))}
           </View>
         ) : (
           <FlatList
             data={courses}
             keyExtractor={(item) => item.id.toString()}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
-            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: theme.colors.onSurface + "12", marginLeft: 16 }} />}
-            renderItem={({ item, index, separators }) => (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => handleSelectCourse(item)}
-                style={[
-                  styles.listItem,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderTopLeftRadius: index === 0 ? 12 : 0,
-                    borderTopRightRadius: index === 0 ? 12 : 0,
-                    borderBottomLeftRadius: index === courses.length - 1 ? 12 : 0,
-                    borderBottomRightRadius: index === courses.length - 1 ? 12 : 0,
-                  }
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text variant="titleMedium" style={{ fontWeight: "600", color: theme.colors.onSurface }}>
-                    {item.name}
-                  </Text>
-                  <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
-                    {item.city}, {item.state}
-                  </Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={theme.colors.onSurfaceVariant} style={{ opacity: 0.5 }} />
-              </TouchableOpacity>
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item, index }) => (
+              <Animated.View entering={FadeIn.delay(index * 45).duration(320)}>
+                <TouchableOpacity
+                  activeOpacity={0.72}
+                  onPress={() => handleSelectCourse(item)}
+                  style={[
+                    styles.courseCard,
+                    {
+                      backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#FAFAFA",
+                      borderColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.06)",
+                    },
+                  ]}
+                >
+                  {/* Layered course badge */}
+                  <View style={styles.courseBadge}>
+                    <LinearGradient
+                      colors={[AVATAR_GRAD_START, AVATAR_GRAD_END]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFillObject}
+                    />
+                    {/* Inner refraction border */}
+                    <View style={styles.courseBadgeInner} />
+                    <MaterialCommunityIcons
+                      name="flag-variant"
+                      size={22}
+                      color="rgba(255,255,255,0.88)"
+                    />
+                  </View>
+
+                  {/* Course info */}
+                  <View style={styles.courseInfo}>
+                    <Text
+                      style={[
+                        styles.courseName,
+                        { color: isDark ? "#F1F5F9" : "#1E293B" },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {item.name}
+                    </Text>
+                    <View style={styles.courseMeta}>
+                      <Text
+                        style={[
+                          styles.courseLocationText,
+                          {
+                            color: isDark
+                              ? "rgba(255,255,255,0.42)"
+                              : "#64748B",
+                          },
+                        ]}
+                      >
+                        {item.city}, {item.state}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Arrow chip */}
+                  <View
+                    style={[
+                      styles.courseArrowChip,
+                      { backgroundColor: `${accent}18` },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-right"
+                      size={13}
+                      color={accent}
+                    />
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
             )}
             ListEmptyComponent={
-              <View style={[styles.center, { marginTop: 40 }]}>
+              <View style={styles.emptyWrap}>
                 {query.trim() ? (
                   <View style={{ alignItems: "center" }}>
-                    <Text style={{ color: theme.colors.onSurfaceVariant, textAlign: "center", marginBottom: 16 }}>
-                      No courses found matching "{query}"
+                    {/* Stacked icon treatment */}
+                    <View style={styles.emptyIconStack}>
+                      <LinearGradient
+                        colors={
+                          isDark
+                            ? ["rgba(255,255,255,0.06)", "rgba(255,255,255,0.03)"]
+                            : ["#F1F5F9", "#E2E8F0"]
+                        }
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      <View
+                        style={[
+                          StyleSheet.absoluteFillObject,
+                          styles.emptyIconStackBorder,
+                          {
+                            borderColor: isDark
+                              ? "rgba(255,255,255,0.08)"
+                              : "rgba(0,0,0,0.06)",
+                          },
+                        ]}
+                      />
+                      <MaterialCommunityIcons
+                        name="golf"
+                        size={26}
+                        color={
+                          isDark
+                            ? "rgba(255,255,255,0.2)"
+                            : "rgba(0,0,0,0.15)"
+                        }
+                      />
+                      <View
+                        style={[
+                          styles.emptyBadgeDot,
+                          { backgroundColor: accent },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name="close"
+                          size={8}
+                          color="#0D1B26"
+                        />
+                      </View>
+                    </View>
+                    <Text
+                      style={[
+                        styles.emptyTitle,
+                        { color: isDark ? "#F1F5F9" : "#1E293B" },
+                      ]}
+                    >
+                      No courses found
+                    </Text>
+                    <Text
+                      style={[
+                        styles.emptySubtitle,
+                        {
+                          color: isDark
+                            ? "rgba(255,255,255,0.42)"
+                            : "#64748B",
+                        },
+                      ]}
+                    >
+                      Try a different name or city
                     </Text>
                   </View>
                 ) : (
-                  <View style={{ alignItems: "center", opacity: 0.6 }}>
-                    <MaterialCommunityIcons name="golf" size={48} color={theme.colors.onSurfaceVariant} />
-                    <Text style={{ marginTop: 16, color: theme.colors.onSurfaceVariant }}>
-                      Start typing to search
+                  <View style={{ alignItems: "center" }}>
+                    <GolfEmptyState isDark={isDark} width={192} height={122} />
+                    <Text
+                      style={[
+                        styles.emptyTitle,
+                        { color: isDark ? "#F1F5F9" : "#1E293B" },
+                      ]}
+                    >
+                      Find your course
+                    </Text>
+                    <Text
+                      style={[
+                        styles.emptySubtitle,
+                        {
+                          color: isDark
+                            ? "rgba(255,255,255,0.42)"
+                            : "#64748B",
+                        },
+                      ]}
+                    >
+                      Type a course name or city above
                     </Text>
                   </View>
                 )}
                 <Button
                   mode="text"
-                  onPress={() => session ? router.push("/request-course") : router.push("/upgrade")}
+                  onPress={() =>
+                    session ? router.push("/request-course") : router.push("/upgrade")
+                  }
                   style={{ marginTop: 12 }}
-                  textColor={theme.colors.primary}
+                  textColor={accent}
+                  labelStyle={{ fontWeight: "600" }}
                 >
                   {session ? "Can't find your course?" : "View Pricing & Memberships"}
                 </Button>
@@ -383,9 +575,11 @@ export default function CourseSearchScreen() {
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Button
                     mode="text"
-                    onPress={() => session ? router.push("/request-course") : router.push("/upgrade")}
-                    textColor={theme.colors.primary}
-                    labelStyle={{ fontSize: 13, opacity: 1 }}
+                    onPress={() =>
+                      session ? router.push("/request-course") : router.push("/upgrade")
+                    }
+                    textColor={accent}
+                    labelStyle={{ fontSize: 13, fontWeight: "600" }}
                   >
                     {session ? "Can't find your course?" : "View Pricing & Memberships"}
                   </Button>
@@ -395,70 +589,279 @@ export default function CourseSearchScreen() {
           />
         )}
       </View>
-    </SafeAreaView >
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   container: { flex: 1 },
+
+  // Header
   header: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
-  noticeCard: {
-    borderRadius: 12,
-    padding: 12,
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.8,
+    lineHeight: 36,
   },
-  iconContainer: {
-    width: 36,
-    height: 36,
+  headerSub: {
+    fontSize: 14,
+    fontWeight: "400",
+    marginTop: 3,
+    lineHeight: 20,
+  },
+
+  // Quota card
+  quotaWrap: { paddingHorizontal: 16, marginBottom: 12 },
+  quotaCard: {
     borderRadius: 18,
-    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  quotaTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  quotaBigNum: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.6,
+  },
+  quotaOfMax: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  quotaSubLabel: {
+    fontSize: 11,
+    fontWeight: "400",
+    marginTop: 1,
+  },
+  upgradeBtn: { paddingLeft: 8 },
+  upgradeBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  pipRow: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  pip: {
+    flex: 1,
+    height: 5,
+    borderRadius: 100,
+  },
+  progressTrack: {
+    height: 5,
+    borderRadius: 100,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: 5,
+    borderRadius: 100,
+  },
+  quotaFooterDivider: { height: StyleSheet.hairlineWidth, marginTop: 12 },
+  quotaFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 10,
+  },
+  quotaLimitText: { fontSize: 12, fontWeight: "500" },
+  quotaUpgradeLink: { fontSize: 12, fontWeight: "700" },
+
+  // Promo banner
+  promoWrap: { paddingHorizontal: 16, marginBottom: 12 },
+  promoBanner: {
+    borderRadius: 16,
+    overflow: "hidden",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  promoOrb: {
+    position: "absolute",
+    right: -25,
+    top: -35,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  promoOrb2: {
+    position: "absolute",
+    right: 50,
+    bottom: -45,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  promoInner: {
+    flexDirection: "row",
     alignItems: "center",
   },
+  promoEyebrow: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    marginBottom: 2,
+  },
+  promoHeadline: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+    lineHeight: 22,
+  },
+  promoSub: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  promoBtn: {
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 50,
+    marginLeft: 14,
+  },
+  promoBtnText: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  // Search
+  searchWrap: { paddingHorizontal: 16, marginBottom: 12 },
   searchBar: {
     height: 46,
     fontSize: 16,
   },
-  listItem: {
+
+  // Loading skeletons
+  skeletonWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
+
+  // List
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    paddingTop: 4,
+  },
+
+  // Course card
+  courseCard: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 13,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 8,
   },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", paddingBottom: 100 },
-  promoBanner: {
-    borderRadius: 12,
+  courseBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    marginRight: 13,
     overflow: "hidden",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
   },
-  promoContent: {
+  courseBadgeInner: {
+    position: "absolute",
+    inset: 0,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: "rgba(34,197,94,0.18)",
+  },
+  courseInfo: { flex: 1, minWidth: 0 },
+  courseName: {
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  courseMeta: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    marginTop: 3,
+    flexWrap: "nowrap",
   },
-  promoTextBold: {
-    color: "#FFF",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  promoSubtext: {
-    color: "rgba(255, 255, 255, 0.9)",
+  courseLocationText: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "400",
   },
-  promoButton: {
-    backgroundColor: "#FFF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  courseArrowChip: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
   },
-  promoButtonText: {
-    color: "#15803d",
-    fontSize: 13,
+
+  // Empty state
+  emptyWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 48,
+    paddingBottom: 100,
+  },
+  emptyIconStack: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    position: "relative",
+  },
+  emptyIconStackBorder: {
+    position: "absolute",
+    inset: 0,
+    borderRadius: 22,
+    borderWidth: 1,
+  },
+  emptyBadgeDot: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+  },
+  emptyTitle: {
+    fontSize: 17,
     fontWeight: "700",
+    letterSpacing: -0.3,
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontWeight: "400",
+    textAlign: "center",
+    marginTop: 4,
+    lineHeight: 20,
+    maxWidth: 240,
   },
 });

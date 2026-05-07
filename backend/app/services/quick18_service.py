@@ -222,7 +222,8 @@ async def scan_quick18_course(course: Dict, date_str: str):
             if times:
                 await supabase.table("availability").upsert(
                     times,
-                    on_conflict="course_id, tee_time, holes"
+                    on_conflict="course_id, tee_time, holes",
+                    returning="minimal"
                 ).execute()
                 logger.info(f"Stored {len(times)} times for Quick18 course {course['name']} on {date_str} (tz={time_zone})")
             else:

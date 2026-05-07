@@ -305,7 +305,7 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
     # 4. UPSERT fresh data (updates existing, adds new)
     if tee_times:
         payload = [t.to_dict() for t in tee_times]
-        await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes").execute()
+        await supabase.table("availability").upsert(payload, on_conflict="course_id, tee_time, holes", returning="minimal").execute()
     else:
         print(f"[ForeUp] No times found for {course['name']} on {date_str}.")
     

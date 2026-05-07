@@ -317,6 +317,7 @@ async def normalize_and_store(
         await supabase.table("availability").upsert(
             upsert_rows,
             on_conflict="course_id, tee_time, holes",
+            returning="minimal",
         ).execute()
         print(f"Sync complete for {course['name']} on {date_str}. Found {len(upsert_rows)} available times.")
     else:
