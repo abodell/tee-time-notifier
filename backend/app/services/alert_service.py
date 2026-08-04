@@ -74,8 +74,45 @@ async def rollover_recurring_alerts(supabase, now: datetime):
     except Exception as e:
         print(f"[AlertRollover] Error during recurring alert rollover: {e}")
 
-async def process_single_alert(supabase, alert, now, summaries):
-    """ Worker for concurrent alert checking """
+def _matches_alert(row, start_dt, end_dt, players):
+    """ In-memory filter so multiple alerts can share one fetched row set. """
+    tee_dt = datetime.fromisoformat(row["tee_time"])
+    if tee_dt.tzinfo is None:
+        tee_dt = tee_dt.replace(tzinfo=timezone.utc)
+    if tee_dt < start_dt or tee_dt > end_dt:
+        return False
+    if players is not None:
+        # Pass through slots where spots_available is unknown (NULL) so providers
+        # without player count data don't silently block notifications.
+        spots = row.get("spots_available")
+        if spots is not None and spots < players:
+            return False
+    return True
+
+
+async def _fetch_availability_for_group(supabase, course_id, holes, min_start, max_end):
+    """ One availability fetch shared by every alert on the same (course_id, holes). """
+    res = await (
+        supabase.table("availability")
+        .select("id, course_id, tee_time, holes, spots_available")
+        .eq("course_id", course_id)
+        .eq("holes", holes)
+        .eq("available", True)
+        .gte("tee_time", min_start.isoformat())
+        .lte("tee_time", max_end.isoformat())
+        .execute()
+    )
+    return (course_id, holes), res.data or []
+
+
+async def process_single_alert(supabase, alert, now, summaries, rows=None):
+    """
+    Check one alert against already-fetched availability rows (or fetch them
+    itself if `rows` isn't supplied) and queue any new notifications.
+
+    `rows` lets run_alert_engine share a single availability fetch across every
+    alert on the same (course_id, holes) instead of querying per alert.
+    """
     course_id = alert["course_id"]
     holes = alert.get("holes")
     players = alert.get("players")  # None = Any
@@ -86,59 +123,56 @@ async def process_single_alert(supabase, alert, now, summaries):
     start_dt = datetime.fromisoformat(alert['start_time']).astimezone(timezone.utc)
     end_dt = datetime.fromisoformat(alert['end_time']).astimezone(timezone.utc)
 
-    query = (
-        supabase.table("availability")
-        .select("id, course_id, tee_time, holes, spots_available")
-        .eq("course_id", course_id)
-        .eq("holes", holes)
-        .eq("available", True)
-        .gte("tee_time", start_dt.isoformat())
-        .lte("tee_time", end_dt.isoformat())
-    )
-    if players is not None:
-        # Pass through slots where spots_available is unknown (NULL) so providers
-        # without player count data don't silently block notifications.
-        query = query.or_(f"spots_available.is.null,spots_available.gte.{players}")
+    if rows is None:
+        _, rows = await _fetch_availability_for_group(supabase, course_id, holes, start_dt, end_dt)
 
-    tee_times_execute = await query.execute()
-
-    tee_times = tee_times_execute.data or []
+    tee_times = [r for r in rows if _matches_alert(r, start_dt, end_dt, players)]
     if not tee_times:
         return
 
+    # One query to fetch every existing notification for this alert's candidate
+    # tee times, instead of one query per tee time.
+    availability_ids = [t["id"] for t in tee_times]
+    existing_res = await (
+        supabase.table("alert_notifications")
+        .select("availability_id, spots_available, sent_at")
+        .eq("alert_id", alert_id)
+        .in_("availability_id", availability_ids)
+        .order("sent_at", desc=True)
+        .execute()
+    )
+    latest_by_availability_id = {}
+    for row in existing_res.data or []:
+        aid = row["availability_id"]
+        if aid not in latest_by_availability_id:  # first hit is latest (desc order)
+            latest_by_availability_id[aid] = row.get("spots_available")
+
+    inserts = []
     new_ids = []
     for tee in tee_times:
         current_spots = tee.get("spots_available")
 
-        # Check for existing notification for this (alert, availability) pair.
-        # Re-notify if spots_available has increased since the last notification
-        # (e.g. a cancellation freed up more spots than before).
-        existing_res = await (
-            supabase.table("alert_notifications")
-            .select("id, spots_available")
-            .eq("alert_id", alert_id)
-            .eq("availability_id", tee["id"])
-            .order("sent_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-
-        if existing_res.data:
-            last_spots = existing_res.data[0].get("spots_available")
+        if tee["id"] in latest_by_availability_id:
+            last_spots = latest_by_availability_id[tee["id"]]
             # Only re-notify if both values are known and spots increased
+            # (e.g. a cancellation freed up more spots than before).
             if not (current_spots is not None and last_spots is not None and current_spots > last_spots):
                 continue
 
-        await supabase.table("alert_notifications").insert({
+        inserts.append({
             "alert_id": alert_id,
             "availability_id": tee["id"],
             "spots_available": current_spots,
             "via": "push",
             "status": "sent",
             "sent_at": now.isoformat()
-        }).execute()
+        })
         new_ids.append(tee["id"])
-    
+
+    if inserts:
+        # One bulk insert instead of one insert per tee time.
+        await supabase.table("alert_notifications").insert(inserts).execute()
+
     if new_ids:
         summaries[alert_id] = {
             "course_id": course_id,
@@ -173,16 +207,50 @@ async def run_alert_engine(tier_id: int | None = None):
         ]
         print(f"[AlertEngine] Processing tier {tier_id}: {len(alerts)} alerts")
 
-    # Parallelize alert checks
-    tasks = [process_single_alert(supabase, alert, start_time, summaries) for alert in alerts]
-    await asyncio.gather(*tasks)
+    if not alerts:
+        return
 
+    # Group alerts sharing a (course_id, holes) pair so they share a single
+    # availability fetch instead of one query per alert.
+    windows = {}  # alert_id -> (start_dt, end_dt)
+    groups = defaultdict(list)  # (course_id, holes) -> [alert_id, ...]
+    for alert in alerts:
+        start_dt = datetime.fromisoformat(alert["start_time"]).astimezone(timezone.utc)
+        end_dt = datetime.fromisoformat(alert["end_time"]).astimezone(timezone.utc)
+        windows[alert["id"]] = (start_dt, end_dt)
+        groups[(alert["course_id"], alert.get("holes"))].append(alert["id"])
+
+    by_id = {a["id"]: a for a in alerts}
+    fetches = [
+        _fetch_availability_for_group(
+            supabase,
+            course_id,
+            holes,
+            min(windows[aid][0] for aid in alert_ids),
+            max(windows[aid][1] for aid in alert_ids),
+        )
+        for (course_id, holes), alert_ids in groups.items()
+    ]
+    group_rows = dict(await asyncio.gather(*fetches))
+
+    # Parallelize alert checks, each reusing its group's already-fetched rows.
+    tasks = [
+        process_single_alert(
+            supabase,
+            by_id[aid],
+            start_time,
+            summaries,
+            rows=group_rows[(by_id[aid]["course_id"], by_id[aid].get("holes"))],
+        )
+        for aid in by_id
+    ]
+    await asyncio.gather(*tasks)
 
     # Parallelize notification sending
     notif_tasks = []
     for alert_id, info in summaries.items():
         notif_tasks.append(send_summary_notification(alert_id, info, start_time))
-    
+
     await asyncio.gather(*notif_tasks)
 
 async def send_summary_notification(alert_id, info, engine_start_time):
