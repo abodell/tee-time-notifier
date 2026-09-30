@@ -147,7 +147,7 @@ export default function ProfileScreen() {
     if (!referralInfo) return;
     try {
       await Share.share({
-        message: `Catching sold-out tee times is a lot easier with a heads up. Use my code ${referralInfo.referral_code} in TeeSignal and we'll both get ${referralInfo.reward_days} days of Pro free.`,
+        message: `Catching sold-out tee times is a lot easier with a heads up. Use my code ${referralInfo.referral_code} in TeeSignal and we'll both get ${referralInfo.reward_days} days of Pro free.\n\nhttps://apps.apple.com/us/app/tee-signal-tee-time-alerts/id6758684655`,
       });
     } catch (err: any) {
       Toast.show({ type: "error", text1: "Couldn't open share sheet", text2: err.message });
