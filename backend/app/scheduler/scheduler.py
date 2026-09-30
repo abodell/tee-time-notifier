@@ -11,7 +11,8 @@ from .jobs import (
     scan_cps_job,
     scan_teeitup_job,
     scan_whoosh_job,
-    run_alert_engine_for_tier
+    run_alert_engine_for_tier,
+    expire_bonus_access_job
 )
 from app.db import create_supabase
 from app.config import settings
@@ -111,5 +112,11 @@ async def start_scheduler(app: FastAPI):
             f"every {interval} seconds (aligned to clock)"
         )
     
+    scheduler.add_job(
+        expire_bonus_access_job,
+        trigger=IntervalTrigger(minutes=60, start_date=next_minute),
+        name="ExpireBonusAccess",
+    )
+
     scheduler.start()
     print("[Scheduler] All jobs scheduled successfully.")
