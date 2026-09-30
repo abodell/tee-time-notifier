@@ -1,11 +1,48 @@
 import asyncio
-from datetime import datetime, timezone, timedelta
+import zoneinfo
+from datetime import datetime, timezone, timedelta, time as dt_time
 from app.db import create_supabase
 from collections import defaultdict
 from app.services.push_service import send_push_notification
 from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
 
 ALERT_COOLDOWN_MINUTES = 30
+
+
+def _parse_time_str(value) -> dt_time:
+    """Postgres `time` columns come back as 'HH:MM:SS' strings."""
+    if isinstance(value, dt_time):
+        return value
+    parts = str(value).split(":")
+    return dt_time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+
+
+def is_in_quiet_hours(profile: dict, tz_name: str, now_utc: datetime) -> bool:
+    """
+    Whether `now` falls inside the user's configured quiet hours, evaluated
+    in the tee sheet's own timezone (a reasonable proxy for the golfer's
+    local time, since there's no separate device-timezone field on the
+    profile). Handles overnight ranges like 22:00 -> 07:00.
+    """
+    if not profile.get("quiet_hours_enabled"):
+        return False
+    start_raw = profile.get("quiet_hours_start")
+    end_raw = profile.get("quiet_hours_end")
+    if not start_raw or not end_raw:
+        return False
+
+    try:
+        tz = zoneinfo.ZoneInfo(tz_name or "UTC")
+    except Exception:
+        tz = timezone.utc
+
+    local_now = now_utc.astimezone(tz).time()
+    start = _parse_time_str(start_raw)
+    end = _parse_time_str(end_raw)
+
+    if start <= end:
+        return start <= local_now < end
+    return local_now >= start or local_now < end
 
 
 def notify_user(user_id, course_id, tee_time, method="push"):
@@ -179,6 +216,13 @@ async def process_single_alert(supabase, alert, now, summaries, rows=None):
         new_ids.append(tee["id"])
 
     if inserts:
+        profile = alert.get("user_profiles") or {}
+        course_tz = (alert.get("courses") or {}).get("time_zone", "UTC")
+        if is_in_quiet_hours(profile, course_tz, now):
+            # Hold the match instead of sending — nothing is written to
+            # alert_notifications, so this exact slot still looks "new" on
+            # the next scan and gets sent normally once quiet hours end.
+            return
         # One bulk insert instead of one insert per tee time.
         await supabase.table("alert_notifications").insert(inserts).execute()
 
@@ -203,7 +247,9 @@ async def run_alert_engine(tier_id: int | None = None):
     cutoff = (start_time - timedelta(days=1)).isoformat()
     query = supabase.table("alerts").select(
         "id, user_id, course_id, holes, players, start_time, end_time, date_from, date_to, "
-        "user_profiles!alerts_user_id_fkey(membership_tier_id, bonus_tier_id, bonus_expires_at)"
+        "courses!alerts_course_id_fkey(time_zone), "
+        "user_profiles!alerts_user_id_fkey(membership_tier_id, bonus_tier_id, bonus_expires_at, "
+        "quiet_hours_enabled, quiet_hours_start, quiet_hours_end)"
     ).eq("active", True).gte("date_to", cutoff)
 
     query_execute = await query.execute()
