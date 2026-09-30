@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Header
 from app.db import create_supabase
+from app.config import settings
+from app.services.membership_service import grant_temporary_tier
 import os
 from datetime import datetime, timezone
 
@@ -90,6 +92,17 @@ async def revenuecat_webhook(request: Request, authorization: str = Header(None)
             }).eq("id", app_user_id).execute()
             
             print(f"Downgraded user {app_user_id} to Free (Expiration)")
+
+        elif event_type == "NON_RENEWING_PURCHASE":
+            # A one-time purchase (e.g. the Weekend Pass) rather than a
+            # subscription. Grant temporary bonus access instead of touching
+            # membership_tier_id, so it can never clobber a real subscription
+            # and simply expires on its own via the scheduled sweep.
+            if product_id == settings.WEEKEND_PASS_PRODUCT_ID:
+                expiry = await grant_temporary_tier(supabase, app_user_id, days=settings.WEEKEND_PASS_DAYS)
+                print(f"Granted Weekend Pass to {app_user_id}, expires {expiry.isoformat()}")
+            else:
+                print(f"Ignoring unrecognized non-renewing product: {product_id}")
 
         elif event_type in ["CANCELLATION"]:
             # Auto-renew turned off. 
