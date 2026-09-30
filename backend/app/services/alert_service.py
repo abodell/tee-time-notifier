@@ -136,21 +136,29 @@ async def process_single_alert(supabase, alert, now, summaries, rows=None):
     availability_ids = [t["id"] for t in tee_times]
     existing_res = await (
         supabase.table("alert_notifications")
-        .select("availability_id, spots_available, sent_at")
+        .select("availability_id, spots_available, sent_at, booked_at")
         .eq("alert_id", alert_id)
         .in_("availability_id", availability_ids)
         .order("sent_at", desc=True)
         .execute()
     )
     latest_by_availability_id = {}
+    booked_availability_ids = set()
     for row in existing_res.data or []:
         aid = row["availability_id"]
+        if row.get("booked_at"):
+            booked_availability_ids.add(aid)
         if aid not in latest_by_availability_id:  # first hit is latest (desc order)
             latest_by_availability_id[aid] = row.get("spots_available")
 
     inserts = []
     new_ids = []
     for tee in tee_times:
+        # The user told us they booked this exact slot for this alert —
+        # never re-notify it, even if the provider later reports more spots.
+        if tee["id"] in booked_availability_ids:
+            continue
+
         current_spots = tee.get("spots_available")
 
         if tee["id"] in latest_by_availability_id:

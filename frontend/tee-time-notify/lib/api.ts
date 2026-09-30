@@ -39,3 +39,7 @@ export async function deleteAlert(alertId: number) {
 export async function triggerImmediateScan(alertId: number) {
     return request(`/alerts/${alertId}/scan-now`, { method: "POST" })
 }
+
+export async function markNotificationBooked(alertId: number, notificationId: number) {
+    return request(`/alerts/${alertId}/notifications/${notificationId}/book`, { method: "PATCH" })
+}
