@@ -303,6 +303,20 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
                 return q.or_(f"spots_available.is.null,spots_available.gte.{players}")
             return q
 
+        # Availability the user already told us they booked for this alert —
+        # never surface these again, even on a manual "scan now".
+        booked_res = await (
+            supabase.table("alert_notifications")
+            .select("availability_id")
+            .eq("alert_id", alert_id)
+            .not_.is_("booked_at", "null")
+            .execute()
+        )
+        booked_ids = [r["availability_id"] for r in (booked_res.data or [])]
+
+        def exclude_booked(q):
+            return q.not_.in_("id", booked_ids) if booked_ids else q
+
         # 1. Exact match
         exact_q = (
             supabase.table("availability")
@@ -315,7 +329,7 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
             .order("tee_time")
             .limit(1)
         )
-        exact_res = await apply_players_filter(exact_q).execute()
+        exact_res = await exclude_booked(apply_players_filter(exact_q)).execute()
         if exact_res.data:
             availability_id = exact_res.data[0]["id"]
             tee_dt = datetime.fromisoformat(exact_res.data[0]["tee_time"]).astimezone(timezone.utc)
@@ -350,7 +364,7 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
             .order("tee_time")
             .limit(1)
         )
-        nearby_res = await apply_players_filter(nearby_q).execute()
+        nearby_res = await exclude_booked(apply_players_filter(nearby_q)).execute()
         if nearby_res.data:
             tee_dt = datetime.fromisoformat(nearby_res.data[0]["tee_time"]).astimezone(timezone.utc)
             await send_push_notification(
@@ -392,7 +406,7 @@ async def get_user_alerts(user_id: str):
         .select(
             "*, "
             "courses!alerts_course_id_fkey(name, city, state, provider_url, time_zone), "
-            "alert_notifications(id, sent_at, availability(tee_time, price, spots_available))"
+            "alert_notifications(id, sent_at, booked_at, availability(tee_time, price, spots_available))"
         )
         .eq("user_id", user_id)
         .order("created_at", desc=True)
@@ -406,3 +420,24 @@ async def delete_alert(alert_id: int):
     supabase = await create_supabase()
     await supabase.table("alerts").delete().eq("id", alert_id).execute()
     return {"status": "deleted", "alert_id": alert_id}
+
+
+@router.patch("/{alert_id}/notifications/{notification_id}/book")
+async def mark_notification_booked(alert_id: int, notification_id: int):
+    """
+    Mark one matched tee time as booked. The alert keeps watching for other
+    openings, but this specific availability slot is muted for this alert
+    going forward — the engine (and manual scan-now) will never re-notify it,
+    even if spots later increase.
+    """
+    supabase = await create_supabase()
+    result = await (
+        supabase.table("alert_notifications")
+        .update({"booked_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", notification_id)
+        .eq("alert_id", alert_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Notification not found for this alert.")
+    return {"status": "booked", "notification_id": notification_id}
