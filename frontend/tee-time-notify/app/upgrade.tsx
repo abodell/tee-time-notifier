@@ -23,6 +23,7 @@ import { Colors } from "@/constants/theme";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { MembershipTier, UserProfileResponse } from "@/types/membership";
+import { introPriceToDays, DEFAULT_TRIAL_DAYS } from "@/lib/trial";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
@@ -308,6 +309,7 @@ export default function UpgradeScreen() {
 
           const isUnavailable = !isFree && !isCurrent && !rcPackage;
           const hasTrial = !!rcPackage?.product?.introPrice;
+          const trialDays = introPriceToDays(rcPackage?.product?.introPrice) ?? DEFAULT_TRIAL_DAYS;
 
           return (
             <Animated.View
@@ -344,7 +346,7 @@ export default function UpgradeScreen() {
                       {isPro && !isCurrent && hasTrial && (
                         <View style={[styles.trialBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0FDF4" }]}>
                           <Text style={[styles.trialBadgeText, { color: accent }]}>
-                            14-Day Trial
+                            {trialDays}-Day Trial
                           </Text>
                         </View>
                       )}
@@ -364,7 +366,7 @@ export default function UpgradeScreen() {
 
                     {!isFree && hasTrial && (
                       <Text style={[styles.trialNote, { color: theme.colors.onSurfaceVariant }]}>
-                        After 14 days, you'll be charged {priceDisplay}/mo
+                        After {trialDays} days, you'll be charged {priceDisplay}/mo
                       </Text>
                     )}
                     {!isFree && !hasTrial && (
@@ -501,7 +503,7 @@ export default function UpgradeScreen() {
                                 {isUnavailable
                                   ? "Unavailable"
                                   : hasTrial
-                                    ? "Start 14-Day Free Trial"
+                                    ? `Start ${trialDays}-Day Free Trial`
                                     : isFree
                                       ? "Downgrade to Free"
                                       : `Switch to ${tier.name}`}
