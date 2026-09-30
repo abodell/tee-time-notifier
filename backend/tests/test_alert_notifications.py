@@ -177,9 +177,21 @@ def make_supabase_mock_for_notify(exact_tee_time=None, nearby_tee_time=None, pus
             t.select = MagicMock(side_effect=select_side_effect)
 
         elif name == "alert_notifications":
-            chain = MagicMock()
-            chain.execute = AsyncMock(return_value=MagicMock(data=[{"id": 1}]))
-            t.insert = MagicMock(return_value=chain)
+            insert_chain = MagicMock()
+            insert_chain.execute = AsyncMock(return_value=MagicMock(data=[{"id": 1}]))
+            t.insert = MagicMock(return_value=insert_chain)
+
+            # _check_and_notify queries this table for booked slots to exclude
+            # before checking availability. No bookings by default.
+            select_chain = MagicMock()
+            select_chain.eq = MagicMock(return_value=select_chain)
+            # `.not_` is accessed as an attribute (not called) then `.is_(...)`
+            # is called on it, per the supabase-py negated-filter builder.
+            not_builder = MagicMock()
+            not_builder.is_ = MagicMock(return_value=select_chain)
+            select_chain.not_ = not_builder
+            select_chain.execute = AsyncMock(return_value=MagicMock(data=[]))
+            t.select = MagicMock(return_value=select_chain)
 
         return t
 
