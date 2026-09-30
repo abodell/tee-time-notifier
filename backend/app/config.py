@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     GITHUB_REPO: str = "tee-time-notifier"
     FOREUP_USERNAME: str = ""
     FOREUP_PASSWORD: str = ""
+    FREE_LIFETIME_ALERT_LIMIT: int = 3
 
     class Config:
         env_file = ".env"

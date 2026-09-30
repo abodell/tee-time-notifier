@@ -67,6 +67,8 @@ export default function MyAlertsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
   const [tierName, setTierName] = useState("—");
+  const [lifetimeAlertsCreated, setLifetimeAlertsCreated] = useState<number | null>(null);
+  const [freeLifetimeLimit, setFreeLifetimeLimit] = useState<number | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [session, setSession] = useState<any>(null);
   const [fetchingQuota, setFetchingQuota] = useState(false);
@@ -150,6 +152,8 @@ export default function MyAlertsScreen() {
       const tier = profile.membership_tiers;
       setTierName(tier?.name || "—");
       setMaxAlerts(tier?.max_alerts ?? null);
+      setLifetimeAlertsCreated(profile.lifetime_alerts_created ?? null);
+      setFreeLifetimeLimit(profile.free_lifetime_alert_limit ?? null);
 
       const userAlerts = await alertsRes.json();
       const ordered = applyOrder(userAlerts);
@@ -584,6 +588,17 @@ export default function MyAlertsScreen() {
                 <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
                   <Text style={[styles.quotaLimitText, { color: theme.colors.onSurfaceVariant }]}>
                     Alert limit reached
+                  </Text>
+                  <Text style={[styles.quotaUpgradeLink, { color: theme.colors.primary }]}>Upgrade</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {tierName === "Free" && freeLifetimeLimit != null && lifetimeAlertsCreated != null && (
+              <>
+                <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
+                <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
+                  <Text style={[styles.quotaLimitText, { color: theme.colors.onSurfaceVariant }]}>
+                    {Math.min(lifetimeAlertsCreated, freeLifetimeLimit)} of {freeLifetimeLimit} free alerts used, ever
                   </Text>
                   <Text style={[styles.quotaUpgradeLink, { color: theme.colors.primary }]}>Upgrade</Text>
                 </TouchableOpacity>

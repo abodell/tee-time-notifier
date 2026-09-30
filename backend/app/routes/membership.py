@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.db import create_supabase
+from app.config import settings
 
 router = APIRouter(prefix="/membership", tags=["membership"])
 
@@ -34,6 +35,7 @@ async def get_user_membership(user_id: str):
             supabase.table("user_profiles")
             .select(
                 "id, full_name, phone, membership_tier_id, stripe_customer_id, pending_downgrade, cancel_at, "
+                "lifetime_alerts_created, "
                 "membership_tiers!user_profiles_membership_tier_id_fkey(name, description, price_cents, max_alerts, scan_interval_seconds)"
             )
             .eq("id", user_id)
@@ -43,7 +45,14 @@ async def get_user_membership(user_id: str):
 
         if not result.data:
             raise HTTPException(status_code = 404, detail = "Profile not found.")
-        return result.data
+
+        profile = result.data
+        if (profile.get("membership_tiers") or {}).get("name") == "Free":
+            profile["free_lifetime_alert_limit"] = settings.FREE_LIFETIME_ALERT_LIMIT
+
+        return profile
+    except HTTPException:
+        raise
     except Exception as e:
         print("Error fetching user membership: ", e)
         raise HTTPException(status_code = 500, detail = "Failed ot fetch user membership.")

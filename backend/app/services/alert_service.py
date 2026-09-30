@@ -4,16 +4,6 @@ from app.db import create_supabase
 from collections import defaultdict
 from app.services.push_service import send_push_notification
 
-ALERT_COOLDOWN_MINUTES = 30
-
-
-def notify_user(user_id, course_id, tee_time, method="push"):
-    """ Placeholder for notifications. """
-    print(
-        f"ALERT: Notify user {user_id} for course {course_id} "
-        f"tee time {tee_time} via {method}"
-    )
-
 import zoneinfo
 
 async def rollover_recurring_alerts(supabase, now: datetime):
@@ -246,21 +236,34 @@ async def run_alert_engine(tier_id: int | None = None):
     ]
     await asyncio.gather(*tasks)
 
-    # Parallelize notification sending
-    notif_tasks = []
-    for alert_id, info in summaries.items():
-        notif_tasks.append(send_summary_notification(alert_id, info, start_time))
+    # Batch-fetch course names and push tokens once for this whole cycle
+    # instead of two queries per matched alert — this runs every scan
+    # interval (as tight as 60s on Pro), so avoiding N*2 round trips here
+    # matters a lot more than it would on a one-off endpoint.
+    if summaries:
+        course_ids = list({info["course_id"] for info in summaries.values()})
+        user_ids = list({info["user_id"] for info in summaries.values()})
 
-    await asyncio.gather(*notif_tasks)
+        courses_res = await supabase.table("courses").select("id, name").in_("id", course_ids).execute()
+        course_names = {c["id"]: c["name"] for c in (courses_res.data or [])}
 
-async def send_summary_notification(alert_id, info, engine_start_time):
-    """ Helper to fetch data and send push """
-    course_name = await get_course_name(info["course_id"])
+        tokens_res = await supabase.table("user_profiles").select("id, expo_push_token").in_("id", user_ids).execute()
+        push_tokens = {u["id"]: u.get("expo_push_token") for u in (tokens_res.data or [])}
+
+        notif_tasks = [
+            send_summary_notification(alert_id, info, start_time, course_names, push_tokens)
+            for alert_id, info in summaries.items()
+        ]
+        await asyncio.gather(*notif_tasks)
+
+async def send_summary_notification(alert_id, info, engine_start_time, course_names, push_tokens):
+    """ Helper to send push using the caller's already-fetched course/token maps. """
+    course_name = course_names.get(info["course_id"], "Course")
     user_id = info["user_id"]
     title = f"{course_name}: {info['count']} opening(s)!"
     body = f"We found {info['count']} new tee time(s) matching your alert."
 
-    token = await get_user_push_token(user_id)
+    token = push_tokens.get(user_id)
     if token:
         try:
             # We must pass the alert_id explicitly in the 'data' structure
@@ -286,16 +289,3 @@ async def get_user_push_token(user_id: str) -> str | None:
     )
 
     return (res.data or {}).get("expo_push_token")
-
-async def get_course_name(course_id: int) -> str:
-    """ Fetch course name for push noti """
-    supabase = await create_supabase()
-    res = await (
-        supabase.table("courses")
-        .select("name")
-        .eq("id", course_id)
-        .single()
-        .execute()
-    )
-
-    return (res.data or {}).get("name", "Course")

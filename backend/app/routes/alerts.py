@@ -7,6 +7,7 @@ import asyncio
 from app.db import create_supabase
 from app.services.push_service import send_push_notification
 from app.services.alert_service import get_user_push_token
+from app.config import settings
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -19,10 +20,14 @@ async def create_alert(alert: dict):
         if not user_id:
             raise HTTPException(status_code = 400, detail = "Missing user_id")
         
-        # Fetch the profile
+        # Fetch profile + tier in one round trip via the FK join, instead of
+        # two separate queries.
         profile = await (
             supabase.table("user_profiles")
-            .select("id, membership_tier_id")
+            .select(
+                "id, membership_tier_id, lifetime_alerts_created, "
+                "membership_tiers!user_profiles_membership_tier_id_fkey(id, name, max_alerts)"
+            )
             .eq("id", user_id)
             .single()
             .execute()
@@ -30,25 +35,30 @@ async def create_alert(alert: dict):
 
         if not profile.data:
             raise HTTPException(status_code=404, detail="User profile not found.")
-        
+
         tier_id = profile.data.get("membership_tier_id")
         if not tier_id:
             raise HTTPException(status_code=400, detail="Membership tier not found.")
-        
-        # Fetch tier info
-        tier = await (
-            supabase.table("membership_tiers")
-            .select("id, name, max_alerts")
-            .eq("id", tier_id)
-            .single()
-            .execute()
-        )
 
-        if not tier.data:
+        tier = profile.data.get("membership_tiers")
+        if not tier:
             raise HTTPException(status_code=404, detail="Tier not found.")
-        
-        max_alerts = tier.data.get("max_alerts")
-        tier_name = tier.data.get("name")
+
+        max_alerts = tier.get("max_alerts")
+        tier_name = tier.get("name")
+        lifetime_alerts_created = profile.data.get("lifetime_alerts_created") or 0
+
+        # Free tier: cap lifetime alert creation, not just concurrent count —
+        # otherwise deleting and recreating a single alert every week gives
+        # unlimited use of a "free trial" tier forever.
+        if tier_name == "Free" and lifetime_alerts_created >= settings.FREE_LIFETIME_ALERT_LIMIT:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"You've used all {settings.FREE_LIFETIME_ALERT_LIMIT} of your free alerts. "
+                    "Upgrade to Plus or Pro for unlimited alerts."
+                ),
+            )
 
         # get the current existing alerts for this user
         current_alerts = await (
@@ -64,7 +74,7 @@ async def create_alert(alert: dict):
                 status_code=403,
                 detail=f"Your {tier_name} plan allows up to {max_alerts} active alert(s). Please upgrade your plan to add more"
             )
-            
+
         is_recurring = alert.get("is_recurring", False) if tier_name == "Pro" else False
         players = alert.get("players") if tier_name in ("Plus", "Pro") else None
 
@@ -82,6 +92,15 @@ async def create_alert(alert: dict):
         }
             
         result = await supabase.table("alerts").insert(insert_payload).execute()
+
+        if tier_name == "Free":
+            await (
+                supabase.table("user_profiles")
+                .update({"lifetime_alerts_created": lifetime_alerts_created + 1})
+                .eq("id", user_id)
+                .execute()
+            )
+
         return {"status": "success", "alert": result.data[0]}
     
     except HTTPException:

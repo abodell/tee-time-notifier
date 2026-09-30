@@ -13,4 +13,6 @@ export interface UserProfileResponse {
     membership_tiers?: MembershipTier;
     pending_downgrade?: boolean;
     cancel_at?: string;
+    lifetime_alerts_created?: number;
+    free_lifetime_alert_limit?: number;
 }
