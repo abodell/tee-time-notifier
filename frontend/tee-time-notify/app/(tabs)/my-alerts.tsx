@@ -412,6 +412,17 @@ export default function MyAlertsScreen() {
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
+                  onPress={() => router.push({ pathname: "/create-details", params: { alertId: item.id } })}
+                  hitSlop={{ top: 12, bottom: 12, left: 4, right: 4 }}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={14}
+                    color={theme.colors.onSurfaceVariant}
+                    style={{ opacity: 0.55 }}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => deleteConfirm(item.id!)}
                   hitSlop={{ top: 12, bottom: 12, left: 4, right: 8 }}
                 >
