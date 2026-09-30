@@ -7,6 +7,7 @@ import asyncio
 from app.db import create_supabase
 from app.services.push_service import send_push_notification
 from app.services.alert_service import get_user_push_token
+from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -22,7 +23,7 @@ async def create_alert(alert: dict):
         # Fetch the profile
         profile = await (
             supabase.table("user_profiles")
-            .select("id, membership_tier_id")
+            .select("id, membership_tier_id, bonus_tier_id, bonus_expires_at")
             .eq("id", user_id)
             .single()
             .execute()
@@ -30,25 +31,24 @@ async def create_alert(alert: dict):
 
         if not profile.data:
             raise HTTPException(status_code=404, detail="User profile not found.")
-        
-        tier_id = profile.data.get("membership_tier_id")
-        if not tier_id:
-            raise HTTPException(status_code=400, detail="Membership tier not found.")
-        
-        # Fetch tier info
-        tier = await (
-            supabase.table("membership_tiers")
-            .select("id, name, max_alerts")
-            .eq("id", tier_id)
-            .single()
-            .execute()
-        )
 
-        if not tier.data:
+        base_tier_id = profile.data.get("membership_tier_id")
+        if not base_tier_id:
+            raise HTTPException(status_code=400, detail="Membership tier not found.")
+
+        # Resolve the effective tier: the user's real tier, or a temporary
+        # bonus grant (Weekend Pass, referral reward) if one is active and
+        # better than their real tier. Never the other way around.
+        tiers_by_id = await get_all_tiers_map(supabase)
+        tier_id = resolve_effective_tier_id(
+            tiers_by_id, base_tier_id, profile.data.get("bonus_tier_id"), profile.data.get("bonus_expires_at")
+        )
+        tier_row = tiers_by_id.get(tier_id)
+        if not tier_row:
             raise HTTPException(status_code=404, detail="Tier not found.")
-        
-        max_alerts = tier.data.get("max_alerts")
-        tier_name = tier.data.get("name")
+
+        max_alerts = tier_row.get("max_alerts")
+        tier_name = tier_row.get("name")
 
         # get the current existing alerts for this user
         current_alerts = await (

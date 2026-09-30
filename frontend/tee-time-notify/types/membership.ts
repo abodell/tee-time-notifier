@@ -13,4 +13,6 @@ export interface UserProfileResponse {
     membership_tiers?: MembershipTier;
     pending_downgrade?: boolean;
     cancel_at?: string;
+    is_bonus_active?: boolean;
+    bonus_expires_at?: string;
 }

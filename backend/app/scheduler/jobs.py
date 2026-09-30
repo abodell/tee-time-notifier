@@ -10,6 +10,7 @@ from app.services.cps_service import run_cps_scan
 from app.services.teeitup_service import run_teeitup_scan
 from app.services.whoosh_service import run_whoosh_scan
 from app.services.alert_service import run_alert_engine
+from app.services.membership_service import expire_bonus_access
 from app.db import create_supabase
 from app.config import settings
 
@@ -178,3 +179,18 @@ async def run_alert_engine_for_tier(tier_id: int):
         await run_alert_engine(tier_id)
     except Exception as e:
         print(f"[Scheduler] Error in alert engine for tier {tier_id}: {e}")
+
+
+async def expire_bonus_access_job():
+    """
+    Clear any temporary bonus tier grants (Weekend Pass, referral rewards)
+    that have expired. Runs hourly — bonus grants are day-scale, so there's
+    no need for tighter precision than that.
+    """
+    try:
+        supabase = await create_supabase()
+        cleared = await expire_bonus_access(supabase)
+        if cleared:
+            print(f"[Scheduler] Cleared expired bonus access for {cleared} user(s)")
+    except Exception as e:
+        print(f"[Scheduler] Error expiring bonus access: {e}")

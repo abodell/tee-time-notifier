@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     GITHUB_REPO: str = "tee-time-notifier"
     FOREUP_USERNAME: str = ""
     FOREUP_PASSWORD: str = ""
+    WEEKEND_PASS_PRODUCT_ID: str = "teesignal_weekend_pass"
+    WEEKEND_PASS_DAYS: int = 7
 
     class Config:
         env_file = ".env"
