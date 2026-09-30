@@ -88,18 +88,13 @@ async def create_alert(alert: dict):
             "date_to": alert.get("date_to"),
             "start_time": alert.get("start_time"),
             "end_time": alert.get("end_time"),
-            "is_recurring": is_recurring
+            "is_recurring": is_recurring,
+            # Not counted toward the free-tier lifetime cap until it survives
+            # the grace period — see count_lifetime_alerts() in alert_service.py.
+            "counted_toward_lifetime": False,
         }
-            
-        result = await supabase.table("alerts").insert(insert_payload).execute()
 
-        if tier_name == "Free":
-            await (
-                supabase.table("user_profiles")
-                .update({"lifetime_alerts_created": lifetime_alerts_created + 1})
-                .eq("id", user_id)
-                .execute()
-            )
+        result = await supabase.table("alerts").insert(insert_payload).execute()
 
         return {"status": "success", "alert": result.data[0]}
     

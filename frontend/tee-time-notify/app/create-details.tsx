@@ -180,6 +180,8 @@ export default function CreateDetailsScreen() {
   const [tierName, setTierName] = useState<string | null>(
     typeof tierNameParam === "string" ? tierNameParam : null
   );
+  const [lifetimeAlertsCreated, setLifetimeAlertsCreated] = useState<number | null>(null);
+  const [freeLifetimeLimit, setFreeLifetimeLimit] = useState<number | null>(null);
 
   // Picker visibility
   const [dateVisible, setDateVisible] = useState(false);
@@ -259,6 +261,12 @@ export default function CreateDetailsScreen() {
             const profile = await profileRes.json();
             if (profile?.membership_tiers?.name) {
               setTierName(profile.membership_tiers.name);
+            }
+            if (profile?.lifetime_alerts_created != null) {
+              setLifetimeAlertsCreated(profile.lifetime_alerts_created);
+            }
+            if (profile?.free_lifetime_alert_limit != null) {
+              setFreeLifetimeLimit(profile.free_lifetime_alert_limit);
             }
           }
         } catch (err) {
@@ -606,6 +614,20 @@ export default function CreateDetailsScreen() {
 
         {/* ── Submit ── */}
         <View style={styles.submitWrap}>
+          {tierName === "Free" &&
+            freeLifetimeLimit != null &&
+            lifetimeAlertsCreated != null &&
+            lifetimeAlertsCreated === freeLifetimeLimit - 1 && (
+              <View style={styles.lastFreeNudge}>
+                <MaterialCommunityIcons name="information-outline" size={13} color={theme.colors.onSurfaceVariant} style={{ opacity: 0.7 }} />
+                <Text style={[styles.lastFreeNudgeText, { color: theme.colors.onSurfaceVariant }]}>
+                  This is your last free alert.{" "}
+                  <Text style={{ color: accent, fontWeight: "600" }} onPress={() => router.push("/upgrade")}>
+                    Go unlimited
+                  </Text>
+                </Text>
+              </View>
+            )}
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={buttonDisabled}
@@ -891,5 +913,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
     letterSpacing: -0.2,
+  },
+  lastFreeNudge: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    marginBottom: 10,
+  },
+  lastFreeNudgeText: {
+    fontSize: 12.5,
   },
 });

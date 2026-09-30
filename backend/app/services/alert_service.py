@@ -3,8 +3,63 @@ from datetime import datetime, timezone, timedelta
 from app.db import create_supabase
 from collections import defaultdict
 from app.services.push_service import send_push_notification
+from app.config import settings
 
 import zoneinfo
+
+async def count_lifetime_alerts():
+    """
+    Flip counted_toward_lifetime -> true for any alert that has survived the
+    grace period, incrementing the owning user's lifetime_alerts_created by
+    however many cleared the window since the last run.
+
+    Runs hourly (see scheduler/jobs.py). This is the only writer of
+    lifetime_alerts_created, so the read-then-write per user below can't race.
+    """
+    supabase = await create_supabase()
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(hours=settings.FREE_LIFETIME_ALERT_GRACE_HOURS)
+    ).isoformat()
+
+    res = await (
+        supabase.table("alerts")
+        .select("id, user_id")
+        .eq("counted_toward_lifetime", False)
+        .lte("created_at", cutoff)
+        .execute()
+    )
+    rows = res.data or []
+    if not rows:
+        return
+
+    alert_ids_by_user = defaultdict(list)
+    for row in rows:
+        alert_ids_by_user[row["user_id"]].append(row["id"])
+
+    for user_id, alert_ids in alert_ids_by_user.items():
+        profile_res = await (
+            supabase.table("user_profiles")
+            .select("lifetime_alerts_created")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        current = (profile_res.data or {}).get("lifetime_alerts_created") or 0
+
+        await (
+            supabase.table("user_profiles")
+            .update({"lifetime_alerts_created": current + len(alert_ids)})
+            .eq("id", user_id)
+            .execute()
+        )
+        await (
+            supabase.table("alerts")
+            .update({"counted_toward_lifetime": True})
+            .in_("id", alert_ids)
+            .execute()
+        )
+
+    print(f"[LifetimeAlerts] Counted {len(rows)} alert(s) across {len(alert_ids_by_user)} user(s).")
 
 async def rollover_recurring_alerts(supabase, now: datetime):
     """
