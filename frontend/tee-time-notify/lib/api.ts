@@ -39,3 +39,14 @@ export async function deleteAlert(alertId: number) {
 export async function triggerImmediateScan(alertId: number) {
     return request(`/alerts/${alertId}/scan-now`, { method: "POST" })
 }
+
+export async function getMyReferralInfo(userId: string) {
+    return request(`/referrals/me/${userId}`)
+}
+
+export async function redeemReferralCode(userId: string, code: string) {
+    return request(`/referrals/redeem`, {
+        method: "POST",
+        body: JSON.stringify({ user_id: userId, code }),
+    })
+}

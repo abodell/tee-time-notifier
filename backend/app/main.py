@@ -12,6 +12,7 @@ from app.routes import revenuecat
 from app.routes import push
 from app.routes import auth
 from app.routes import courses
+from app.routes import referrals
 from app.scheduler.scheduler import start_scheduler
 
 @asynccontextmanager
@@ -26,6 +27,7 @@ app.include_router(revenuecat.router)
 app.include_router(push.router)
 app.include_router(auth.router)
 app.include_router(courses.router, prefix="/courses", tags=["Courses"])
+app.include_router(referrals.router)
 
 app.add_middleware(
     CORSMiddleware,
