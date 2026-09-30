@@ -90,6 +90,80 @@ async def create_alert(alert: dict):
         print("Alert creation error: ", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/{alert_id}")
+async def get_alert(alert_id: int):
+    """ Return a single alert, used by the edit flow to pre-populate fields. """
+    supabase = await create_supabase()
+    result = await (
+        supabase.table("alerts")
+        .select("*, courses!alerts_course_id_fkey(id, name, city, state, provider_url, time_zone)")
+        .eq("id", alert_id)
+        .single()
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    return result.data
+
+
+@router.patch("/{alert_id}")
+async def update_alert(alert_id: int, alert: dict):
+    """
+    Edit an existing alert's schedule/format in place, enforcing the same
+    membership tier restrictions as creation (e.g. a Free-tier user can't set
+    a player filter or recurring even by editing into it).
+    """
+    try:
+        supabase = await create_supabase()
+
+        # One round trip instead of three: walk the FK chain
+        # alerts -> user_profiles -> membership_tiers in a single select.
+        existing = await (
+            supabase.table("alerts")
+            .select(
+                "id, user_id, "
+                "user_profiles!alerts_user_id_fkey(membership_tiers!user_profiles_membership_tier_id_fkey(name))"
+            )
+            .eq("id", alert_id)
+            .single()
+            .execute()
+        )
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Alert not found.")
+
+        tier_name = (
+            (existing.data.get("user_profiles") or {}).get("membership_tiers") or {}
+        ).get("name")
+
+        is_recurring = alert.get("is_recurring", False) if tier_name == "Pro" else False
+        players = alert.get("players") if tier_name in ("Plus", "Pro") else None
+
+        update_payload = {
+            "holes": alert.get("holes"),
+            "players": players,
+            "date_from": alert.get("date_from"),
+            "date_to": alert.get("date_to"),
+            "start_time": alert.get("start_time"),
+            "end_time": alert.get("end_time"),
+            "is_recurring": is_recurring,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        result = await (
+            supabase.table("alerts")
+            .update(update_payload)
+            .eq("id", alert_id)
+            .execute()
+        )
+        return {"status": "success", "alert": result.data[0] if result.data else None}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("Alert update error: ", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/{alert_id}/scan-now")
 async def scan_alert_now(alert_id: int, background_tasks: BackgroundTasks):
     """
