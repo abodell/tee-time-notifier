@@ -15,6 +15,7 @@ export interface Availability {
 export interface AlertNotification {
   id: number;
   sent_at: string;
+  booked_at?: string | null;
   availability?: Availability;
 }
 

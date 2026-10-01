@@ -8,12 +8,14 @@ import {
   DeviceEventEmitter,
   Share,
   TextInput as RNTextInput,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
   useTheme,
   ActivityIndicator,
+  Switch,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -25,7 +27,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
 import { Image } from "react-native";
 import OAuthSection from "@/components/auth/OAuthSection";
-import { getMyReferralInfo, redeemReferralCode } from "@/lib/api";
+import { getMyReferralInfo, redeemReferralCode, updateNotificationPreferences } from "@/lib/api";
+import PickerModal from "@/components/PickerModal";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import dayjs from "dayjs";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -41,6 +46,16 @@ interface UserProfile {
   id: string;
   email?: string;
   membership_tiers?: MembershipTier;
+  quiet_hours_enabled?: boolean;
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+}
+
+const DEFAULT_QUIET_START = "22:00:00";
+const DEFAULT_QUIET_END = "07:00:00";
+
+function timeStringToDate(value: string | null | undefined, fallback: string): Date {
+  return dayjs(`2000-01-01T${value || fallback}`).toDate();
 }
 
 interface ReferralInfo {
@@ -62,6 +77,10 @@ export default function ProfileScreen() {
   const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null);
   const [redeemCodeInput, setRedeemCodeInput] = useState("");
   const [redeeming, setRedeeming] = useState(false);
+  const [savingQuietHours, setSavingQuietHours] = useState(false);
+  const [startVisible, setStartVisible] = useState(false);
+  const [endVisible, setEndVisible] = useState(false);
+  const [tempTime, setTempTime] = useState<Date>(new Date());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -120,6 +139,9 @@ export default function ProfileScreen() {
         id: sessionUser.id,
         email: sessionUser.email,
         membership_tiers: membershipData.membership_tiers,
+        quiet_hours_enabled: membershipData.quiet_hours_enabled || false,
+        quiet_hours_start: membershipData.quiet_hours_start,
+        quiet_hours_end: membershipData.quiet_hours_end,
       });
 
       try {
@@ -168,6 +190,47 @@ export default function ProfileScreen() {
       Toast.show({ type: "error", text1: "Couldn't redeem code", text2: err.message, position: "top" });
     } finally {
       setRedeeming(false);
+    }
+  };
+
+  const handleToggleQuietHours = async (value: boolean) => {
+    if (!user) return;
+    const prevUser = user;
+    setUser({ ...user, quiet_hours_enabled: value });
+    try {
+      setSavingQuietHours(true);
+      await updateNotificationPreferences(user.id, {
+        quiet_hours_enabled: value,
+        // First time enabling with no times set yet, seed sensible defaults
+        // so the engine has something to enforce right away.
+        ...(value && !user.quiet_hours_start
+          ? { quiet_hours_start: DEFAULT_QUIET_START, quiet_hours_end: DEFAULT_QUIET_END }
+          : {}),
+      });
+      if (value && !user.quiet_hours_start) {
+        setUser((u) => (u ? { ...u, quiet_hours_start: DEFAULT_QUIET_START, quiet_hours_end: DEFAULT_QUIET_END } : u));
+      }
+    } catch (err: any) {
+      setUser(prevUser);
+      Toast.show({ type: "error", text1: "Failed to update", text2: err.message, position: "top" });
+    } finally {
+      setSavingQuietHours(false);
+    }
+  };
+
+  const handleSaveQuietTime = async (field: "quiet_hours_start" | "quiet_hours_end", time: Date) => {
+    if (!user) return;
+    const value = dayjs(time).format("HH:mm:ss");
+    const prevUser = user;
+    setUser({ ...user, [field]: value });
+    try {
+      setSavingQuietHours(true);
+      await updateNotificationPreferences(user.id, { [field]: value });
+    } catch (err: any) {
+      setUser(prevUser);
+      Toast.show({ type: "error", text1: "Failed to update", text2: err.message, position: "top" });
+    } finally {
+      setSavingQuietHours(false);
     }
   };
 
@@ -560,6 +623,87 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* ── Notifications ── */}
+        <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
+          NOTIFICATIONS
+        </Text>
+        <View style={[styles.card, cardStyle]}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="moon-waning-crescent"
+                size={16}
+                color={theme.colors.onSurfaceVariant}
+                style={{ marginRight: 10, opacity: 0.7 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowLabel, { color: theme.colors.onSurface }]}>
+                  Quiet Hours
+                </Text>
+                <Text style={[styles.quietHoursSub, { color: theme.colors.onSurfaceVariant }]}>
+                  Hold background alerts until quiet hours end
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={!!user?.quiet_hours_enabled}
+              onValueChange={handleToggleQuietHours}
+              disabled={savingQuietHours || loading}
+              color={theme.colors.primary}
+            />
+          </View>
+
+          {user?.quiet_hours_enabled && (
+            <>
+              <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
+              <TouchableOpacity
+                style={styles.row}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setTempTime(timeStringToDate(user?.quiet_hours_start, DEFAULT_QUIET_START));
+                  setStartVisible(true);
+                }}
+              >
+                <View style={styles.rowLeft}>
+                  <MaterialCommunityIcons
+                    name="weather-sunset-down"
+                    size={16}
+                    color={theme.colors.onSurfaceVariant}
+                    style={{ marginRight: 10, opacity: 0.7 }}
+                  />
+                  <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>Starts</Text>
+                </View>
+                <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
+                  {dayjs(timeStringToDate(user?.quiet_hours_start, DEFAULT_QUIET_START)).format("h:mm A")}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
+              <TouchableOpacity
+                style={styles.row}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setTempTime(timeStringToDate(user?.quiet_hours_end, DEFAULT_QUIET_END));
+                  setEndVisible(true);
+                }}
+              >
+                <View style={styles.rowLeft}>
+                  <MaterialCommunityIcons
+                    name="weather-sunset-up"
+                    size={16}
+                    color={theme.colors.onSurfaceVariant}
+                    style={{ marginRight: 10, opacity: 0.7 }}
+                  />
+                  <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>Ends</Text>
+                </View>
+                <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
+                  {dayjs(timeStringToDate(user?.quiet_hours_end, DEFAULT_QUIET_END)).format("h:mm A")}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
         {/* ── Account ── */}
         <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
           ACCOUNT
@@ -728,6 +872,46 @@ export default function ProfileScreen() {
           TeeSignal v1.0.8
         </Text>
       </ScrollView>
+
+      <PickerModal
+        visible={startVisible}
+        title="Quiet Hours Start"
+        onClose={() => setStartVisible(false)}
+        onConfirm={() => handleSaveQuietTime("quiet_hours_start", tempTime)}
+      >
+        <View style={{ backgroundColor: isDark ? theme.colors.surface : "#fff", borderRadius: 12, paddingVertical: 4 }}>
+          <DateTimePicker
+            value={tempTime}
+            mode="time"
+            display="spinner"
+            is24Hour={false}
+            themeVariant={isDark ? "dark" : "light"}
+            onChange={(_, t) => {
+              if (t) setTempTime(t);
+            }}
+          />
+        </View>
+      </PickerModal>
+
+      <PickerModal
+        visible={endVisible}
+        title="Quiet Hours End"
+        onClose={() => setEndVisible(false)}
+        onConfirm={() => handleSaveQuietTime("quiet_hours_end", tempTime)}
+      >
+        <View style={{ backgroundColor: isDark ? theme.colors.surface : "#fff", borderRadius: 12, paddingVertical: 4 }}>
+          <DateTimePicker
+            value={tempTime}
+            mode="time"
+            display="spinner"
+            is24Hour={false}
+            themeVariant={isDark ? "dark" : "light"}
+            onChange={(_, t) => {
+              if (t) setTempTime(t);
+            }}
+          />
+        </View>
+      </PickerModal>
     </SafeAreaView>
   );
 }
@@ -870,6 +1054,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+  },
+  quietHoursSub: {
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 2,
   },
   rowActionLabel: {
     fontSize: 15,
