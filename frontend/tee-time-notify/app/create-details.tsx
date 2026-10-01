@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { createAlert } from "@/lib/api";
+import { createAlert, updateAlert, getAlert } from "@/lib/api";
 import Toast from "react-native-toast-message";
 import {
   StyleSheet,
@@ -163,9 +163,11 @@ const pillStyles = StyleSheet.create({
 });
 
 export default function CreateDetailsScreen() {
-  const { id, name, tierName: tierNameParam } = useLocalSearchParams();
+  const { id, name, tierName: tierNameParam, alertId } = useLocalSearchParams();
   const router = useRouter();
   const theme = useTheme();
+
+  const isEditing = !!alertId;
 
   const [holes, setHoles] = useState<string>("18");
   const [players, setPlayers] = useState<string>("0");
@@ -173,10 +175,13 @@ export default function CreateDetailsScreen() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [course, setCourse] = useState<any>(null);
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [courseName, setCourseName] = useState<string | null>(null);
   const [startValid, setStartValid] = useState(false);
   const [endValid, setEndValid] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(isEditing);
   const [tierName, setTierName] = useState<string | null>(
     typeof tierNameParam === "string" ? tierNameParam : null
   );
@@ -234,19 +239,48 @@ export default function CreateDetailsScreen() {
   }, [startTime, endTime, date]);
 
   React.useEffect(() => {
-    const fetchCourseAndProfile = async () => {
-      const courseId = Array.isArray(id)
-        ? parseInt(id[0])
-        : parseInt(id || "0");
-      if (courseId) {
+    const loadExistingAlert = async () => {
+      try {
+        const existing = await getAlert(Number(alertId));
+        setCourseId(existing.course_id);
+        setCourseName(existing.courses?.name || null);
+        const courseInfo = { time_zone: existing.courses?.time_zone };
+        setCourse(courseInfo);
+
+        const tz = courseInfo.time_zone || dayjs.tz.guess();
+        setHoles(String(existing.holes ?? "18"));
+        setPlayers(existing.players != null ? String(existing.players) : "0");
+        setIsRecurring(!!existing.is_recurring);
+        if (existing.date_from) setDate(dayjs.tz(existing.date_from, tz).toDate());
+        if (existing.start_time) setStartTime(dayjs.tz(existing.start_time, tz).toDate());
+        if (existing.end_time) setEndTime(dayjs.tz(existing.end_time, tz).toDate());
+      } catch (err: any) {
+        Toast.show({
+          type: "error",
+          text1: "Failed to load alert",
+          text2: err.message,
+          position: "top",
+        });
+        router.back();
+      } finally {
+        setLoadingExisting(false);
+      }
+    };
+
+    const fetchNewAlertCourse = async () => {
+      const courseIdNum = Array.isArray(id) ? parseInt(id[0]) : parseInt(id || "0");
+      if (courseIdNum) {
+        setCourseId(courseIdNum);
         const { data } = await supabase
           .from("courses")
           .select("time_zone")
-          .eq("id", courseId)
+          .eq("id", courseIdNum)
           .single();
         if (data) setCourse(data);
       }
+    };
 
+    const fetchProfile = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -274,8 +308,14 @@ export default function CreateDetailsScreen() {
         }
       }
     };
-    fetchCourseAndProfile();
-  }, [id]);
+
+    if (isEditing) {
+      loadExistingAlert();
+    } else {
+      fetchNewAlertCourse();
+    }
+    fetchProfile();
+  }, [id, alertId]);
 
   const handleSubmit = async () => {
     const { data } = await supabase.auth.getSession();
@@ -290,12 +330,9 @@ export default function CreateDetailsScreen() {
         date && startTime ? combinedDateAndTime(date, startTime, tz) : null;
       const combinedEnd =
         date && endTime ? combinedDateAndTime(date, endTime, tz) : null;
-      const courseId = Array.isArray(id)
-        ? parseInt(id[0])
-        : parseInt(id || "0");
       if (!courseId) throw new Error("Invalid course ID");
 
-      await createAlert({
+      const payload = {
         user_id: data.session.user.id,
         holes: parseInt(holes),
         players: players === "0" ? null : parseInt(players),
@@ -305,11 +342,17 @@ export default function CreateDetailsScreen() {
         start_time: combinedStart?.toISOString(),
         end_time: combinedEnd?.toISOString(),
         is_recurring: tierName === "Pro" ? isRecurring : false,
-      });
+      };
+
+      if (isEditing) {
+        await updateAlert(Number(alertId), payload);
+      } else {
+        await createAlert(payload);
+      }
 
       Toast.show({
         type: "success",
-        text1: "Alert created successfully!",
+        text1: isEditing ? "Alert updated" : "Alert created successfully!",
         position: "top",
         visibilityTime: 2000,
       });
@@ -317,7 +360,7 @@ export default function CreateDetailsScreen() {
     } catch (err: any) {
       Toast.show({
         type: "error",
-        text1: "Failed to create alert",
+        text1: isEditing ? "Failed to update alert" : "Failed to create alert",
         text2: err.message,
         position: "top",
       });
@@ -331,6 +374,20 @@ export default function CreateDetailsScreen() {
   const isPaidTier = tierName === "Plus" || tierName === "Pro";
 
   const labelColor = theme.colors.onSurfaceVariant;
+
+  if (loadingExisting) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.safe,
+          styles.loadingWrap,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -365,7 +422,7 @@ export default function CreateDetailsScreen() {
             ]}
             numberOfLines={1}
           >
-            {name || "Create Alert"}
+            {isEditing ? courseName || "Edit Alert" : name || "Create Alert"}
           </Text>
           {/* Spacer to balance the back button */}
           <View style={styles.navSpacer} />
@@ -650,7 +707,7 @@ export default function CreateDetailsScreen() {
               ) : (
                 <View style={styles.submitInner}>
                   <MaterialCommunityIcons
-                    name="bell-plus-outline"
+                    name={isEditing ? "content-save-outline" : "bell-plus-outline"}
                     size={17}
                     color={
                       buttonDisabled
@@ -672,7 +729,7 @@ export default function CreateDetailsScreen() {
                       },
                     ]}
                   >
-                    Create Alert
+                    {isEditing ? "Save Changes" : "Create Alert"}
                   </Text>
                 </View>
               )}
@@ -774,6 +831,7 @@ export default function CreateDetailsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  loadingWrap: { justifyContent: "center", alignItems: "center" },
   container: {
     flex: 1,
     paddingHorizontal: 16,

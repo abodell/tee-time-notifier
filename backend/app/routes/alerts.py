@@ -8,6 +8,7 @@ from app.db import create_supabase
 from app.services.push_service import send_push_notification
 from app.services.alert_service import get_user_push_token
 from app.config import settings
+from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 
@@ -24,10 +25,7 @@ async def create_alert(alert: dict):
         # two separate queries.
         profile = await (
             supabase.table("user_profiles")
-            .select(
-                "id, membership_tier_id, lifetime_alerts_created, "
-                "membership_tiers!user_profiles_membership_tier_id_fkey(id, name, max_alerts)"
-            )
+            .select("id, membership_tier_id, lifetime_alerts_created, bonus_tier_id, bonus_expires_at")
             .eq("id", user_id)
             .single()
             .execute()
@@ -36,21 +34,30 @@ async def create_alert(alert: dict):
         if not profile.data:
             raise HTTPException(status_code=404, detail="User profile not found.")
 
-        tier_id = profile.data.get("membership_tier_id")
-        if not tier_id:
+        base_tier_id = profile.data.get("membership_tier_id")
+        if not base_tier_id:
             raise HTTPException(status_code=400, detail="Membership tier not found.")
 
-        tier = profile.data.get("membership_tiers")
-        if not tier:
+        # Resolve the effective tier: the user's real tier, or a temporary
+        # bonus grant (Weekend Pass, referral reward) if one is active and
+        # better than their real tier. Never the other way around.
+        tiers_by_id = await get_all_tiers_map(supabase)
+        tier_id = resolve_effective_tier_id(
+            tiers_by_id, base_tier_id, profile.data.get("bonus_tier_id"), profile.data.get("bonus_expires_at")
+        )
+        tier_row = tiers_by_id.get(tier_id)
+        if not tier_row:
             raise HTTPException(status_code=404, detail="Tier not found.")
 
-        max_alerts = tier.get("max_alerts")
-        tier_name = tier.get("name")
+        max_alerts = tier_row.get("max_alerts")
+        tier_name = tier_row.get("name")
         lifetime_alerts_created = profile.data.get("lifetime_alerts_created") or 0
 
         # Free tier: cap lifetime alert creation, not just concurrent count —
         # otherwise deleting and recreating a single alert every week gives
-        # unlimited use of a "free trial" tier forever.
+        # unlimited use of a "free trial" tier forever. Checked against the
+        # EFFECTIVE tier, so an active bonus grant (Weekend Pass, referral)
+        # correctly bypasses a cap that's only meant for real Free users.
         if tier_name == "Free" and lifetime_alerts_created >= settings.FREE_LIFETIME_ALERT_LIMIT:
             raise HTTPException(
                 status_code=403,
@@ -103,6 +110,80 @@ async def create_alert(alert: dict):
     except Exception as e:
         print("Alert creation error: ", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{alert_id}")
+async def get_alert(alert_id: int):
+    """ Return a single alert, used by the edit flow to pre-populate fields. """
+    supabase = await create_supabase()
+    result = await (
+        supabase.table("alerts")
+        .select("*, courses!alerts_course_id_fkey(id, name, city, state, provider_url, time_zone)")
+        .eq("id", alert_id)
+        .single()
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    return result.data
+
+
+@router.patch("/{alert_id}")
+async def update_alert(alert_id: int, alert: dict):
+    """
+    Edit an existing alert's schedule/format in place, enforcing the same
+    membership tier restrictions as creation (e.g. a Free-tier user can't set
+    a player filter or recurring even by editing into it).
+    """
+    try:
+        supabase = await create_supabase()
+
+        # One round trip instead of three: walk the FK chain
+        # alerts -> user_profiles -> membership_tiers in a single select.
+        existing = await (
+            supabase.table("alerts")
+            .select(
+                "id, user_id, "
+                "user_profiles!alerts_user_id_fkey(membership_tiers!user_profiles_membership_tier_id_fkey(name))"
+            )
+            .eq("id", alert_id)
+            .single()
+            .execute()
+        )
+        if not existing.data:
+            raise HTTPException(status_code=404, detail="Alert not found.")
+
+        tier_name = (
+            (existing.data.get("user_profiles") or {}).get("membership_tiers") or {}
+        ).get("name")
+
+        is_recurring = alert.get("is_recurring", False) if tier_name == "Pro" else False
+        players = alert.get("players") if tier_name in ("Plus", "Pro") else None
+
+        update_payload = {
+            "holes": alert.get("holes"),
+            "players": players,
+            "date_from": alert.get("date_from"),
+            "date_to": alert.get("date_to"),
+            "start_time": alert.get("start_time"),
+            "end_time": alert.get("end_time"),
+            "is_recurring": is_recurring,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        result = await (
+            supabase.table("alerts")
+            .update(update_payload)
+            .eq("id", alert_id)
+            .execute()
+        )
+        return {"status": "success", "alert": result.data[0] if result.data else None}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("Alert update error: ", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/{alert_id}/scan-now")
 async def scan_alert_now(alert_id: int, background_tasks: BackgroundTasks):
@@ -317,6 +398,20 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
                 return q.or_(f"spots_available.is.null,spots_available.gte.{players}")
             return q
 
+        # Availability the user already told us they booked for this alert —
+        # never surface these again, even on a manual "scan now".
+        booked_res = await (
+            supabase.table("alert_notifications")
+            .select("availability_id")
+            .eq("alert_id", alert_id)
+            .not_.is_("booked_at", "null")
+            .execute()
+        )
+        booked_ids = [r["availability_id"] for r in (booked_res.data or [])]
+
+        def exclude_booked(q):
+            return q.not_.in_("id", booked_ids) if booked_ids else q
+
         # 1. Exact match
         exact_q = (
             supabase.table("availability")
@@ -329,7 +424,7 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
             .order("tee_time")
             .limit(1)
         )
-        exact_res = await apply_players_filter(exact_q).execute()
+        exact_res = await exclude_booked(apply_players_filter(exact_q)).execute()
         if exact_res.data:
             availability_id = exact_res.data[0]["id"]
             tee_dt = datetime.fromisoformat(exact_res.data[0]["tee_time"]).astimezone(timezone.utc)
@@ -364,7 +459,7 @@ async def _check_and_notify(alert_id: int, supabase=None, alert: dict = None):
             .order("tee_time")
             .limit(1)
         )
-        nearby_res = await apply_players_filter(nearby_q).execute()
+        nearby_res = await exclude_booked(apply_players_filter(nearby_q)).execute()
         if nearby_res.data:
             tee_dt = datetime.fromisoformat(nearby_res.data[0]["tee_time"]).astimezone(timezone.utc)
             await send_push_notification(
@@ -406,7 +501,7 @@ async def get_user_alerts(user_id: str):
         .select(
             "*, "
             "courses!alerts_course_id_fkey(name, city, state, provider_url, time_zone), "
-            "alert_notifications(id, sent_at, availability(tee_time, price, spots_available))"
+            "alert_notifications(id, sent_at, booked_at, availability(tee_time, price, spots_available))"
         )
         .eq("user_id", user_id)
         .order("created_at", desc=True)
@@ -420,3 +515,24 @@ async def delete_alert(alert_id: int):
     supabase = await create_supabase()
     await supabase.table("alerts").delete().eq("id", alert_id).execute()
     return {"status": "deleted", "alert_id": alert_id}
+
+
+@router.patch("/{alert_id}/notifications/{notification_id}/book")
+async def mark_notification_booked(alert_id: int, notification_id: int):
+    """
+    Mark one matched tee time as booked. The alert keeps watching for other
+    openings, but this specific availability slot is muted for this alert
+    going forward — the engine (and manual scan-now) will never re-notify it,
+    even if spots later increase.
+    """
+    supabase = await create_supabase()
+    result = await (
+        supabase.table("alert_notifications")
+        .update({"booked_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", notification_id)
+        .eq("alert_id", alert_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Notification not found for this alert.")
+    return {"status": "booked", "notification_id": notification_id}

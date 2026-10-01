@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     # Deleting a mistaken/test alert shortly after creating it shouldn't cost
     # a free user one of their 3 lifetime slots.
     FREE_LIFETIME_ALERT_GRACE_HOURS: int = 36
+    WEEKEND_PASS_PRODUCT_ID: str = "teesignal_weekend_pass"
+    WEEKEND_PASS_DAYS: int = 7
 
     class Config:
         env_file = ".env"

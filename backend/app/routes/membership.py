@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.db import create_supabase
 from app.config import settings
+from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
 
 router = APIRouter(prefix="/membership", tags=["membership"])
 
@@ -36,7 +37,9 @@ async def get_user_membership(user_id: str):
             .select(
                 "id, full_name, phone, membership_tier_id, stripe_customer_id, pending_downgrade, cancel_at, "
                 "lifetime_alerts_created, "
-                "membership_tiers!user_profiles_membership_tier_id_fkey(name, description, price_cents, max_alerts, scan_interval_seconds)"
+                "quiet_hours_enabled, quiet_hours_start, quiet_hours_end, "
+                "bonus_tier_id, bonus_expires_at, "
+                "membership_tiers!user_profiles_membership_tier_id_fkey(id, name, description, price_cents, max_alerts, scan_interval_seconds)"
             )
             .eq("id", user_id)
             .single()
@@ -47,6 +50,38 @@ async def get_user_membership(user_id: str):
             raise HTTPException(status_code = 404, detail = "Profile not found.")
 
         profile = result.data
+
+        # If a temporary bonus grant (Weekend Pass, referral reward) is
+        # active and better than the user's real tier, surface its perks
+        # through the same `membership_tiers` field the app already reads —
+        # this makes bonus access work correctly even for app versions that
+        # shipped before this feature existed. `membership_tier_id` itself is
+        # left untouched: it always reflects the real subscription tier, so
+        # upgrade/downgrade UI logic isn't affected.
+        tiers_by_id = await get_all_tiers_map(supabase)
+        base_tier_id = profile.get("membership_tier_id")
+        effective_tier_id = resolve_effective_tier_id(
+            tiers_by_id, base_tier_id, profile.get("bonus_tier_id"), profile.get("bonus_expires_at")
+        )
+        is_bonus_active = effective_tier_id != base_tier_id
+
+        if is_bonus_active:
+            effective_tier = tiers_by_id.get(effective_tier_id, {})
+            profile["membership_tiers"] = {
+                "id": effective_tier.get("id"),
+                "name": effective_tier.get("name"),
+                "description": effective_tier.get("description"),
+                "price_cents": effective_tier.get("price_cents"),
+                "max_alerts": effective_tier.get("max_alerts"),
+                "scan_interval_seconds": effective_tier.get("scan_interval_seconds"),
+            }
+
+        profile["is_bonus_active"] = is_bonus_active
+        profile["bonus_expires_at"] = profile.get("bonus_expires_at") if is_bonus_active else None
+
+        # Checked against the (possibly bonus-overwritten) displayed tier, so
+        # a Free user on an active Weekend Pass correctly doesn't see a
+        # lifetime-cap footer while their bonus Pro access is active.
         if (profile.get("membership_tiers") or {}).get("name") == "Free":
             profile["free_lifetime_alert_limit"] = settings.FREE_LIFETIME_ALERT_LIMIT
 
@@ -56,3 +91,39 @@ async def get_user_membership(user_id: str):
     except Exception as e:
         print("Error fetching user membership: ", e)
         raise HTTPException(status_code = 500, detail = "Failed ot fetch user membership.")
+
+
+@router.patch("/profile/{user_id}/notifications")
+async def update_notification_preferences(user_id: str, payload: dict):
+    """
+    Update quiet-hours preferences. quiet_hours_start / quiet_hours_end are
+    "HH:MM" (24h) strings; quiet_hours_enabled toggles whether they're
+    enforced by the alert engine at all.
+    """
+    update_payload = {}
+    if "quiet_hours_enabled" in payload:
+        update_payload["quiet_hours_enabled"] = bool(payload["quiet_hours_enabled"])
+    if "quiet_hours_start" in payload:
+        update_payload["quiet_hours_start"] = payload["quiet_hours_start"]
+    if "quiet_hours_end" in payload:
+        update_payload["quiet_hours_end"] = payload["quiet_hours_end"]
+
+    if not update_payload:
+        raise HTTPException(status_code=400, detail="No recognized fields to update.")
+
+    try:
+        supabase = await create_supabase()
+        result = await (
+            supabase.table("user_profiles")
+            .update(update_payload)
+            .eq("id", user_id)
+            .execute()
+        )
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Profile not found.")
+        return result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("Error updating notification preferences: ", e)
+        raise HTTPException(status_code=500, detail="Failed to update notification preferences.")

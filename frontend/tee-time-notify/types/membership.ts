@@ -15,4 +15,6 @@ export interface UserProfileResponse {
     cancel_at?: string;
     lifetime_alerts_created?: number;
     free_lifetime_alert_limit?: number;
+    is_bonus_active?: boolean;
+    bonus_expires_at?: string;
 }
