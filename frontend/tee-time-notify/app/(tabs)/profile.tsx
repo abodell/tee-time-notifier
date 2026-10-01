@@ -25,6 +25,7 @@ import { Skeleton } from "moti/skeleton";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import { useProTrialDays } from "@/lib/trial";
 import { Image } from "react-native";
 import OAuthSection from "@/components/auth/OAuthSection";
 import { getMyReferralInfo, redeemReferralCode, updateNotificationPreferences } from "@/lib/api";
@@ -69,6 +70,7 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
   const isDark = theme.dark;
+  const trialDays = useProTrialDays();
   const { success } = useLocalSearchParams();
 
   const [loading, setLoading] = useState(true);
@@ -392,7 +394,7 @@ export default function ProfileScreen() {
               <View style={styles.promoInner}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.promoEyebrow}>PRO TRIAL</Text>
-                  <Text style={styles.promoHeadline}>14 Days Free</Text>
+                  <Text style={styles.promoHeadline}>{trialDays} Days Free</Text>
                   <Text style={styles.promoSub}>No credit card required</Text>
                 </View>
                 <View style={styles.promoChevron}>

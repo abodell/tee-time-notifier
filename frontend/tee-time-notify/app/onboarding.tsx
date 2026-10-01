@@ -21,6 +21,7 @@ import { createAlert, triggerImmediateScan } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/lib/notifications";
 import { Colors } from "@/constants/theme";
 import PickerModal from "@/components/PickerModal";
+import { useProTrialDays } from "@/lib/trial";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import OAuthSection from "@/components/auth/OAuthSection";
 import * as Notifications from "expo-notifications";
@@ -61,6 +62,7 @@ export default function OnboardingScreen() {
     ? (Colors.dark.gradients.primary as [string, string])
     : (Colors.light.gradients.primary as [string, string]);
 
+  const trialDays = useProTrialDays();
   const [step, setStep] = useState(0);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
@@ -888,7 +890,7 @@ export default function OnboardingScreen() {
                 complete();
                 router.push("/upgrade" as any);
               }}
-              label="Start 14-Day Free Trial"
+              label={`Start ${trialDays}-Day Free Trial`}
               gradColors={gradColors}
             />
           </View>

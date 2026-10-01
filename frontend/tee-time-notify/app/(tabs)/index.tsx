@@ -24,6 +24,7 @@ import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import { useProTrialDays } from "@/lib/trial";
 import GolfEmptyState from "@/components/icons/GolfEmptyState";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ONBOARDING_KEY } from "@/app/onboarding";
@@ -48,6 +49,7 @@ export default function CourseSearchScreen() {
   const theme = useTheme();
   const router = useRouter();
   const isDark = theme.dark;
+  const trialDays = useProTrialDays();
 
   const accent = theme.colors.primary;
 
@@ -362,7 +364,7 @@ export default function CourseSearchScreen() {
               <View style={styles.promoInner}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.promoEyebrow}>PRO TRIAL</Text>
-                  <Text style={styles.promoHeadline}>14 Days Free</Text>
+                  <Text style={styles.promoHeadline}>{trialDays} Days Free</Text>
                   <Text style={styles.promoSub}>10 alerts · real-time scanning</Text>
                 </View>
                 <TouchableOpacity

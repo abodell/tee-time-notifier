@@ -21,6 +21,7 @@ import Toast from "react-native-toast-message";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import { useProTrialDays } from "@/lib/trial";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -62,6 +63,7 @@ function getExpirationTime(alert: AlertType) {
 export default function MyAlertsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const trialDays = useProTrialDays();
   const [alerts, setAlerts] = useState<AlertType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -686,7 +688,7 @@ export default function MyAlertsScreen() {
             <View style={styles.promoInner}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.promoEyebrow}>PRO TRIAL</Text>
-                <Text style={styles.promoHeadline}>14 Days Free</Text>
+                <Text style={styles.promoHeadline}>{trialDays} Days Free</Text>
                 <Text style={styles.promoSub}>10 alerts · real-time scanning</Text>
               </View>
               <TouchableOpacity
