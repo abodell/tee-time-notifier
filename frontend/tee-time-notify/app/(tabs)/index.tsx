@@ -25,6 +25,7 @@ import { supabase } from "../../lib/supabase";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import { useProTrialDays } from "@/lib/trial";
 import GolfEmptyState from "@/components/icons/GolfEmptyState";
 import PressableScale from "@/components/PressableScale";
 import { haptics } from "@/lib/haptics";
@@ -51,6 +52,7 @@ export default function CourseSearchScreen() {
   const theme = useTheme();
   const router = useRouter();
   const isDark = theme.dark;
+  const trialDays = useProTrialDays();
 
   const accent = theme.colors.primary;
 
@@ -66,6 +68,8 @@ export default function CourseSearchScreen() {
 
   const [fetchingQuota, setFetchingQuota] = useState(true);
   const [hasData, setHasData] = useState(false);
+  const [lifetimeAlertsCreated, setLifetimeAlertsCreated] = useState<number | null>(null);
+  const [freeLifetimeLimit, setFreeLifetimeLimit] = useState<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -119,6 +123,8 @@ export default function CourseSearchScreen() {
       const tier = profile.membership_tiers as MembershipTierInfo;
       setTierName(tier?.name || "—");
       setMaxAlerts(tier?.max_alerts ?? null);
+      setLifetimeAlertsCreated(profile.lifetime_alerts_created ?? null);
+      setFreeLifetimeLimit(profile.free_lifetime_alert_limit ?? null);
 
       const userAlerts = await alertsRes.json();
       setAlertCount(userAlerts?.length || 0);
@@ -133,6 +139,14 @@ export default function CourseSearchScreen() {
 
   const reachedQuota =
     maxAlerts !== null && alertCount >= (maxAlerts || 0) && hasData;
+  // Distinct from reachedQuota: a Free user can have 0 active alerts (all
+  // deleted) while still being out of lifetime slots, since deleting doesn't
+  // free one up. Caught separately so the tap doesn't silently 403.
+  const reachedLifetimeLimit =
+    tierName === "Free" &&
+    freeLifetimeLimit != null &&
+    lifetimeAlertsCreated != null &&
+    lifetimeAlertsCreated >= freeLifetimeLimit;
   const usagePercent = maxAlerts ? Math.min(alertCount / maxAlerts, 1) : 0;
 
   const fetchCourses = async (search: string) => {
@@ -161,6 +175,17 @@ export default function CourseSearchScreen() {
 
   const handleSelectCourse = (course: Course) => {
     Keyboard.dismiss();
+    if (reachedLifetimeLimit) {
+      Alert.alert(
+        "Free Alerts Used Up",
+        "You've used all your free alerts, ever. Upgrade for unlimited alerts.",
+        [
+          { text: "Not Now", style: "cancel" },
+          { text: "Upgrade", onPress: () => router.push("/upgrade") },
+        ]
+      );
+      return;
+    }
     if (reachedQuota) {
       haptics.warning();
       Alert.alert(
@@ -302,6 +327,25 @@ export default function CourseSearchScreen() {
                   </TouchableOpacity>
                 </>
               )}
+              {tierName === "Free" && freeLifetimeLimit != null && lifetimeAlertsCreated != null && (() => {
+                const used = Math.min(lifetimeAlertsCreated, freeLifetimeLimit);
+                const remaining = freeLifetimeLimit - used;
+                const nearLimitColor = isDark ? "#FBBF24" : "#B45309";
+                const tint = remaining <= 1 ? nearLimitColor : theme.colors.onSurfaceVariant;
+                return (
+                  <>
+                    <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
+                    <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
+                      <Text style={[styles.quotaLimitText, { color: tint }]}>
+                        {remaining <= 0
+                          ? "All free alerts used"
+                          : `${used} of ${freeLifetimeLimit} free alerts used, ever`}
+                      </Text>
+                      <Text style={[styles.quotaUpgradeLink, { color: accent }]}>Upgrade</Text>
+                    </TouchableOpacity>
+                  </>
+                );
+              })()}
             </View>
           </Animated.View>
         ) : null}
@@ -324,7 +368,7 @@ export default function CourseSearchScreen() {
               <View style={styles.promoInner}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.promoEyebrow}>PRO TRIAL</Text>
-                  <Text style={styles.promoHeadline}>14 Days Free</Text>
+                  <Text style={styles.promoHeadline}>{trialDays} Days Free</Text>
                   <Text style={styles.promoSub}>10 alerts · real-time scanning</Text>
                 </View>
                 <PressableScale
