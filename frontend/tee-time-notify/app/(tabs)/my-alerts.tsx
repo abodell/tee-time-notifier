@@ -7,10 +7,19 @@ import {
   TouchableOpacity,
   Linking,
   DeviceEventEmitter,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, useTheme, ActivityIndicator } from "react-native-paper";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  useDerivedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
@@ -27,7 +36,8 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import DraggableFlatList, { ScaleDecorator, RenderItemParams } from "react-native-draggable-flatlist";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Haptics from "expo-haptics";
+import { haptics } from "@/lib/haptics";
+import PressableScale from "@/components/PressableScale";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -48,6 +58,30 @@ function formatInTimeZone(
     console.warn(`Timezone conversion failed for ${tz}:`, e);
     return dayjs.utc(utcString).format("h:mm A");
   }
+}
+
+/**
+ * Chevron that rotates between states instead of swapping glyphs. The swap
+ * read as a flicker; a 180° turn makes the card feel like it opened rather
+ * than re-rendered.
+ */
+function ExpandChevron({ expanded, color }: { expanded: boolean; color: string }) {
+  const progress = useDerivedValue(() =>
+    withTiming(expanded ? 1 : 0, { duration: 200 })
+  );
+  const style = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${progress.value * 180}deg` }],
+  }));
+  return (
+    <Animated.View style={style}>
+      <MaterialCommunityIcons
+        name="chevron-down"
+        size={16}
+        color={color}
+        style={{ opacity: 0.38 }}
+      />
+    </Animated.View>
+  );
 }
 
 function getExpirationTime(alert: AlertType) {
@@ -207,6 +241,7 @@ export default function MyAlertsScreen() {
   const handleDelete = async (id: number) => {
     try {
       await deleteAlert(id);
+      haptics.warning();
       setAlerts((p) => p.filter((a) => a.id !== id));
       const newOrder = savedOrderRef.current.filter((oid) => oid !== id);
       savedOrderRef.current = newOrder;
@@ -214,11 +249,13 @@ export default function MyAlertsScreen() {
       Toast.show({ type: "success", text1: "Alert deleted", visibilityTime: 1000 });
       DeviceEventEmitter.emit("alertsUpdated");
     } catch (err: any) {
+      haptics.error();
       Toast.show({ type: "error", text1: "Failed", text2: err.message });
     }
   };
 
   const toggleExpand = (id: number) => {
+    haptics.select();
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -241,6 +278,7 @@ export default function MyAlertsScreen() {
             : a
         )
       );
+      haptics.success();
       Toast.show({
         type: "success",
         text1: "Marked as booked",
@@ -248,15 +286,18 @@ export default function MyAlertsScreen() {
         visibilityTime: 1500,
       });
     } catch (err: any) {
+      haptics.error();
       Toast.show({ type: "error", text1: "Failed", text2: err.message });
     }
   };
 
   const handleBookNow = (url: string | undefined, date: string, tz?: string) => {
     if (!url) {
+      haptics.error();
       Toast.show({ type: "error", text1: "No booking URL available" });
       return;
     }
+    haptics.press();
     const dateStr = dayjs(date).tz(tz || "UTC").format("MM-DD-YYYY");
     Linking.openURL(`${url}?date=${dateStr}`).catch((err) =>
       Toast.show({ type: "error", text1: "Could not open link", text2: err.message })
@@ -288,7 +329,11 @@ export default function MyAlertsScreen() {
 
     return (
       <ScaleDecorator activeScale={0.988}>
-        <View
+        <Animated.View
+          // Animates the card's own height as the slot list opens/closes, and
+          // lets the cards below slide rather than jump. Suppressed mid-drag so
+          // it doesn't fight ScaleDecorator's transform.
+          layout={isActive ? undefined : LinearTransition.duration(220)}
           style={[
             styles.alertCard,
             {
@@ -334,11 +379,9 @@ export default function MyAlertsScreen() {
                     Expired
                   </Text>
                 ) : (
-                  <MaterialCommunityIcons
-                    name={isExpanded ? "chevron-up" : "chevron-down"}
-                    size={16}
+                  <ExpandChevron
+                    expanded={isExpanded}
                     color={theme.colors.onSurfaceVariant}
-                    style={{ opacity: 0.38 }}
                   />
                 )}
               </View>
@@ -405,7 +448,7 @@ export default function MyAlertsScreen() {
               <View style={styles.inlineActions}>
                 <TouchableOpacity
                   onPressIn={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    haptics.press();
                     drag();
                   }}
                   hitSlop={{ top: 12, bottom: 12, left: 8, right: 4 }}
@@ -445,7 +488,10 @@ export default function MyAlertsScreen() {
 
           {/* ── Expanded: open slots ── */}
           {isExpanded && (
-            <View style={[styles.expandedSection, {
+            <Animated.View
+              entering={FadeIn.duration(180)}
+              exiting={FadeOut.duration(120)}
+              style={[styles.expandedSection, {
               borderTopColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
               backgroundColor: isDark ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.015)",
             }]}>
@@ -495,36 +541,38 @@ export default function MyAlertsScreen() {
                           )}
                         </View>
                         <View style={styles.slotBtnRow}>
-                          <TouchableOpacity
+                          <PressableScale
                             onPress={() => item.id && handleMarkBooked(item.id, notif.id)}
+                            haptic="select"
+                            scaleTo={0.93}
                             style={[styles.bookedBtn, {
                               borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)",
                             }]}
-                            activeOpacity={0.72}
                           >
                             <MaterialCommunityIcons name="check" size={12} color={theme.colors.onSurfaceVariant} />
                             <Text style={[styles.bookedBtnText, { color: theme.colors.onSurfaceVariant }]}>Booked</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
+                          </PressableScale>
+                          <PressableScale
                             onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
+                            haptic="none"
+                            scaleTo={0.93}
                             style={[styles.bookBtn, {
                               borderColor: isDark ? "rgba(74,222,128,0.35)" : "rgba(21,128,61,0.28)",
                             }]}
-                            activeOpacity={0.72}
                           >
                             <Text style={[styles.bookBtnText, { color: theme.colors.primary }]}>Book</Text>
                             <MaterialCommunityIcons name="arrow-right" size={12} color={theme.colors.primary} style={{ marginLeft: 3 }} />
-                          </TouchableOpacity>
+                          </PressableScale>
                         </View>
                       </View>
                     );
                   })}
                 </>
               )}
-            </View>
+            </Animated.View>
           )}
 
-        </View>
+        </Animated.View>
       </ScaleDecorator>
     );
   };
@@ -691,8 +739,9 @@ export default function MyAlertsScreen() {
                 <Text style={styles.promoHeadline}>{trialDays} Days Free</Text>
                 <Text style={styles.promoSub}>10 alerts · real-time scanning</Text>
               </View>
-              <TouchableOpacity
-                activeOpacity={0.88}
+              <PressableScale
+                haptic="press"
+                scaleTo={0.93}
                 onPress={() => {
                   if (!session) router.push("/(auth)/sign-up?redirectTo=/upgrade");
                   else router.push("/upgrade");
@@ -702,7 +751,7 @@ export default function MyAlertsScreen() {
                 <Text style={[styles.promoBtnText, { color: isDark ? "#166534" : "#15803d" }]}>
                   Try Free
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           </LinearGradient>
         </Animated.View>
@@ -717,10 +766,18 @@ export default function MyAlertsScreen() {
         dragItemOverflow
         activationDistance={10}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        // Cards are tall and content-heavy; without these the list renders
+        // every alert up front and keeps them all mounted while scrolling.
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={9}
+        removeClippedSubviews={Platform.OS === "android"}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
+              haptics.select();
               setRefreshing(true);
               loadQuotaData();
             }}

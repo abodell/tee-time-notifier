@@ -25,6 +25,7 @@ import { Skeleton } from "moti/skeleton";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import { haptics } from "@/lib/haptics";
 import { useProTrialDays } from "@/lib/trial";
 import { Image } from "react-native";
 import OAuthSection from "@/components/auth/OAuthSection";
@@ -273,6 +274,7 @@ export default function ProfileScreen() {
               }
 
               await supabase.auth.signOut();
+              haptics.warning();
               Toast.show({
                 type: "success",
                 text1: "Account Deleted",
@@ -280,6 +282,7 @@ export default function ProfileScreen() {
               });
               router.replace("/(auth)/sign-in");
             } catch (err: any) {
+              haptics.error();
               Alert.alert("Error", err.message);
             } finally {
               setLoading(false);

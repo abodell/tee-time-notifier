@@ -26,6 +26,8 @@ import { MembershipTier, UserProfileResponse } from "@/types/membership";
 import { introPriceToDays, DEFAULT_TRIAL_DAYS } from "@/lib/trial";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import PressableScale from "@/components/PressableScale";
+import { haptics } from "@/lib/haptics";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 const WEEKEND_PASS_PRODUCT_ID =
@@ -188,6 +190,7 @@ export default function UpgradeScreen() {
       const { customerInfo } = await Purchases.purchasePackage(packageToBuy);
 
       if (customerInfo.entitlements.active[tier.revenuecat_entitlement_id || ""]) {
+        haptics.success();
         Toast.show({
           type: "success",
           text1: "Upgrade Successful",
@@ -199,7 +202,10 @@ export default function UpgradeScreen() {
       }
 
     } catch (err: any) {
+      // Cancelling the store sheet is a normal outcome, not a failure — no
+      // error haptic, no toast.
       if (!err.userCancelled) {
+        haptics.error();
         Toast.show({
           type: "error",
           text1: "Purchase Failed",
@@ -254,6 +260,7 @@ export default function UpgradeScreen() {
       setLoading(true);
       const customerInfo = await Purchases.restorePurchases();
       if (Object.keys(customerInfo.entitlements.active).length > 0) {
+        haptics.success();
         Toast.show({
           type: "success",
           text1: "Purchases Restored",
@@ -271,6 +278,7 @@ export default function UpgradeScreen() {
         });
       }
     } catch (e: any) {
+      haptics.error();
       Toast.show({
         type: "error",
         text1: "Restore Failed",
@@ -588,10 +596,11 @@ export default function UpgradeScreen() {
                         </Text>
                       </View>
                     ) : (
-                      <TouchableOpacity
+                      <PressableScale
                         onPress={() => handleSelectPlan(tier)}
                         disabled={isRedirecting || isUnavailable}
-                        activeOpacity={0.82}
+                        haptic="press"
+                        scaleTo={0.96}
                       >
                         <LinearGradient
                           colors={
@@ -642,7 +651,7 @@ export default function UpgradeScreen() {
                             </View>
                           )}
                         </LinearGradient>
-                      </TouchableOpacity>
+                      </PressableScale>
                     )}
                   </View>
                 )}

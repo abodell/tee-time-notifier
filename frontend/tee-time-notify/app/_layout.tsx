@@ -31,6 +31,7 @@ import { StatusBar } from "expo-status-bar";
 import Toast, { ToastConfig } from "react-native-toast-message";
 import * as Notifications from "expo-notifications";
 import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { registerForPushNotificationsAsync, setupNotificationHandlers } from "@/lib/notifications";
 import Purchases from "react-native-purchases";
@@ -298,15 +299,17 @@ export default function RootLayout() {
         {/* ✅ Global Toast Manager */}
         <Toast
           config={{
-            success: ({ text1 }) => (
+            success: ({ text1, text2 }) => (
               <Surface
                 elevation={2}
                 style={{
-                  borderRadius: 25,
+                  borderRadius: 16,
                   backgroundColor: theme.colors.surface,
-                  paddingHorizontal: 20,
-                  paddingVertical: 10,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
                   marginTop: 10,
+                  maxWidth: "90%",
+                  alignSelf: "center",
                   flexDirection: "row",
                   alignItems: "center",
                   shadowColor: "#000",
@@ -316,7 +319,68 @@ export default function RootLayout() {
                   borderColor: theme.colors.outline,
                 }}
               >
-                <Text style={{ fontSize: 18, marginRight: 8 }}>✅</Text>
+                {/* Tinted icon chip instead of the ✅ emoji, which rendered at a
+                    different weight than the rest of the UI and read as a
+                    placeholder. */}
+                <View
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    backgroundColor: theme.colors.primaryContainer,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 10,
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={15}
+                    color={theme.colors.primary}
+                  />
+                </View>
+                <View style={{ flexShrink: 1 }}>
+                  <Text
+                    style={{
+                      color: theme.colors.onSurface,
+                      fontWeight: "600",
+                      fontSize: 14,
+                    }}
+                  >
+                    {text1}
+                  </Text>
+                  {text2 && (
+                    <Text
+                      style={{
+                        color: theme.colors.onSurfaceVariant,
+                        fontSize: 12.5,
+                        marginTop: 1,
+                      }}
+                    >
+                      {text2}
+                    </Text>
+                  )}
+                </View>
+              </Surface>
+            ),
+            // "info" is used by the restore-purchases flow; without a config
+            // entry it fell back to the library's default green-bar styling,
+            // which matched nothing else in the app.
+            info: ({ text1, text2 }) => (
+              <Surface
+                elevation={2}
+                style={{
+                  borderRadius: 16,
+                  backgroundColor: theme.colors.surface,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  marginTop: 10,
+                  maxWidth: "90%",
+                  alignSelf: "center",
+                  borderWidth: 1,
+                  borderColor: theme.colors.outline,
+                }}
+              >
                 <Text
                   style={{
                     color: theme.colors.onSurface,
@@ -326,6 +390,17 @@ export default function RootLayout() {
                 >
                   {text1}
                 </Text>
+                {text2 && (
+                  <Text
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      fontSize: 12.5,
+                      marginTop: 2,
+                    }}
+                  >
+                    {text2}
+                  </Text>
+                )}
               </Surface>
             ),
             error: ({ text1, text2 }) => (

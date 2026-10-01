@@ -8,6 +8,7 @@ import {
   DeviceEventEmitter,
   Keyboard,
   Alert,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -26,6 +27,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
 import { useProTrialDays } from "@/lib/trial";
 import GolfEmptyState from "@/components/icons/GolfEmptyState";
+import PressableScale from "@/components/PressableScale";
+import { haptics } from "@/lib/haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ONBOARDING_KEY } from "@/app/onboarding";
 
@@ -184,6 +187,7 @@ export default function CourseSearchScreen() {
       return;
     }
     if (reachedQuota) {
+      haptics.warning();
       Alert.alert(
         "Alert Limit Reached",
         tierName === "Pro"
@@ -367,8 +371,9 @@ export default function CourseSearchScreen() {
                   <Text style={styles.promoHeadline}>{trialDays} Days Free</Text>
                   <Text style={styles.promoSub}>10 alerts · real-time scanning</Text>
                 </View>
-                <TouchableOpacity
-                  activeOpacity={0.88}
+                <PressableScale
+                  haptic="press"
+                  scaleTo={0.93}
                   onPress={() => {
                     if (!session) {
                       router.push("/(auth)/sign-up?redirectTo=/upgrade");
@@ -381,7 +386,7 @@ export default function CourseSearchScreen() {
                   <Text style={[styles.promoBtnText, { color: isDark ? "#166534" : "#15803d" }]}>
                     Try Free
                   </Text>
-                </TouchableOpacity>
+                </PressableScale>
               </View>
             </LinearGradient>
           </Animated.View>
@@ -433,11 +438,22 @@ export default function CourseSearchScreen() {
             keyExtractor={(item) => item.id.toString()}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            // Dismiss the keyboard as soon as the user starts scrolling results,
+            // which is what every native search list does.
+            keyboardDismissMode="on-drag"
+            initialNumToRender={8}
+            maxToRenderPerBatch={10}
+            windowSize={9}
+            removeClippedSubviews={Platform.OS === "android"}
             renderItem={({ item, index }) => (
-              <Animated.View entering={FadeIn.delay(index * 45).duration(320)}>
-                <TouchableOpacity
-                  activeOpacity={0.72}
+              // Stagger is capped: past the first handful the delay just makes
+              // results feel slow to arrive rather than choreographed.
+              <Animated.View entering={FadeIn.delay(Math.min(index, 6) * 40).duration(280)}>
+                <PressableScale
                   onPress={() => handleSelectCourse(item)}
+                  scaleTo={0.975}
+                  dim
                   style={[
                     styles.courseCard,
                     {
@@ -505,7 +521,7 @@ export default function CourseSearchScreen() {
                       color={accent}
                     />
                   </View>
-                </TouchableOpacity>
+                </PressableScale>
               </Animated.View>
             )}
             ListEmptyComponent={

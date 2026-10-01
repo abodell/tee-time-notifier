@@ -16,6 +16,8 @@ import PickerModal from "../components/PickerModal";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
+import PressableScale from "@/components/PressableScale";
+import { haptics } from "@/lib/haptics";
 import Animated, {
   useSharedValue,
   withSpring,
@@ -350,6 +352,7 @@ export default function CreateDetailsScreen() {
         await createAlert(payload);
       }
 
+      haptics.success();
       Toast.show({
         type: "success",
         text1: isEditing ? "Alert updated" : "Alert created successfully!",
@@ -358,6 +361,7 @@ export default function CreateDetailsScreen() {
       });
       setTimeout(() => router.push("/(tabs)/my-alerts"), 600);
     } catch (err: any) {
+      haptics.error();
       Toast.show({
         type: "error",
         text1: isEditing ? "Failed to update alert" : "Failed to create alert",
@@ -685,10 +689,11 @@ export default function CreateDetailsScreen() {
                 </Text>
               </View>
             )}
-          <TouchableOpacity
+          <PressableScale
             onPress={handleSubmit}
             disabled={buttonDisabled}
-            activeOpacity={0.82}
+            haptic="press"
+            scaleTo={0.96}
           >
             <LinearGradient
               colors={
@@ -734,7 +739,7 @@ export default function CreateDetailsScreen() {
                 </View>
               )}
             </LinearGradient>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
 
