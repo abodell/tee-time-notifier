@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import { useColorScheme } from "react-native";
-import { deleteAlert } from "@/lib/api";
+import { deleteAlert, markNotificationBooked } from "@/lib/api";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -69,6 +69,8 @@ export default function MyAlertsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [maxAlerts, setMaxAlerts] = useState<number | null>(null);
   const [tierName, setTierName] = useState("—");
+  const [lifetimeAlertsCreated, setLifetimeAlertsCreated] = useState<number | null>(null);
+  const [freeLifetimeLimit, setFreeLifetimeLimit] = useState<number | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [session, setSession] = useState<any>(null);
   const [fetchingQuota, setFetchingQuota] = useState(false);
@@ -152,6 +154,8 @@ export default function MyAlertsScreen() {
       const tier = profile.membership_tiers;
       setTierName(tier?.name || "—");
       setMaxAlerts(tier?.max_alerts ?? null);
+      setLifetimeAlertsCreated(profile.lifetime_alerts_created ?? null);
+      setFreeLifetimeLimit(profile.free_lifetime_alert_limit ?? null);
 
       const userAlerts = await alertsRes.json();
       const ordered = applyOrder(userAlerts);
@@ -222,6 +226,32 @@ export default function MyAlertsScreen() {
     });
   };
 
+  const handleMarkBooked = async (alertId: number, notificationId: number) => {
+    try {
+      await markNotificationBooked(alertId, notificationId);
+      setAlerts((prev) =>
+        prev.map((a) =>
+          a.id === alertId
+            ? {
+                ...a,
+                alert_notifications: (a.alert_notifications || []).map((n) =>
+                  n.id === notificationId ? { ...n, booked_at: new Date().toISOString() } : n
+                ),
+              }
+            : a
+        )
+      );
+      Toast.show({
+        type: "success",
+        text1: "Marked as booked",
+        text2: "We'll stop reminding you about this one.",
+        visibilityTime: 1500,
+      });
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Failed", text2: err.message });
+    }
+  };
+
   const handleBookNow = (url: string | undefined, date: string, tz?: string) => {
     if (!url) {
       Toast.show({ type: "error", text1: "No booking URL available" });
@@ -243,6 +273,7 @@ export default function MyAlertsScreen() {
     const isExpired = !item.is_recurring && dayjs.utc().isAfter(dayjs.utc(item.end_time));
     const visibleSlots = notifications
       .filter((n) => {
+        if (n.booked_at) return false;
         const spots = n.availability?.spots_available;
         if (item.players != null && spots != null && spots < item.players) return false;
         return true;
@@ -387,6 +418,17 @@ export default function MyAlertsScreen() {
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
+                  onPress={() => router.push({ pathname: "/create-details", params: { alertId: item.id } })}
+                  hitSlop={{ top: 12, bottom: 12, left: 4, right: 4 }}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={14}
+                    color={theme.colors.onSurfaceVariant}
+                    style={{ opacity: 0.55 }}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => deleteConfirm(item.id!)}
                   hitSlop={{ top: 12, bottom: 12, left: 4, right: 8 }}
                 >
@@ -452,16 +494,28 @@ export default function MyAlertsScreen() {
                             </Text>
                           )}
                         </View>
-                        <TouchableOpacity
-                          onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
-                          style={[styles.bookBtn, {
-                            borderColor: isDark ? "rgba(74,222,128,0.35)" : "rgba(21,128,61,0.28)",
-                          }]}
-                          activeOpacity={0.72}
-                        >
-                          <Text style={[styles.bookBtnText, { color: theme.colors.primary }]}>Book</Text>
-                          <MaterialCommunityIcons name="arrow-right" size={12} color={theme.colors.primary} style={{ marginLeft: 3 }} />
-                        </TouchableOpacity>
+                        <View style={styles.slotBtnRow}>
+                          <TouchableOpacity
+                            onPress={() => item.id && handleMarkBooked(item.id, notif.id)}
+                            style={[styles.bookedBtn, {
+                              borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)",
+                            }]}
+                            activeOpacity={0.72}
+                          >
+                            <MaterialCommunityIcons name="check" size={12} color={theme.colors.onSurfaceVariant} />
+                            <Text style={[styles.bookedBtnText, { color: theme.colors.onSurfaceVariant }]}>Booked</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
+                            style={[styles.bookBtn, {
+                              borderColor: isDark ? "rgba(74,222,128,0.35)" : "rgba(21,128,61,0.28)",
+                            }]}
+                            activeOpacity={0.72}
+                          >
+                            <Text style={[styles.bookBtnText, { color: theme.colors.primary }]}>Book</Text>
+                            <MaterialCommunityIcons name="arrow-right" size={12} color={theme.colors.primary} style={{ marginLeft: 3 }} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     );
                   })}
@@ -591,6 +645,27 @@ export default function MyAlertsScreen() {
                 </TouchableOpacity>
               </>
             )}
+            {tierName === "Free" && freeLifetimeLimit != null && lifetimeAlertsCreated != null && (() => {
+              const used = Math.min(lifetimeAlertsCreated, freeLifetimeLimit);
+              const remaining = freeLifetimeLimit - used;
+              // Neutral until the last slot, then a warm (not alarmist-red) tint —
+              // the same "getting close" nudge pattern as a storage-quota bar.
+              const nearLimitColor = isDark ? "#FBBF24" : "#B45309";
+              const tint = remaining <= 1 ? nearLimitColor : theme.colors.onSurfaceVariant;
+              return (
+                <>
+                  <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
+                  <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
+                    <Text style={[styles.quotaLimitText, { color: tint }]}>
+                      {remaining <= 0
+                        ? "All free alerts used"
+                        : `${used} of ${freeLifetimeLimit} free alerts used, ever`}
+                    </Text>
+                    <Text style={[styles.quotaUpgradeLink, { color: theme.colors.primary }]}>Upgrade</Text>
+                  </TouchableOpacity>
+                </>
+              );
+            })()}
           </View>
         </Animated.View>
       ) : null}
@@ -1021,6 +1096,11 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 2,
   },
+  slotBtnRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   bookBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1030,6 +1110,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   bookBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  bookedBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 26,
+    borderWidth: 1,
+  },
+  bookedBtnText: {
     fontSize: 13,
     fontWeight: "600",
   },

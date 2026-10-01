@@ -6,12 +6,16 @@ import {
   Alert,
   TouchableOpacity,
   DeviceEventEmitter,
+  Share,
+  TextInput as RNTextInput,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Text,
   useTheme,
   ActivityIndicator,
+  Switch,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -24,6 +28,10 @@ import { Colors } from "@/constants/theme";
 import { useProTrialDays } from "@/lib/trial";
 import { Image } from "react-native";
 import OAuthSection from "@/components/auth/OAuthSection";
+import { getMyReferralInfo, redeemReferralCode, updateNotificationPreferences } from "@/lib/api";
+import PickerModal from "@/components/PickerModal";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import dayjs from "dayjs";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -39,6 +47,23 @@ interface UserProfile {
   id: string;
   email?: string;
   membership_tiers?: MembershipTier;
+  quiet_hours_enabled?: boolean;
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
+}
+
+const DEFAULT_QUIET_START = "22:00:00";
+const DEFAULT_QUIET_END = "07:00:00";
+
+function timeStringToDate(value: string | null | undefined, fallback: string): Date {
+  return dayjs(`2000-01-01T${value || fallback}`).toDate();
+}
+
+interface ReferralInfo {
+  referral_code: string;
+  referred_count: number;
+  has_redeemed: boolean;
+  reward_days: number;
 }
 
 export default function ProfileScreen() {
@@ -51,6 +76,13 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null);
+  const [redeemCodeInput, setRedeemCodeInput] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
+  const [savingQuietHours, setSavingQuietHours] = useState(false);
+  const [startVisible, setStartVisible] = useState(false);
+  const [endVisible, setEndVisible] = useState(false);
+  const [tempTime, setTempTime] = useState<Date>(new Date());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -109,7 +141,17 @@ export default function ProfileScreen() {
         id: sessionUser.id,
         email: sessionUser.email,
         membership_tiers: membershipData.membership_tiers,
+        quiet_hours_enabled: membershipData.quiet_hours_enabled || false,
+        quiet_hours_start: membershipData.quiet_hours_start,
+        quiet_hours_end: membershipData.quiet_hours_end,
       });
+
+      try {
+        const referral = await getMyReferralInfo(sessionUser.id);
+        setReferralInfo(referral);
+      } catch (err) {
+        console.log("Failed to load referral info", err);
+      }
     } catch (err: any) {
       console.error("Profile fetch error:", err);
       if (err.message !== "No active session") {
@@ -122,6 +164,75 @@ export default function ProfileScreen() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShareCode = async () => {
+    if (!referralInfo) return;
+    try {
+      await Share.share({
+        message: `Catching sold-out tee times is a lot easier with a heads up. Use my code ${referralInfo.referral_code} in TeeSignal and we'll both get ${referralInfo.reward_days} days of Pro free.\n\nhttps://apps.apple.com/us/app/tee-signal-tee-time-alerts/id6758684655`,
+      });
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Couldn't open share sheet", text2: err.message });
+    }
+  };
+
+  const handleRedeemCode = async () => {
+    if (!user || !redeemCodeInput.trim()) return;
+    try {
+      setRedeeming(true);
+      const result = await redeemReferralCode(user.id, redeemCodeInput.trim());
+      Toast.show({ type: "success", text1: "Code redeemed!", text2: result.message, position: "top" });
+      setRedeemCodeInput("");
+      const referral = await getMyReferralInfo(user.id);
+      setReferralInfo(referral);
+      DeviceEventEmitter.emit("membershipUpdated");
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Couldn't redeem code", text2: err.message, position: "top" });
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const handleToggleQuietHours = async (value: boolean) => {
+    if (!user) return;
+    const prevUser = user;
+    setUser({ ...user, quiet_hours_enabled: value });
+    try {
+      setSavingQuietHours(true);
+      await updateNotificationPreferences(user.id, {
+        quiet_hours_enabled: value,
+        // First time enabling with no times set yet, seed sensible defaults
+        // so the engine has something to enforce right away.
+        ...(value && !user.quiet_hours_start
+          ? { quiet_hours_start: DEFAULT_QUIET_START, quiet_hours_end: DEFAULT_QUIET_END }
+          : {}),
+      });
+      if (value && !user.quiet_hours_start) {
+        setUser((u) => (u ? { ...u, quiet_hours_start: DEFAULT_QUIET_START, quiet_hours_end: DEFAULT_QUIET_END } : u));
+      }
+    } catch (err: any) {
+      setUser(prevUser);
+      Toast.show({ type: "error", text1: "Failed to update", text2: err.message, position: "top" });
+    } finally {
+      setSavingQuietHours(false);
+    }
+  };
+
+  const handleSaveQuietTime = async (field: "quiet_hours_start" | "quiet_hours_end", time: Date) => {
+    if (!user) return;
+    const value = dayjs(time).format("HH:mm:ss");
+    const prevUser = user;
+    setUser({ ...user, [field]: value });
+    try {
+      setSavingQuietHours(true);
+      await updateNotificationPreferences(user.id, { [field]: value });
+    } catch (err: any) {
+      setUser(prevUser);
+      Toast.show({ type: "error", text1: "Failed to update", text2: err.message, position: "top" });
+    } finally {
+      setSavingQuietHours(false);
     }
   };
 
@@ -434,6 +545,167 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* ── Invite friends ── */}
+        <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
+          INVITE FRIENDS
+        </Text>
+        <View style={[styles.card, cardStyle, { padding: 16 }]}>
+          {referralInfo ? (
+            <>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View>
+                  <Text style={[styles.referralHint, { color: theme.colors.onSurfaceVariant }]}>
+                    Your code
+                  </Text>
+                  <Text style={[styles.referralCode, { color: theme.colors.onSurface }]}>
+                    {referralInfo.referral_code}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleShareCode}
+                  style={[styles.shareBtn, { backgroundColor: theme.colors.primary }]}
+                  activeOpacity={0.85}
+                >
+                  <MaterialCommunityIcons name="export-variant" size={14} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.shareBtnText}>Share</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.referralSub, { color: theme.colors.onSurfaceVariant }]}>
+                You and your friend each get {referralInfo.reward_days} days of Pro when they sign up.
+                {referralInfo.referred_count > 0
+                  ? ` You've referred ${referralInfo.referred_count} friend${referralInfo.referred_count === 1 ? "" : "s"} so far.`
+                  : ""}
+              </Text>
+
+              {!referralInfo.has_redeemed && (
+                <>
+                  <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", marginVertical: 14 }]} />
+                  <Text style={[styles.referralHint, { color: theme.colors.onSurfaceVariant, marginBottom: 8 }]}>
+                    Have a friend's code?
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <RNTextInput
+                      value={redeemCodeInput}
+                      onChangeText={(t) => setRedeemCodeInput(t.toUpperCase())}
+                      placeholder="Enter code"
+                      placeholderTextColor={theme.colors.onSurfaceVariant}
+                      autoCapitalize="characters"
+                      style={[
+                        styles.redeemInput,
+                        {
+                          color: theme.colors.onSurface,
+                          borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)",
+                        },
+                      ]}
+                    />
+                    <TouchableOpacity
+                      onPress={handleRedeemCode}
+                      disabled={redeeming || !redeemCodeInput.trim()}
+                      style={[
+                        styles.redeemBtn,
+                        {
+                          backgroundColor: theme.colors.primary,
+                          opacity: redeeming || !redeemCodeInput.trim() ? 0.5 : 1,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                    >
+                      {redeeming ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.shareBtnText}>Apply</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </>
+          ) : (
+            <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={60} />
+          )}
+        </View>
+
+        {/* ── Notifications ── */}
+        <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
+          NOTIFICATIONS
+        </Text>
+        <View style={[styles.card, cardStyle]}>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <MaterialCommunityIcons
+                name="moon-waning-crescent"
+                size={16}
+                color={theme.colors.onSurfaceVariant}
+                style={{ marginRight: 10, opacity: 0.7 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowLabel, { color: theme.colors.onSurface }]}>
+                  Quiet Hours
+                </Text>
+                <Text style={[styles.quietHoursSub, { color: theme.colors.onSurfaceVariant }]}>
+                  Hold background alerts until quiet hours end
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={!!user?.quiet_hours_enabled}
+              onValueChange={handleToggleQuietHours}
+              disabled={savingQuietHours || loading}
+              color={theme.colors.primary}
+            />
+          </View>
+
+          {user?.quiet_hours_enabled && (
+            <>
+              <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
+              <TouchableOpacity
+                style={styles.row}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setTempTime(timeStringToDate(user?.quiet_hours_start, DEFAULT_QUIET_START));
+                  setStartVisible(true);
+                }}
+              >
+                <View style={styles.rowLeft}>
+                  <MaterialCommunityIcons
+                    name="weather-sunset-down"
+                    size={16}
+                    color={theme.colors.onSurfaceVariant}
+                    style={{ marginRight: 10, opacity: 0.7 }}
+                  />
+                  <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>Starts</Text>
+                </View>
+                <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
+                  {dayjs(timeStringToDate(user?.quiet_hours_start, DEFAULT_QUIET_START)).format("h:mm A")}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
+              <TouchableOpacity
+                style={styles.row}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setTempTime(timeStringToDate(user?.quiet_hours_end, DEFAULT_QUIET_END));
+                  setEndVisible(true);
+                }}
+              >
+                <View style={styles.rowLeft}>
+                  <MaterialCommunityIcons
+                    name="weather-sunset-up"
+                    size={16}
+                    color={theme.colors.onSurfaceVariant}
+                    style={{ marginRight: 10, opacity: 0.7 }}
+                  />
+                  <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>Ends</Text>
+                </View>
+                <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
+                  {dayjs(timeStringToDate(user?.quiet_hours_end, DEFAULT_QUIET_END)).format("h:mm A")}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
         {/* ── Account ── */}
         <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
           ACCOUNT
@@ -602,6 +874,46 @@ export default function ProfileScreen() {
           TeeSignal v1.0.8
         </Text>
       </ScrollView>
+
+      <PickerModal
+        visible={startVisible}
+        title="Quiet Hours Start"
+        onClose={() => setStartVisible(false)}
+        onConfirm={() => handleSaveQuietTime("quiet_hours_start", tempTime)}
+      >
+        <View style={{ backgroundColor: isDark ? theme.colors.surface : "#fff", borderRadius: 12, paddingVertical: 4 }}>
+          <DateTimePicker
+            value={tempTime}
+            mode="time"
+            display="spinner"
+            is24Hour={false}
+            themeVariant={isDark ? "dark" : "light"}
+            onChange={(_, t) => {
+              if (t) setTempTime(t);
+            }}
+          />
+        </View>
+      </PickerModal>
+
+      <PickerModal
+        visible={endVisible}
+        title="Quiet Hours End"
+        onClose={() => setEndVisible(false)}
+        onConfirm={() => handleSaveQuietTime("quiet_hours_end", tempTime)}
+      >
+        <View style={{ backgroundColor: isDark ? theme.colors.surface : "#fff", borderRadius: 12, paddingVertical: 4 }}>
+          <DateTimePicker
+            value={tempTime}
+            mode="time"
+            display="spinner"
+            is24Hour={false}
+            themeVariant={isDark ? "dark" : "light"}
+            onChange={(_, t) => {
+              if (t) setTempTime(t);
+            }}
+          />
+        </View>
+      </PickerModal>
     </SafeAreaView>
   );
 }
@@ -700,6 +1012,55 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 15,
     fontWeight: "400",
+  },
+  referralHint: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  referralCode: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  referralSub: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 12,
+  },
+  shareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+  },
+  shareBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  redeemInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    letterSpacing: 1,
+  },
+  redeemBtn: {
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quietHoursSub: {
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 2,
   },
   rowActionLabel: {
     fontSize: 15,

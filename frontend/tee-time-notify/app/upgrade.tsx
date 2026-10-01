@@ -28,6 +28,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
+const WEEKEND_PASS_PRODUCT_ID =
+  process.env.EXPO_PUBLIC_WEEKEND_PASS_PRODUCT_ID || "teesignal_weekend_pass";
 
 const FEATURE_ICONS: Record<string, string> = {
   alerts: "bell-outline",
@@ -48,6 +50,10 @@ export default function UpgradeScreen() {
   const [cancelAt, setCancelAt] = useState<string | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
   const [session, setSession] = useState<any>(null);
+  const [weekendPassProduct, setWeekendPassProduct] = useState<any>(null);
+  const [buyingWeekendPass, setBuyingWeekendPass] = useState(false);
+  const [isBonusActive, setIsBonusActive] = useState(false);
+  const [bonusExpiresAt, setBonusExpiresAt] = useState<string | null>(null);
 
   const cardBg = isDark ? "rgba(255,255,255,0.06)" : "#fff";
   const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
@@ -89,6 +95,8 @@ export default function UpgradeScreen() {
         setUserTier(profileData.membership_tier_id);
         setPendingDowngrade(profileData.pending_downgrade || false);
         setCancelAt(profileData.cancel_at || null);
+        setIsBonusActive(profileData.is_bonus_active || false);
+        setBonusExpiresAt(profileData.bonus_expires_at || null);
       }
 
       try {
@@ -114,6 +122,13 @@ export default function UpgradeScreen() {
         }
       } catch (e) {
         console.log("Error fetching offerings/products", e);
+      }
+
+      try {
+        const passProducts = await Purchases.getProducts([WEEKEND_PASS_PRODUCT_ID]);
+        if (passProducts.length > 0) setWeekendPassProduct(passProducts[0]);
+      } catch (e) {
+        console.log("Error fetching Weekend Pass product", e);
       }
 
     } catch (err: any) {
@@ -194,6 +209,43 @@ export default function UpgradeScreen() {
       }
     } finally {
       setRedirectingTier(null);
+    }
+  };
+
+  const handleBuyWeekendPass = async () => {
+    if (!weekendPassProduct) {
+      Toast.show({
+        type: "error",
+        text1: "Weekend Pass unavailable",
+        text2: "Please try again later.",
+        position: "top",
+      });
+      return;
+    }
+    try {
+      setBuyingWeekendPass(true);
+      await Purchases.purchaseStoreProduct(weekendPassProduct);
+      Toast.show({
+        type: "success",
+        text1: "Weekend Pass activated",
+        text2: "Full Pro access for the next 7 days.",
+        position: "top",
+      });
+      DeviceEventEmitter.emit("membershipUpdated");
+      // RevenueCat's webhook grants access asynchronously — give it a moment
+      // before refreshing so the new bonus shows up on this screen.
+      setTimeout(loadData, 2000);
+    } catch (err: any) {
+      if (!err.userCancelled) {
+        Toast.show({
+          type: "error",
+          text1: "Purchase Failed",
+          text2: err.message,
+          position: "top",
+        });
+      }
+    } finally {
+      setBuyingWeekendPass(false);
     }
   };
 
@@ -289,6 +341,76 @@ export default function UpgradeScreen() {
             Unlock faster scans and more alerts to never miss a tee time.
           </Text>
         </Animated.View>
+
+        {/* ── Weekend Pass active banner ── */}
+        {isBonusActive && bonusExpiresAt && (
+          <Animated.View entering={FadeInDown.duration(400).delay(90)} style={{ marginBottom: 16 }}>
+            <View
+              style={[
+                styles.passActiveBanner,
+                {
+                  backgroundColor: isDark ? "rgba(74,222,128,0.1)" : "rgba(21,128,61,0.06)",
+                  borderColor: isDark ? "rgba(74,222,128,0.25)" : "rgba(21,128,61,0.2)",
+                },
+              ]}
+            >
+              <MaterialCommunityIcons name="ticket-confirmation-outline" size={18} color={accent} />
+              <Text style={[styles.passActiveText, { color: theme.colors.onSurface }]}>
+                Weekend Pass active — full Pro access until{" "}
+                <Text style={{ fontWeight: "700" }}>
+                  {new Date(bonusExpiresAt).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                </Text>
+              </Text>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* ── Weekend Pass card ── */}
+        {session && !isBonusActive && (userTier === 1 || userTier === null) && (
+          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={{ marginBottom: 16 }}>
+            <View
+              style={[
+                styles.passCard,
+                {
+                  borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+                  backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                },
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                <MaterialCommunityIcons name="bag-suitcase-outline" size={16} color={accent} style={{ marginRight: 6 }} />
+                <Text style={[styles.passEyebrow, { color: accent }]}>GOT A TRIP COMING UP?</Text>
+              </View>
+              <Text style={[styles.passTitle, { color: theme.colors.onSurface }]}>Weekend Pass</Text>
+              <Text style={[styles.passSub, { color: theme.colors.onSurfaceVariant }]}>
+                7 days of full Pro access — 10 alerts, fastest scans, recurring alerts. One-time purchase, nothing to cancel.
+              </Text>
+              <TouchableOpacity
+                onPress={handleBuyWeekendPass}
+                disabled={buyingWeekendPass || !weekendPassProduct}
+                activeOpacity={0.82}
+                style={[
+                  styles.passBtn,
+                  {
+                    borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)",
+                    opacity: buyingWeekendPass || !weekendPassProduct ? 0.6 : 1,
+                  },
+                ]}
+              >
+                {buyingWeekendPass ? (
+                  <ActivityIndicator animating size="small" color={accent} />
+                ) : (
+                  <>
+                    <Text style={[styles.passBtnText, { color: theme.colors.onSurface }]}>
+                      Get 7 Days · {weekendPassProduct?.priceString || "$6"}
+                    </Text>
+                    <MaterialCommunityIcons name="arrow-right" size={15} color={theme.colors.onSurface} />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        )}
 
         {/* ── Tier cards ── */}
         {tiers.map((tier, idx) => {
@@ -657,6 +779,56 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 21,
     maxWidth: 280,
+  },
+
+  // Weekend Pass
+  passActiveBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  passActiveText: {
+    flex: 1,
+    fontSize: 13.5,
+    lineHeight: 19,
+  },
+  passCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 18,
+  },
+  passEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  passTitle: {
+    fontSize: 19,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  passSub: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    marginBottom: 16,
+  },
+  passBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1,
+  },
+  passBtnText: {
+    fontSize: 14.5,
+    fontWeight: "700",
   },
 
   // Tier card
