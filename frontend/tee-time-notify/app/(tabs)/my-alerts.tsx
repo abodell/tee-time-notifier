@@ -24,7 +24,8 @@ import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import { useColorScheme } from "react-native";
-import { deleteAlert, markNotificationBooked } from "@/lib/api";
+import { deleteAlert, markNotificationBooked, muteAlert } from "@/lib/api";
+import MuteDurationSheet, { MuteDuration, resolveMuteDuration } from "@/components/MuteDurationSheet";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -111,6 +112,7 @@ export default function MyAlertsScreen() {
   const [hasData, setHasData] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
   const [showReorderTip, setShowReorderTip] = useState(false);
+  const [muteSheetAlertId, setMuteSheetAlertId] = useState<number | null>(null);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const params = useLocalSearchParams();
@@ -254,6 +256,39 @@ export default function MyAlertsScreen() {
     }
   };
 
+  const handleSelectMuteDuration = async (duration: MuteDuration) => {
+    const id = muteSheetAlertId;
+    setMuteSheetAlertId(null);
+    if (!id) return;
+
+    const mutedUntil = resolveMuteDuration(duration);
+    const prevAlerts = alerts;
+    setAlerts((p) => p.map((a) => (a.id === id ? { ...a, muted_until: mutedUntil } : a)));
+    try {
+      await muteAlert(id, mutedUntil);
+      haptics.success();
+      Toast.show({ type: "success", text1: "Alert muted", visibilityTime: 1200 });
+    } catch (err: any) {
+      setAlerts(prevAlerts);
+      haptics.error();
+      Toast.show({ type: "error", text1: "Couldn't mute alert", text2: err.message });
+    }
+  };
+
+  const handleUnmute = async (id: number) => {
+    const prevAlerts = alerts;
+    setAlerts((p) => p.map((a) => (a.id === id ? { ...a, muted_until: null } : a)));
+    try {
+      await muteAlert(id, null);
+      haptics.select();
+      Toast.show({ type: "success", text1: "Alert unmuted", visibilityTime: 1200 });
+    } catch (err: any) {
+      setAlerts(prevAlerts);
+      haptics.error();
+      Toast.show({ type: "error", text1: "Couldn't unmute alert", text2: err.message });
+    }
+  };
+
   const toggleExpand = (id: number) => {
     haptics.select();
     setExpandedIds((prev) => {
@@ -312,6 +347,7 @@ export default function MyAlertsScreen() {
     const notifications = item.alert_notifications || [];
     const itemTz = course.time_zone || "UTC";
     const isExpired = !item.is_recurring && dayjs.utc().isAfter(dayjs.utc(item.end_time));
+    const isMuted = !!item.muted_until && dayjs(item.muted_until).isAfter(dayjs());
     const visibleSlots = notifications
       .filter((n) => {
         if (n.booked_at) return false;
@@ -366,6 +402,16 @@ export default function MyAlertsScreen() {
                 {course.name || `Course #${item.course_id}`}
               </Text>
               <View style={styles.cardActions}>
+                {isMuted && !isExpired && (
+                  <View style={[styles.mutedPill, {
+                    backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+                  }]}>
+                    <MaterialCommunityIcons name="bell-off-outline" size={10} color={theme.colors.onSurfaceVariant} />
+                    <Text style={[styles.mutedPillText, { color: theme.colors.onSurfaceVariant }]}>
+                      Muted
+                    </Text>
+                  </View>
+                )}
                 {item.is_recurring && !isExpired && (
                   <MaterialCommunityIcons
                     name="repeat"
@@ -471,6 +517,21 @@ export default function MyAlertsScreen() {
                     style={{ opacity: 0.55 }}
                   />
                 </TouchableOpacity>
+                {!isExpired && (
+                  <TouchableOpacity
+                    onPress={() =>
+                      isMuted ? handleUnmute(item.id!) : setMuteSheetAlertId(item.id!)
+                    }
+                    hitSlop={{ top: 12, bottom: 12, left: 4, right: 4 }}
+                  >
+                    <MaterialCommunityIcons
+                      name={isMuted ? "bell-off" : "bell-outline"}
+                      size={14}
+                      color={isMuted ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                      style={{ opacity: isMuted ? 0.9 : 0.55 }}
+                    />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   onPress={() => deleteConfirm(item.id!)}
                   hitSlop={{ top: 12, bottom: 12, left: 4, right: 8 }}
@@ -830,6 +891,12 @@ export default function MyAlertsScreen() {
           </View>
         }
       />
+
+      <MuteDurationSheet
+        visible={muteSheetAlertId !== null}
+        onClose={() => setMuteSheetAlertId(null)}
+        onSelect={handleSelectMuteDuration}
+      />
     </SafeAreaView>
   );
 }
@@ -1035,6 +1102,19 @@ const styles = StyleSheet.create({
   expiredLabel: {
     fontSize: 11,
     fontWeight: "500",
+    letterSpacing: 0.1,
+  },
+  mutedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  mutedPillText: {
+    fontSize: 10,
+    fontWeight: "600",
     letterSpacing: 0.1,
   },
   metaRow: {

@@ -31,6 +31,7 @@ export interface Alert {
   end_time?: string;
   is_recurring?: boolean;
   active?: boolean;
+  muted_until?: string | null;
   created_at?: string;
   updated_at?: string;
   // Relations

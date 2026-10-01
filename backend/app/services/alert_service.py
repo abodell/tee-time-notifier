@@ -289,12 +289,21 @@ async def run_alert_engine(tier_id: int | None = None):
     await rollover_recurring_alerts(supabase, start_time)
 
     cutoff = (start_time - timedelta(days=1)).isoformat()
-    query = supabase.table("alerts").select(
-        "id, user_id, course_id, holes, players, start_time, end_time, date_from, date_to, "
-        "courses!alerts_course_id_fkey(time_zone), "
-        "user_profiles!alerts_user_id_fkey(membership_tier_id, bonus_tier_id, bonus_expires_at, "
-        "quiet_hours_enabled, quiet_hours_start, quiet_hours_end)"
-    ).eq("active", True).gte("date_to", cutoff)
+    query = (
+        supabase.table("alerts")
+        .select(
+            "id, user_id, course_id, holes, players, start_time, end_time, date_from, date_to, "
+            "courses!alerts_course_id_fkey(time_zone), "
+            "user_profiles!alerts_user_id_fkey(membership_tier_id, bonus_tier_id, bonus_expires_at, "
+            "quiet_hours_enabled, quiet_hours_start, quiet_hours_end)"
+        )
+        .eq("active", True)
+        .gte("date_to", cutoff)
+        # Skip alerts the user manually muted (e.g. already booked elsewhere
+        # that day) — excluded at the query level so they cost nothing in
+        # this scan, not just filtered out after fetching.
+        .or_(f"muted_until.is.null,muted_until.lte.{start_time.isoformat()}")
+    )
 
     query_execute = await query.execute()
     alerts = query_execute.data or []
