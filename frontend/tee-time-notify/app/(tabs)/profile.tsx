@@ -6,6 +6,8 @@ import {
   Alert,
   TouchableOpacity,
   DeviceEventEmitter,
+  Share,
+  TextInput as RNTextInput,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,9 +27,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "@/constants/theme";
 import { Image } from "react-native";
 import OAuthSection from "@/components/auth/OAuthSection";
+import { getMyReferralInfo, redeemReferralCode, updateNotificationPreferences } from "@/lib/api";
 import PickerModal from "@/components/PickerModal";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { updateNotificationPreferences } from "@/lib/api";
 import dayjs from "dayjs";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -56,6 +58,13 @@ function timeStringToDate(value: string | null | undefined, fallback: string): D
   return dayjs(`2000-01-01T${value || fallback}`).toDate();
 }
 
+interface ReferralInfo {
+  referral_code: string;
+  referred_count: number;
+  has_redeemed: boolean;
+  reward_days: number;
+}
+
 export default function ProfileScreen() {
   const theme = useTheme();
   const router = useRouter();
@@ -65,6 +74,9 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null);
+  const [redeemCodeInput, setRedeemCodeInput] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
   const [savingQuietHours, setSavingQuietHours] = useState(false);
   const [startVisible, setStartVisible] = useState(false);
   const [endVisible, setEndVisible] = useState(false);
@@ -131,6 +143,13 @@ export default function ProfileScreen() {
         quiet_hours_start: membershipData.quiet_hours_start,
         quiet_hours_end: membershipData.quiet_hours_end,
       });
+
+      try {
+        const referral = await getMyReferralInfo(sessionUser.id);
+        setReferralInfo(referral);
+      } catch (err) {
+        console.log("Failed to load referral info", err);
+      }
     } catch (err: any) {
       console.error("Profile fetch error:", err);
       if (err.message !== "No active session") {
@@ -143,6 +162,34 @@ export default function ProfileScreen() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShareCode = async () => {
+    if (!referralInfo) return;
+    try {
+      await Share.share({
+        message: `Catching sold-out tee times is a lot easier with a heads up. Use my code ${referralInfo.referral_code} in TeeSignal and we'll both get ${referralInfo.reward_days} days of Pro free.\n\nhttps://apps.apple.com/us/app/tee-signal-tee-time-alerts/id6758684655`,
+      });
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Couldn't open share sheet", text2: err.message });
+    }
+  };
+
+  const handleRedeemCode = async () => {
+    if (!user || !redeemCodeInput.trim()) return;
+    try {
+      setRedeeming(true);
+      const result = await redeemReferralCode(user.id, redeemCodeInput.trim());
+      Toast.show({ type: "success", text1: "Code redeemed!", text2: result.message, position: "top" });
+      setRedeemCodeInput("");
+      const referral = await getMyReferralInfo(user.id);
+      setReferralInfo(referral);
+      DeviceEventEmitter.emit("membershipUpdated");
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Couldn't redeem code", text2: err.message, position: "top" });
+    } finally {
+      setRedeeming(false);
     }
   };
 
@@ -494,6 +541,86 @@ export default function ProfileScreen() {
               </Text>
             )}
           </View>
+        </View>
+
+        {/* ── Invite friends ── */}
+        <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
+          INVITE FRIENDS
+        </Text>
+        <View style={[styles.card, cardStyle, { padding: 16 }]}>
+          {referralInfo ? (
+            <>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View>
+                  <Text style={[styles.referralHint, { color: theme.colors.onSurfaceVariant }]}>
+                    Your code
+                  </Text>
+                  <Text style={[styles.referralCode, { color: theme.colors.onSurface }]}>
+                    {referralInfo.referral_code}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={handleShareCode}
+                  style={[styles.shareBtn, { backgroundColor: theme.colors.primary }]}
+                  activeOpacity={0.85}
+                >
+                  <MaterialCommunityIcons name="export-variant" size={14} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.shareBtnText}>Share</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.referralSub, { color: theme.colors.onSurfaceVariant }]}>
+                You and your friend each get {referralInfo.reward_days} days of Pro when they sign up.
+                {referralInfo.referred_count > 0
+                  ? ` You've referred ${referralInfo.referred_count} friend${referralInfo.referred_count === 1 ? "" : "s"} so far.`
+                  : ""}
+              </Text>
+
+              {!referralInfo.has_redeemed && (
+                <>
+                  <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", marginVertical: 14 }]} />
+                  <Text style={[styles.referralHint, { color: theme.colors.onSurfaceVariant, marginBottom: 8 }]}>
+                    Have a friend's code?
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <RNTextInput
+                      value={redeemCodeInput}
+                      onChangeText={(t) => setRedeemCodeInput(t.toUpperCase())}
+                      placeholder="Enter code"
+                      placeholderTextColor={theme.colors.onSurfaceVariant}
+                      autoCapitalize="characters"
+                      style={[
+                        styles.redeemInput,
+                        {
+                          color: theme.colors.onSurface,
+                          borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)",
+                        },
+                      ]}
+                    />
+                    <TouchableOpacity
+                      onPress={handleRedeemCode}
+                      disabled={redeeming || !redeemCodeInput.trim()}
+                      style={[
+                        styles.redeemBtn,
+                        {
+                          backgroundColor: theme.colors.primary,
+                          opacity: redeeming || !redeemCodeInput.trim() ? 0.5 : 1,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                    >
+                      {redeeming ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.shareBtnText}>Apply</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </>
+          ) : (
+            <Skeleton colorMode={isDark ? "dark" : "light"} width="100%" height={60} />
+          )}
         </View>
 
         {/* ── Notifications ── */}
@@ -883,6 +1010,50 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 15,
     fontWeight: "400",
+  },
+  referralHint: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  referralCode: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginTop: 2,
+  },
+  referralSub: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 12,
+  },
+  shareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+  },
+  shareBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  redeemInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    letterSpacing: 1,
+  },
+  redeemBtn: {
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
   quietHoursSub: {
     fontSize: 12,

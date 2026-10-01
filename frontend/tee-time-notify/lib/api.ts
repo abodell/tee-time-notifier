@@ -51,6 +51,17 @@ export async function triggerImmediateScan(alertId: number) {
     return request(`/alerts/${alertId}/scan-now`, { method: "POST" })
 }
 
+export async function getMyReferralInfo(userId: string) {
+    return request(`/referrals/me/${userId}`)
+}
+
+export async function redeemReferralCode(userId: string, code: string) {
+    return request(`/referrals/redeem`, {
+        method: "POST",
+        body: JSON.stringify({ user_id: userId, code }),
+    })
+}
+
 export async function updateNotificationPreferences(
     userId: string,
     prefs: { quiet_hours_enabled?: boolean; quiet_hours_start?: string; quiet_hours_end?: string }
