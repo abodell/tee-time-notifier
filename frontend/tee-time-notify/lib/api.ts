@@ -72,10 +72,6 @@ export async function updateNotificationPreferences(
     })
 }
 
-export async function markNotificationBooked(alertId: number, notificationId: number) {
-    return request(`/alerts/${alertId}/notifications/${notificationId}/book`, { method: "PATCH" })
-}
-
 /** Pass an ISO string to mute the whole alert until then, or null to unmute. */
 export async function muteAlert(alertId: number, mutedUntil: string | null) {
     return request(`/alerts/${alertId}/mute`, {
