@@ -24,7 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import { useColorScheme } from "react-native";
-import { deleteAlert, markNotificationBooked, muteAlert } from "@/lib/api";
+import { deleteAlert, muteAlert } from "@/lib/api";
 import MuteDurationSheet, { MuteDuration, resolveMuteDuration } from "@/components/MuteDurationSheet";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
@@ -298,34 +298,6 @@ export default function MyAlertsScreen() {
     });
   };
 
-  const handleMarkBooked = async (alertId: number, notificationId: number) => {
-    try {
-      await markNotificationBooked(alertId, notificationId);
-      setAlerts((prev) =>
-        prev.map((a) =>
-          a.id === alertId
-            ? {
-                ...a,
-                alert_notifications: (a.alert_notifications || []).map((n) =>
-                  n.id === notificationId ? { ...n, booked_at: new Date().toISOString() } : n
-                ),
-              }
-            : a
-        )
-      );
-      haptics.success();
-      Toast.show({
-        type: "success",
-        text1: "Marked as booked",
-        text2: "We'll stop reminding you about this one.",
-        visibilityTime: 1500,
-      });
-    } catch (err: any) {
-      haptics.error();
-      Toast.show({ type: "error", text1: "Failed", text2: err.message });
-    }
-  };
-
   const handleBookNow = (url: string | undefined, date: string, tz?: string) => {
     if (!url) {
       haptics.error();
@@ -350,7 +322,6 @@ export default function MyAlertsScreen() {
     const isMuted = !!item.muted_until && dayjs(item.muted_until).isAfter(dayjs());
     const visibleSlots = notifications
       .filter((n) => {
-        if (n.booked_at) return false;
         const spots = n.availability?.spots_available;
         if (item.players != null && spots != null && spots < item.players) return false;
         return true;
@@ -601,30 +572,17 @@ export default function MyAlertsScreen() {
                             </Text>
                           )}
                         </View>
-                        <View style={styles.slotBtnRow}>
-                          <PressableScale
-                            onPress={() => item.id && handleMarkBooked(item.id, notif.id)}
-                            haptic="select"
-                            scaleTo={0.93}
-                            style={[styles.bookedBtn, {
-                              borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)",
-                            }]}
-                          >
-                            <MaterialCommunityIcons name="check" size={12} color={theme.colors.onSurfaceVariant} />
-                            <Text style={[styles.bookedBtnText, { color: theme.colors.onSurfaceVariant }]}>Booked</Text>
-                          </PressableScale>
-                          <PressableScale
-                            onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
-                            haptic="none"
-                            scaleTo={0.93}
-                            style={[styles.bookBtn, {
-                              borderColor: isDark ? "rgba(74,222,128,0.35)" : "rgba(21,128,61,0.28)",
-                            }]}
-                          >
-                            <Text style={[styles.bookBtnText, { color: theme.colors.primary }]}>Book</Text>
-                            <MaterialCommunityIcons name="arrow-right" size={12} color={theme.colors.primary} style={{ marginLeft: 3 }} />
-                          </PressableScale>
-                        </View>
+                        <PressableScale
+                          onPress={() => handleBookNow(course.provider_url, teeTime, course.time_zone)}
+                          haptic="none"
+                          scaleTo={0.93}
+                          style={[styles.bookBtn, {
+                            borderColor: isDark ? "rgba(74,222,128,0.35)" : "rgba(21,128,61,0.28)",
+                          }]}
+                        >
+                          <Text style={[styles.bookBtnText, { color: theme.colors.primary }]}>Book</Text>
+                          <MaterialCommunityIcons name="arrow-right" size={12} color={theme.colors.primary} style={{ marginLeft: 3 }} />
+                        </PressableScale>
                       </View>
                     );
                   })}
@@ -1233,11 +1191,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 2,
   },
-  slotBtnRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
   bookBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1250,20 +1203,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-  bookedBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 26,
-    borderWidth: 1,
-  },
-  bookedBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
 
   // Add alert footer
   addAlertFooter: {
