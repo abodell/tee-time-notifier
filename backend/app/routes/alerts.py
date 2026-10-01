@@ -536,3 +536,25 @@ async def mark_notification_booked(alert_id: int, notification_id: int):
     if not result.data:
         raise HTTPException(status_code=404, detail="Notification not found for this alert.")
     return {"status": "booked", "notification_id": notification_id}
+
+
+@router.patch("/{alert_id}/mute")
+async def mute_alert(alert_id: int, payload: dict):
+    """
+    Mute an entire alert until a chosen time, or unmute it by passing
+    muted_until: null. Distinct from marking a single slot booked — this
+    silences every match on this alert (e.g. "I already have a tee time
+    Saturday, don't tell me about openings at this course until Monday"),
+    user-triggered, never automatic.
+    """
+    muted_until = payload.get("muted_until")
+    supabase = await create_supabase()
+    result = await (
+        supabase.table("alerts")
+        .update({"muted_until": muted_until})
+        .eq("id", alert_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    return result.data[0]
