@@ -9,7 +9,7 @@ from app.services.webtrac_service import run_webtrac_scan
 from app.services.cps_service import run_cps_scan
 from app.services.teeitup_service import run_teeitup_scan
 from app.services.whoosh_service import run_whoosh_scan
-from app.services.alert_service import run_alert_engine
+from app.services.alert_service import run_alert_engine, count_lifetime_alerts
 from app.services.membership_service import expire_bonus_access
 from app.db import create_supabase
 from app.config import settings
@@ -161,6 +161,17 @@ async def scan_whoosh_job():
         print("[Scheduler] Whoosh scan completed!")
     except Exception as e:
         print(f"[Scheduler] Error during Whoosh scan: {e}")
+
+
+async def count_lifetime_alerts_job():
+    """
+    Flip free-tier alerts that have cleared the grace period over to counted,
+    incrementing each affected user's lifetime total.
+    """
+    try:
+        await count_lifetime_alerts()
+    except Exception as e:
+        print(f"[Scheduler] Error counting lifetime alerts: {e}")
 
 
 async def get_all_tiers():

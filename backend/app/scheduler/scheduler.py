@@ -12,7 +12,8 @@ from .jobs import (
     scan_teeitup_job,
     scan_whoosh_job,
     run_alert_engine_for_tier,
-    expire_bonus_access_job
+    count_lifetime_alerts_job,
+    expire_bonus_access_job,
 )
 from app.db import create_supabase
 from app.config import settings
@@ -93,6 +94,12 @@ async def start_scheduler(app: FastAPI):
         scan_whoosh_job,
         trigger=IntervalTrigger(seconds=45, start_date=next_minute),
         name="Whoosh_GLOBAL_scan",
+    )
+
+    scheduler.add_job(
+        count_lifetime_alerts_job,
+        trigger=IntervalTrigger(hours=1, start_date=next_minute),
+        name="FreeTier_LifetimeAlert_GracePeriod",
     )
 
     for tier in tiers:

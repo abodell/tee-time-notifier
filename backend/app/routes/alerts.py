@@ -7,6 +7,7 @@ import asyncio
 from app.db import create_supabase
 from app.services.push_service import send_push_notification
 from app.services.alert_service import get_user_push_token
+from app.config import settings
 from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
@@ -20,10 +21,11 @@ async def create_alert(alert: dict):
         if not user_id:
             raise HTTPException(status_code = 400, detail = "Missing user_id")
         
-        # Fetch the profile
+        # Fetch profile + tier in one round trip via the FK join, instead of
+        # two separate queries.
         profile = await (
             supabase.table("user_profiles")
-            .select("id, membership_tier_id, bonus_tier_id, bonus_expires_at")
+            .select("id, membership_tier_id, lifetime_alerts_created, bonus_tier_id, bonus_expires_at")
             .eq("id", user_id)
             .single()
             .execute()
@@ -49,6 +51,21 @@ async def create_alert(alert: dict):
 
         max_alerts = tier_row.get("max_alerts")
         tier_name = tier_row.get("name")
+        lifetime_alerts_created = profile.data.get("lifetime_alerts_created") or 0
+
+        # Free tier: cap lifetime alert creation, not just concurrent count —
+        # otherwise deleting and recreating a single alert every week gives
+        # unlimited use of a "free trial" tier forever. Checked against the
+        # EFFECTIVE tier, so an active bonus grant (Weekend Pass, referral)
+        # correctly bypasses a cap that's only meant for real Free users.
+        if tier_name == "Free" and lifetime_alerts_created >= settings.FREE_LIFETIME_ALERT_LIMIT:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"You've used all {settings.FREE_LIFETIME_ALERT_LIMIT} of your free alerts. "
+                    "Upgrade to Plus or Pro for unlimited alerts."
+                ),
+            )
 
         # get the current existing alerts for this user
         current_alerts = await (
@@ -64,7 +81,7 @@ async def create_alert(alert: dict):
                 status_code=403,
                 detail=f"Your {tier_name} plan allows up to {max_alerts} active alert(s). Please upgrade your plan to add more"
             )
-            
+
         is_recurring = alert.get("is_recurring", False) if tier_name == "Pro" else False
         players = alert.get("players") if tier_name in ("Plus", "Pro") else None
 
@@ -78,10 +95,14 @@ async def create_alert(alert: dict):
             "date_to": alert.get("date_to"),
             "start_time": alert.get("start_time"),
             "end_time": alert.get("end_time"),
-            "is_recurring": is_recurring
+            "is_recurring": is_recurring,
+            # Not counted toward the free-tier lifetime cap until it survives
+            # the grace period — see count_lifetime_alerts() in alert_service.py.
+            "counted_toward_lifetime": False,
         }
-            
+
         result = await supabase.table("alerts").insert(insert_payload).execute()
+
         return {"status": "success", "alert": result.data[0]}
     
     except HTTPException:

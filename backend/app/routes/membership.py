@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.db import create_supabase
+from app.config import settings
 from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
 
 router = APIRouter(prefix="/membership", tags=["membership"])
@@ -35,6 +36,7 @@ async def get_user_membership(user_id: str):
             supabase.table("user_profiles")
             .select(
                 "id, full_name, phone, membership_tier_id, stripe_customer_id, pending_downgrade, cancel_at, "
+                "lifetime_alerts_created, "
                 "quiet_hours_enabled, quiet_hours_start, quiet_hours_end, "
                 "bonus_tier_id, bonus_expires_at, "
                 "membership_tiers!user_profiles_membership_tier_id_fkey(id, name, description, price_cents, max_alerts, scan_interval_seconds)"
@@ -76,6 +78,13 @@ async def get_user_membership(user_id: str):
 
         profile["is_bonus_active"] = is_bonus_active
         profile["bonus_expires_at"] = profile.get("bonus_expires_at") if is_bonus_active else None
+
+        # Checked against the (possibly bonus-overwritten) displayed tier, so
+        # a Free user on an active Weekend Pass correctly doesn't see a
+        # lifetime-cap footer while their bonus Pro access is active.
+        if (profile.get("membership_tiers") or {}).get("name") == "Free":
+            profile["free_lifetime_alert_limit"] = settings.FREE_LIFETIME_ALERT_LIMIT
+
         return profile
     except HTTPException:
         raise
