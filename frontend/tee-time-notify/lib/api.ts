@@ -62,19 +62,17 @@ export async function redeemReferralCode(userId: string, code: string) {
     })
 }
 
-export async function updateNotificationPreferences(
-    userId: string,
-    prefs: { quiet_hours_enabled?: boolean; quiet_hours_start?: string; quiet_hours_end?: string }
-) {
-    return request(`/membership/profile/${userId}/notifications`, {
-        method: "PATCH",
-        body: JSON.stringify(prefs),
-    })
-}
-
 /** Pass an ISO string to mute the whole alert until then, or null to unmute. */
 export async function muteAlert(alertId: number, mutedUntil: string | null) {
     return request(`/alerts/${alertId}/mute`, {
+        method: "PATCH",
+        body: JSON.stringify({ muted_until: mutedUntil }),
+    })
+}
+
+/** Pass an ISO string to pause every active alert until then, or null to lift the pause. */
+export async function pauseAllAlerts(userId: string, mutedUntil: string | null) {
+    return request(`/alerts/user/${userId}/pause-all`, {
         method: "PATCH",
         body: JSON.stringify({ muted_until: mutedUntil }),
     })

@@ -15,7 +15,6 @@ import {
   Text,
   useTheme,
   ActivityIndicator,
-  Switch,
 } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -29,9 +28,8 @@ import { haptics } from "@/lib/haptics";
 import { useProTrialDays } from "@/lib/trial";
 import { Image } from "react-native";
 import OAuthSection from "@/components/auth/OAuthSection";
-import { getMyReferralInfo, redeemReferralCode, updateNotificationPreferences } from "@/lib/api";
-import PickerModal from "@/components/PickerModal";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { getMyReferralInfo, redeemReferralCode, pauseAllAlerts, getUserAlerts } from "@/lib/api";
+import MuteDurationSheet, { MuteDuration, resolveMuteDuration } from "@/components/MuteDurationSheet";
 import dayjs from "dayjs";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
@@ -48,16 +46,8 @@ interface UserProfile {
   id: string;
   email?: string;
   membership_tiers?: MembershipTier;
-  quiet_hours_enabled?: boolean;
-  quiet_hours_start?: string | null;
-  quiet_hours_end?: string | null;
-}
-
-const DEFAULT_QUIET_START = "22:00:00";
-const DEFAULT_QUIET_END = "07:00:00";
-
-function timeStringToDate(value: string | null | undefined, fallback: string): Date {
-  return dayjs(`2000-01-01T${value || fallback}`).toDate();
+  is_bonus_active?: boolean;
+  bonus_expires_at?: string | null;
 }
 
 interface ReferralInfo {
@@ -80,10 +70,10 @@ export default function ProfileScreen() {
   const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null);
   const [redeemCodeInput, setRedeemCodeInput] = useState("");
   const [redeeming, setRedeeming] = useState(false);
-  const [savingQuietHours, setSavingQuietHours] = useState(false);
-  const [startVisible, setStartVisible] = useState(false);
-  const [endVisible, setEndVisible] = useState(false);
-  const [tempTime, setTempTime] = useState<Date>(new Date());
+  const [pausingAll, setPausingAll] = useState(false);
+  const [pauseAllSheetVisible, setPauseAllSheetVisible] = useState(false);
+  const [activeAlertsPaused, setActiveAlertsPaused] = useState(false);
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -102,9 +92,17 @@ export default function ProfileScreen() {
       fetchProfile();
     });
 
+    const alertsSub = DeviceEventEmitter.addListener("alertsUpdated", () => {
+      supabase.auth.getSession().then(({ data }) => {
+        const userId = data.session?.user?.id;
+        if (userId) refreshPauseState(userId);
+      });
+    });
+
     return () => {
       listener.subscription.unsubscribe();
       membershipSub.remove();
+      alertsSub.remove();
     };
   }, []);
 
@@ -142,9 +140,8 @@ export default function ProfileScreen() {
         id: sessionUser.id,
         email: sessionUser.email,
         membership_tiers: membershipData.membership_tiers,
-        quiet_hours_enabled: membershipData.quiet_hours_enabled || false,
-        quiet_hours_start: membershipData.quiet_hours_start,
-        quiet_hours_end: membershipData.quiet_hours_end,
+        is_bonus_active: membershipData.is_bonus_active || false,
+        bonus_expires_at: membershipData.bonus_expires_at,
       });
 
       try {
@@ -153,6 +150,8 @@ export default function ProfileScreen() {
       } catch (err) {
         console.log("Failed to load referral info", err);
       }
+
+      await refreshPauseState(sessionUser.id);
     } catch (err: any) {
       console.error("Profile fetch error:", err);
       if (err.message !== "No active session") {
@@ -171,8 +170,11 @@ export default function ProfileScreen() {
   const handleShareCode = async () => {
     if (!referralInfo) return;
     try {
+      const rewardLine = isPro
+        ? `Use my code ${referralInfo.referral_code} in TeeSignal — you'll get ${referralInfo.reward_days} days of Pro free.`
+        : `Use my code ${referralInfo.referral_code} in TeeSignal and we'll both get ${referralInfo.reward_days} days of Pro free.`;
       await Share.share({
-        message: `Catching sold-out tee times is a lot easier with a heads up. Use my code ${referralInfo.referral_code} in TeeSignal and we'll both get ${referralInfo.reward_days} days of Pro free.\n\nhttps://apps.apple.com/us/app/tee-signal-tee-time-alerts/id6758684655`,
+        message: `Catching sold-out tee times is a lot easier with a heads up. ${rewardLine}\n\nhttps://apps.apple.com/us/app/tee-signal-tee-time-alerts/id6758684655`,
       });
     } catch (err: any) {
       Toast.show({ type: "error", text1: "Couldn't open share sheet", text2: err.message });
@@ -196,44 +198,66 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleToggleQuietHours = async (value: boolean) => {
-    if (!user) return;
-    const prevUser = user;
-    setUser({ ...user, quiet_hours_enabled: value });
+  /** Active alerts are "paused" once every one of them has a future muted_until. */
+  const refreshPauseState = async (userId: string) => {
     try {
-      setSavingQuietHours(true);
-      await updateNotificationPreferences(user.id, {
-        quiet_hours_enabled: value,
-        // First time enabling with no times set yet, seed sensible defaults
-        // so the engine has something to enforce right away.
-        ...(value && !user.quiet_hours_start
-          ? { quiet_hours_start: DEFAULT_QUIET_START, quiet_hours_end: DEFAULT_QUIET_END }
-          : {}),
-      });
-      if (value && !user.quiet_hours_start) {
-        setUser((u) => (u ? { ...u, quiet_hours_start: DEFAULT_QUIET_START, quiet_hours_end: DEFAULT_QUIET_END } : u));
-      }
-    } catch (err: any) {
-      setUser(prevUser);
-      Toast.show({ type: "error", text1: "Failed to update", text2: err.message, position: "top" });
-    } finally {
-      setSavingQuietHours(false);
+      const alerts = await getUserAlerts(userId);
+      const active = (alerts || []).filter((a: any) => a.active);
+      setActiveAlertCount(active.length);
+      setActiveAlertsPaused(
+        active.length > 0 && active.every((a: any) => a.muted_until && dayjs(a.muted_until).isAfter(dayjs()))
+      );
+    } catch (err) {
+      console.log("Failed to load alert pause state", err);
     }
   };
 
-  const handleSaveQuietTime = async (field: "quiet_hours_start" | "quiet_hours_end", time: Date) => {
+  const handlePauseAll = async (duration: MuteDuration) => {
     if (!user) return;
-    const value = dayjs(time).format("HH:mm:ss");
-    const prevUser = user;
-    setUser({ ...user, [field]: value });
+    setPauseAllSheetVisible(false);
+    if (activeAlertCount === 0) {
+      Toast.show({
+        type: "info",
+        text1: "Nothing to pause",
+        text2: "You don't have any active alerts right now.",
+        position: "top",
+      });
+      return;
+    }
     try {
-      setSavingQuietHours(true);
-      await updateNotificationPreferences(user.id, { [field]: value });
+      setPausingAll(true);
+      const mutedUntil = resolveMuteDuration(duration);
+      const result = await pauseAllAlerts(user.id, mutedUntil);
+      Toast.show({
+        type: "success",
+        text1: "Alerts paused",
+        text2: `${result.paused_count} alert${result.paused_count === 1 ? "" : "s"} silenced`,
+        position: "top",
+      });
+      await refreshPauseState(user.id);
     } catch (err: any) {
-      setUser(prevUser);
-      Toast.show({ type: "error", text1: "Failed to update", text2: err.message, position: "top" });
+      Toast.show({ type: "error", text1: "Couldn't pause alerts", text2: err.message, position: "top" });
     } finally {
-      setSavingQuietHours(false);
+      setPausingAll(false);
+    }
+  };
+
+  const handleResumeAll = async () => {
+    if (!user) return;
+    try {
+      setPausingAll(true);
+      const result = await pauseAllAlerts(user.id, null);
+      Toast.show({
+        type: "success",
+        text1: "Alerts resumed",
+        text2: `${result.paused_count} alert${result.paused_count === 1 ? "" : "s"} resumed`,
+        position: "top",
+      });
+      await refreshPauseState(user.id);
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: "Couldn't resume alerts", text2: err.message, position: "top" });
+    } finally {
+      setPausingAll(false);
     }
   };
 
@@ -292,6 +316,22 @@ export default function ProfileScreen() {
       ]
     );
   };
+
+  // ── Initial session check ──────────────────────────────────────────
+  // Without this gate, the guest view flashes for a frame before getSession()
+  // resolves even when the user is actually logged in.
+  if (loading && !session) {
+    return (
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+        edges={["top"]}
+      >
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // ── Guest view ──────────────────────────────────────────────────────
   if (!session) {
@@ -448,6 +488,10 @@ export default function ProfileScreen() {
 
   // ── Logged-in view ──────────────────────────────────────────────────
   const tier = user?.membership_tiers;
+  const isBonusActive = !!user?.is_bonus_active;
+  const bonusExpiryLabel = user?.bonus_expires_at
+    ? dayjs(user.bonus_expires_at).format("MMM D")
+    : null;
   const price =
     tier?.price_cents && tier.price_cents > 0
       ? `$${(tier.price_cents / 100).toFixed(2)}/mo`
@@ -491,9 +535,26 @@ export default function ProfileScreen() {
               {loading ? (
                 <Skeleton colorMode={isDark ? "dark" : "light"} width={100} height={18} />
               ) : (
-                <Text style={[styles.tierName, { color: theme.colors.onSurface }]}>
-                  {tier?.name || "—"}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={[styles.tierName, { color: theme.colors.onSurface }]}>
+                    {tier?.name || "—"}
+                  </Text>
+                  {isBonusActive && (
+                    <View
+                      style={[
+                        styles.bonusBadge,
+                        {
+                          backgroundColor: isDark ? "rgba(74,222,128,0.16)" : "rgba(22,163,74,0.1)",
+                          borderColor: isDark ? "rgba(74,222,128,0.35)" : "rgba(22,163,74,0.25)",
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.bonusBadgeText, { color: isDark ? "#4ADE80" : "#15803D" }]}>
+                        Weekend Pass
+                      </Text>
+                    </View>
+                  )}
+                </View>
               )}
               <View style={{ marginTop: 3 }}>
                 {loading ? (
@@ -504,7 +565,11 @@ export default function ProfileScreen() {
                   />
                 ) : (
                   <Text style={[styles.tierMeta, { color: theme.colors.onSurfaceVariant }]}>
-                    {price}
+                    {isBonusActive
+                      ? bonusExpiryLabel
+                        ? `Expires ${bonusExpiryLabel}`
+                        : "Temporary access"
+                      : price}
                     {tier?.max_alerts ? `  ·  ${tier.max_alerts} alerts` : ""}
                   </Text>
                 )}
@@ -574,7 +639,9 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
               <Text style={[styles.referralSub, { color: theme.colors.onSurfaceVariant }]}>
-                You and your friend each get {referralInfo.reward_days} days of Pro when they sign up.
+                {isPro
+                  ? `Your friend gets ${referralInfo.reward_days} days of Pro when they sign up with your code. You're already on Pro, so we bank your ${referralInfo.reward_days} days — they kick in automatically if your plan ever lapses.`
+                  : `You and your friend each get ${referralInfo.reward_days} days of Pro when they sign up.`}
                 {referralInfo.referred_count > 0
                   ? ` You've referred ${referralInfo.referred_count} friend${referralInfo.referred_count === 1 ? "" : "s"} so far.`
                   : ""}
@@ -633,81 +700,66 @@ export default function ProfileScreen() {
           NOTIFICATIONS
         </Text>
         <View style={[styles.card, cardStyle]}>
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <MaterialCommunityIcons
-                name="moon-waning-crescent"
-                size={16}
-                color={theme.colors.onSurfaceVariant}
-                style={{ marginRight: 10, opacity: 0.7 }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.rowLabel, { color: theme.colors.onSurface }]}>
-                  Quiet Hours
-                </Text>
-                <Text style={[styles.quietHoursSub, { color: theme.colors.onSurfaceVariant }]}>
-                  Hold background alerts until quiet hours end
-                </Text>
+          {activeAlertsPaused ? (
+            <TouchableOpacity
+              style={styles.row}
+              activeOpacity={0.7}
+              disabled={pausingAll}
+              onPress={() => handleResumeAll()}
+            >
+              <View style={styles.rowLeft}>
+                <MaterialCommunityIcons
+                  name="play-circle-outline"
+                  size={16}
+                  color={theme.colors.primary}
+                  style={{ marginRight: 10 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowLabel, { color: theme.colors.primary, fontWeight: "700" }]}>
+                    All alerts paused
+                  </Text>
+                  <Text style={[styles.rowSubLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    Tap to start getting notified again.
+                  </Text>
+                </View>
               </View>
-            </View>
-            <Switch
-              value={!!user?.quiet_hours_enabled}
-              onValueChange={handleToggleQuietHours}
-              disabled={savingQuietHours || loading}
-              color={theme.colors.primary}
-            />
-          </View>
-
-          {user?.quiet_hours_enabled && (
-            <>
-              <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
-              <TouchableOpacity
-                style={styles.row}
-                activeOpacity={0.7}
-                onPress={() => {
-                  setTempTime(timeStringToDate(user?.quiet_hours_start, DEFAULT_QUIET_START));
-                  setStartVisible(true);
-                }}
-              >
-                <View style={styles.rowLeft}>
-                  <MaterialCommunityIcons
-                    name="weather-sunset-down"
-                    size={16}
-                    color={theme.colors.onSurfaceVariant}
-                    style={{ marginRight: 10, opacity: 0.7 }}
-                  />
-                  <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>Starts</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.row, activeAlertCount === 0 && { opacity: 0.45 }]}
+              activeOpacity={activeAlertCount === 0 ? 1 : 0.7}
+              disabled={pausingAll || activeAlertCount === 0}
+              onPress={() => setPauseAllSheetVisible(true)}
+            >
+              <View style={styles.rowLeft}>
+                <MaterialCommunityIcons
+                  name="pause-circle-outline"
+                  size={16}
+                  color={theme.colors.onSurfaceVariant}
+                  style={{ marginRight: 10, opacity: 0.7 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowLabel, { color: theme.colors.onSurface }]}>
+                    Don't need alerts for a few days?
+                  </Text>
+                  <Text style={[styles.rowSubLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    {activeAlertCount === 0
+                      ? "You don't have any active alerts to pause right now."
+                      : "Pause everything at once instead of muting each alert."}
+                  </Text>
                 </View>
-                <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
-                  {dayjs(timeStringToDate(user?.quiet_hours_start, DEFAULT_QUIET_START)).format("h:mm A")}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
-              <TouchableOpacity
-                style={styles.row}
-                activeOpacity={0.7}
-                onPress={() => {
-                  setTempTime(timeStringToDate(user?.quiet_hours_end, DEFAULT_QUIET_END));
-                  setEndVisible(true);
-                }}
-              >
-                <View style={styles.rowLeft}>
-                  <MaterialCommunityIcons
-                    name="weather-sunset-up"
-                    size={16}
-                    color={theme.colors.onSurfaceVariant}
-                    style={{ marginRight: 10, opacity: 0.7 }}
-                  />
-                  <Text style={[styles.rowLabel, { color: theme.colors.onSurfaceVariant }]}>Ends</Text>
-                </View>
-                <Text style={[styles.rowValue, { color: theme.colors.onSurface }]}>
-                  {dayjs(timeStringToDate(user?.quiet_hours_end, DEFAULT_QUIET_END)).format("h:mm A")}
-                </Text>
-              </TouchableOpacity>
-            </>
+              </View>
+            </TouchableOpacity>
           )}
         </View>
+
+        <MuteDurationSheet
+          visible={pauseAllSheetVisible}
+          onClose={() => setPauseAllSheetVisible(false)}
+          onSelect={handlePauseAll}
+          title="Pause All Alerts"
+          subtitle="Silence every alert at once. You can resume anytime."
+        />
 
         {/* ── Account ── */}
         <Text style={[styles.sectionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 28 }]}>
@@ -877,46 +929,6 @@ export default function ProfileScreen() {
           TeeSignal v1.0.8
         </Text>
       </ScrollView>
-
-      <PickerModal
-        visible={startVisible}
-        title="Quiet Hours Start"
-        onClose={() => setStartVisible(false)}
-        onConfirm={() => handleSaveQuietTime("quiet_hours_start", tempTime)}
-      >
-        <View style={{ backgroundColor: isDark ? theme.colors.surface : "#fff", borderRadius: 12, paddingVertical: 4 }}>
-          <DateTimePicker
-            value={tempTime}
-            mode="time"
-            display="spinner"
-            is24Hour={false}
-            themeVariant={isDark ? "dark" : "light"}
-            onChange={(_, t) => {
-              if (t) setTempTime(t);
-            }}
-          />
-        </View>
-      </PickerModal>
-
-      <PickerModal
-        visible={endVisible}
-        title="Quiet Hours End"
-        onClose={() => setEndVisible(false)}
-        onConfirm={() => handleSaveQuietTime("quiet_hours_end", tempTime)}
-      >
-        <View style={{ backgroundColor: isDark ? theme.colors.surface : "#fff", borderRadius: 12, paddingVertical: 4 }}>
-          <DateTimePicker
-            value={tempTime}
-            mode="time"
-            display="spinner"
-            is24Hour={false}
-            themeVariant={isDark ? "dark" : "light"}
-            onChange={(_, t) => {
-              if (t) setTempTime(t);
-            }}
-          />
-        </View>
-      </PickerModal>
     </SafeAreaView>
   );
 }
@@ -983,6 +995,18 @@ const styles = StyleSheet.create({
   tierMeta: {
     fontSize: 12,
     fontWeight: "400",
+  },
+  bonusBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  bonusBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: -0.1,
   },
   manageBtn: {
     flexDirection: "row",
@@ -1060,7 +1084,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  quietHoursSub: {
+  rowSubLabel: {
     fontSize: 12,
     fontWeight: "400",
     marginTop: 2,

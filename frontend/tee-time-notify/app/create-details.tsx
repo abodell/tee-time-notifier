@@ -30,10 +30,124 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// All UTC <-> course-timezone conversion below uses native Intl.DateTimeFormat
+// directly (the same primitive the My Alerts card's formatInTimeZone() uses),
+// not dayjs's timezone plugin — which produced inconsistent results in this
+// app's JS runtime despite checking out fine in a plain Node test.
+
+function tzParts(utcDate: Date, tz: string) {
+  // Only Intl's .format() is used here, never .formatToParts() — Hermes (the
+  // JS engine Expo ships) has an incomplete Intl implementation where
+  // formatToParts yields unusable output, producing NaN date components.
+  // "en-CA" because it formats dates as YYYY-MM-DD, which parses unambiguously.
+  const datePart = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(utcDate);
+  const timePart = new Intl.DateTimeFormat("en-GB", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(utcDate);
+
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute, second] = timePart.split(":").map(Number);
+
+  return {
+    year,
+    month: month - 1, // Date's month is 0-indexed
+    day,
+    hour: hour % 24, // some engines render midnight as "24"
+    minute,
+    second,
+  };
+}
+
+/**
+ * Takes a UTC ISO string and the course's timezone, and returns a "forged"
+ * Date whose device-local digits equal the course-local wall-clock time —
+ * e.g. a 22:00 UTC / 5pm-Chicago instant becomes a Date that reads "5:00 PM"
+ * on screen no matter what timezone the device itself is in. Native pickers
+ * only ever render in device-local time, so this is how we get them to show
+ * the course's wall-clock time rather than the device's.
+ */
+function forgeLocalDate(utcIso: string, tz: string): Date {
+  const utcDate = new Date(utcIso);
+  try {
+    const p = tzParts(utcDate, tz);
+    const forged = new Date(p.year, p.month, p.day, p.hour, p.minute, p.second);
+    if (isNaN(forged.getTime())) throw new Error("forged an invalid date");
+    return forged;
+  } catch (e) {
+    // Never hand an Invalid Date to the pickers — it silently breaks the
+    // start/end validation in ways that look like a validation bug.
+    console.warn(`Course-timezone conversion failed for ${tz}:`, e);
+    return utcDate;
+  }
+}
+
+/**
+ * date_from/date_to are calendar dates, stored as midnight UTC — not real
+ * instants. So they're read straight off the UTC digits (never timezone
+ * converted, which would shift midnight backwards into the previous day for
+ * any western timezone) and re-stamped into a device-local Date for the
+ * picker. This matches how the My Alerts card reads them with dayjs.utc().
+ */
+function forgeLocalCalendarDate(utcIso: string): Date {
+  const d = new Date(utcIso);
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/** Inverse of forgeLocalCalendarDate: a picked calendar date -> midnight UTC. */
+function calendarDateToUtcMidnight(picked: Date): string {
+  return new Date(
+    Date.UTC(picked.getFullYear(), picked.getMonth(), picked.getDate())
+  ).toISOString();
+}
+
+/** The course's current UTC offset, in minutes, at the given instant (DST-aware). */
+function tzOffsetMinutes(utcDate: Date, tz: string): number {
+  const p = tzParts(utcDate, tz);
+  const asUtc = Date.UTC(p.year, p.month, p.day, p.hour, p.minute, p.second);
+  return (asUtc - utcDate.getTime()) / 60000;
+}
+
+/** Reverses forgeLocalDate: course-local wall-clock digits -> the real UTC instant. */
+function zonedWallClockToUtc(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  tz: string
+): Date {
+  const guess = new Date(Date.UTC(year, month, day, hour, minute, second));
+  const offset = tzOffsetMinutes(guess, tz);
+  return new Date(guess.getTime() - offset * 60000);
+}
+
 function combinedDateAndTime(date: Date, time: Date, tz: string) {
-  const datePart = dayjs(date).format("YYYY-MM-DD");
-  const timePart = dayjs(time).format("HH:mm:ss");
-  return dayjs.tz(`${datePart} ${timePart}`, tz);
+  // The pickers always render in the device's own timezone (native pickers
+  // don't reliably honor a forced timezone) — so date/time here are plain
+  // device-local Date objects whose digits are exactly what the user picked,
+  // intended as the course's wall-clock time. Re-stamp those digits as
+  // course-local and convert to the real UTC instant.
+  return dayjs(
+    zonedWallClockToUtc(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      time.getHours(),
+      time.getMinutes(),
+      time.getSeconds(),
+      tz
+    )
+  );
 }
 
 type PillOption = { value: string; label: string };
@@ -178,6 +292,11 @@ export default function CreateDetailsScreen() {
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [course, setCourse] = useState<any>(null);
   const [courseId, setCourseId] = useState<number | null>(null);
+  // The course's own local timezone — tee-time windows are always edited in
+  // course-local wall-clock time, not the device's timezone, so pickers must
+  // be forced to this zone regardless of where the person testing/using the
+  // app physically is.
+  const tz = course?.time_zone || dayjs.tz.guess();
   const [courseName, setCourseName] = useState<string | null>(null);
   const [startValid, setStartValid] = useState(false);
   const [endValid, setEndValid] = useState(false);
@@ -186,6 +305,13 @@ export default function CreateDetailsScreen() {
   const [loadingExisting, setLoadingExisting] = useState(isEditing);
   const [tierName, setTierName] = useState<string | null>(
     typeof tierNameParam === "string" ? tierNameParam : null
+  );
+  // The profile fetch runs alongside the alert fetch and drives tier-gated UI
+  // (player pills, recurring toggle, upgrade chip). Gate the first paint on it
+  // too, or those controls visibly flip state a beat after the screen appears.
+  // Skipped when the tier was already passed in as a route param.
+  const [loadingProfile, setLoadingProfile] = useState(
+    typeof tierNameParam !== "string"
   );
   const [lifetimeAlertsCreated, setLifetimeAlertsCreated] = useState<number | null>(null);
   const [freeLifetimeLimit, setFreeLifetimeLimit] = useState<number | null>(null);
@@ -253,9 +379,14 @@ export default function CreateDetailsScreen() {
         setHoles(String(existing.holes ?? "18"));
         setPlayers(existing.players != null ? String(existing.players) : "0");
         setIsRecurring(!!existing.is_recurring);
-        if (existing.date_from) setDate(dayjs.tz(existing.date_from, tz).toDate());
-        if (existing.start_time) setStartTime(dayjs.tz(existing.start_time, tz).toDate());
-        if (existing.end_time) setEndTime(dayjs.tz(existing.end_time, tz).toDate());
+        // existing.date_from/start_time/end_time are already UTC-offset ISO
+        // strings from the API — parse them normally first, then shift the
+        // display zone with .tz(). Passing them straight into dayjs.tz(str, tz)
+        // instead re-stamps the raw clock digits as if already local to `tz`,
+        // silently discarding the real offset and producing a wrong instant.
+        if (existing.date_from) setDate(forgeLocalCalendarDate(existing.date_from));
+        if (existing.start_time) setStartTime(forgeLocalDate(existing.start_time, tz));
+        if (existing.end_time) setEndTime(forgeLocalDate(existing.end_time, tz));
       } catch (err: any) {
         Toast.show({
           type: "error",
@@ -307,7 +438,11 @@ export default function CreateDetailsScreen() {
           }
         } catch (err) {
           console.log("Failed to load tier info", err);
+        } finally {
+          setLoadingProfile(false);
         }
+      } else {
+        setLoadingProfile(false);
       }
     };
 
@@ -327,7 +462,6 @@ export default function CreateDetailsScreen() {
     }
     try {
       setSubmitting(true);
-      const tz = course?.time_zone || dayjs.tz.guess();
       const combinedStart =
         date && startTime ? combinedDateAndTime(date, startTime, tz) : null;
       const combinedEnd =
@@ -339,8 +473,11 @@ export default function CreateDetailsScreen() {
         holes: parseInt(holes),
         players: players === "0" ? null : parseInt(players),
         course_id: courseId,
-        date_from: combinedStart?.startOf("day").toISOString(),
-        date_to: combinedEnd?.startOf("day").toISOString(),
+        // Calendar dates, stored as midnight UTC — derived from the picked
+        // date's own digits rather than .startOf("day") on a device-local
+        // instant, which lands on the wrong calendar day east of UTC.
+        date_from: date ? calendarDateToUtcMidnight(date) : undefined,
+        date_to: date ? calendarDateToUtcMidnight(date) : undefined,
         start_time: combinedStart?.toISOString(),
         end_time: combinedEnd?.toISOString(),
         is_recurring: tierName === "Pro" ? isRecurring : false,
@@ -379,7 +516,7 @@ export default function CreateDetailsScreen() {
 
   const labelColor = theme.colors.onSurfaceVariant;
 
-  if (loadingExisting) {
+  if (loadingExisting || loadingProfile) {
     return (
       <SafeAreaView
         style={[

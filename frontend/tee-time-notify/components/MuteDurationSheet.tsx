@@ -37,10 +37,18 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSelect: (duration: MuteDuration) => void;
+  title?: string;
+  subtitle?: string;
 }
 
-/** Bottom sheet for picking how long to mute an alert. */
-export default function MuteDurationSheet({ visible, onClose, onSelect }: Props) {
+/** Bottom sheet for picking how long to mute an alert (or every alert, via title/subtitle). */
+export default function MuteDurationSheet({
+  visible,
+  onClose,
+  onSelect,
+  title = "Mute This Alert",
+  subtitle = "Pause notifications for this course. You can unmute anytime.",
+}: Props) {
   const theme = useTheme();
   const isDark = theme.dark;
 
@@ -66,10 +74,10 @@ export default function MuteDurationSheet({ visible, onClose, onSelect }: Props)
         ]}
       >
         <Text style={[styles.title, { color: theme.colors.onSurface }]}>
-          Mute This Alert
+          {title}
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-          Pause notifications for this course. You can unmute anytime.
+          {subtitle}
         </Text>
 
         {OPTIONS.map((opt, i) => (

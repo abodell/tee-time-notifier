@@ -127,7 +127,9 @@ export default function CourseSearchScreen() {
       setFreeLifetimeLimit(profile.free_lifetime_alert_limit ?? null);
 
       const userAlerts = await alertsRes.json();
-      setAlertCount(userAlerts?.length || 0);
+      // Quota is about active slots used, not total rows — a deactivated
+      // alert must not keep counting against the limit.
+      setAlertCount((userAlerts || []).filter((a: { active?: boolean }) => a.active).length);
 
       setHasData(true);
     } catch (err) {
@@ -316,32 +318,39 @@ export default function CourseSearchScreen() {
                   </View>
                 )
               )}
-              {reachedQuota && tierName !== "Pro" && (
-                <>
-                  <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
-                  <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
-                    <Text style={[styles.quotaLimitText, { color: theme.colors.onSurfaceVariant }]}>
-                      Alert limit reached
-                    </Text>
-                    <Text style={[styles.quotaUpgradeLink, { color: accent }]}>Upgrade</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-              {tierName === "Free" && freeLifetimeLimit != null && lifetimeAlertsCreated != null && (() => {
-                const used = Math.min(lifetimeAlertsCreated, freeLifetimeLimit);
-                const remaining = freeLifetimeLimit - used;
+              {(() => {
+                // Priority when multiple limits are hit at once: a free user
+                // who is permanently out of lifetime slots sees that message,
+                // not the (less severe) active-quota or near-limit nudge.
+                const isFree =
+                  tierName === "Free" && freeLifetimeLimit != null && lifetimeAlertsCreated != null;
                 const nearLimitColor = isDark ? "#FBBF24" : "#B45309";
-                const tint = remaining <= 1 ? nearLimitColor : theme.colors.onSurfaceVariant;
+
+                let footerText: string | null = null;
+                let footerColor = theme.colors.onSurfaceVariant;
+
+                if (isFree && reachedLifetimeLimit) {
+                  footerText = "All free lifetime alerts used";
+                  footerColor = nearLimitColor;
+                } else if (reachedQuota && tierName !== "Pro") {
+                  footerText = "Alert limit reached";
+                } else if (isFree) {
+                  const used = Math.min(lifetimeAlertsCreated!, freeLifetimeLimit!);
+                  const remaining = freeLifetimeLimit! - used;
+                  if (remaining <= 1) {
+                    footerText = `${used} of ${freeLifetimeLimit} free lifetime alerts used`;
+                    footerColor = nearLimitColor;
+                  }
+                }
+
+                if (!footerText) return null;
+
                 return (
                   <>
                     <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
                     <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
-                      <Text style={[styles.quotaLimitText, { color: tint }]}>
-                        {remaining <= 0
-                          ? "All free alerts used"
-                          : `${used} of ${freeLifetimeLimit} free alerts used, ever`}
-                      </Text>
-                      <Text style={[styles.quotaUpgradeLink, { color: accent }]}>Upgrade</Text>
+                      <Text style={[styles.quotaLimitText, { color: footerColor }]}>{footerText}</Text>
+                      <Text style={[styles.quotaUpgradeLink, { color: accent }]}>Upgrade for more</Text>
                     </TouchableOpacity>
                   </>
                 );

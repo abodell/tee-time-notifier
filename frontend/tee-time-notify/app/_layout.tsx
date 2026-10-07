@@ -137,6 +137,16 @@ export default function RootLayout() {
             router.replace("/reset-password" as any);
           }
         }
+        return;
+      }
+
+      // PKCE flow: recovery link carries ?code=... instead of a hash fragment
+      const code = queryParams?.code;
+      if (typeof code === "string") {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!error && queryParams?.type === "recovery") {
+          router.replace("/reset-password" as any);
+        }
       }
     };
 

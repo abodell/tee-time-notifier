@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 import random
 import string
 from app.db import create_supabase
+from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
 
 router = APIRouter(prefix="/referrals", tags=["referrals"])
 
@@ -147,7 +148,7 @@ async def redeem_referral_code(payload: dict):
 
     referrer_res = await (
         supabase.table("user_profiles")
-        .select("id")
+        .select("id, membership_tier_id, bonus_tier_id, bonus_expires_at")
         .eq("referral_code", code)
         .execute()
     )
@@ -155,9 +156,21 @@ async def redeem_referral_code(payload: dict):
     if not referrer_rows:
         raise HTTPException(status_code=404, detail="That referral code doesn't exist.")
 
-    referrer_id = referrer_rows[0]["id"]
+    referrer = referrer_rows[0]
+    referrer_id = referrer["id"]
     if referrer_id == user_id:
         raise HTTPException(status_code=400, detail="You can't redeem your own referral code.")
+
+    # Check the referrer's tier *before* granting, since granting will
+    # extend bonus_expires_at and make the bonus look "active" either way.
+    tiers_by_id = await get_all_tiers_map(supabase)
+    referrer_effective_tier_id = resolve_effective_tier_id(
+        tiers_by_id,
+        referrer.get("membership_tier_id"),
+        referrer.get("bonus_tier_id"),
+        referrer.get("bonus_expires_at"),
+    )
+    referrer_already_pro = (tiers_by_id.get(referrer_effective_tier_id) or {}).get("name") == "Pro"
 
     await (
         supabase.table("user_profiles")
@@ -169,8 +182,15 @@ async def redeem_referral_code(payload: dict):
     await _grant_bonus_pro(supabase, user_id)
     await _grant_bonus_pro(supabase, referrer_id)
 
+    message = (
+        f"You got {REFERRAL_REWARD_DAYS} days of Pro! Your friend is already on Pro, so their "
+        f"days are banked — they'll kick in automatically if their plan ever lapses."
+        if referrer_already_pro
+        else f"You and your friend both got {REFERRAL_REWARD_DAYS} days of Pro!"
+    )
+
     return {
         "status": "success",
         "reward_days": REFERRAL_REWARD_DAYS,
-        "message": f"You and your friend both got {REFERRAL_REWARD_DAYS} days of Pro!",
+        "message": message,
     }

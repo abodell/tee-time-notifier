@@ -375,46 +375,111 @@ export default function UpgradeScreen() {
 
         {/* ── Weekend Pass card ── */}
         {session && !isBonusActive && (userTier === 1 || userTier === null) && (
-          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={{ marginBottom: 16 }}>
+          <Animated.View entering={FadeInDown.duration(400).delay(100)}>
             <View
               style={[
-                styles.passCard,
+                styles.card,
                 {
-                  borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+                  borderWidth: 1,
+                  borderColor: accent,
                   backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "#fff",
+                  shadowColor: isDark ? "transparent" : "#000",
                 },
               ]}
             >
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                <MaterialCommunityIcons name="bag-suitcase-outline" size={16} color={accent} style={{ marginRight: 6 }} />
+                <MaterialCommunityIcons name="bag-suitcase-outline" size={14} color={accent} style={{ marginRight: 6 }} />
                 <Text style={[styles.passEyebrow, { color: accent }]}>GOT A TRIP COMING UP?</Text>
               </View>
-              <Text style={[styles.passTitle, { color: theme.colors.onSurface }]}>Weekend Pass</Text>
-              <Text style={[styles.passSub, { color: theme.colors.onSurfaceVariant }]}>
-                7 days of full Pro access — 10 alerts, fastest scans, recurring alerts. One-time purchase, nothing to cancel.
+
+              <View style={styles.cardHeader}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <Text style={[styles.tierName, { color: theme.colors.onSurface }]}>Weekend Pass</Text>
+                    <View style={[styles.trialBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F0FDF4" }]}>
+                      <Text style={[styles.trialBadgeText, { color: accent }]}>7 DAYS</Text>
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 8, gap: 3 }}>
+                    <Text style={[styles.priceText, { color: theme.colors.onSurface }]}>
+                      {weekendPassProduct?.priceString || "$5.99"}
+                    </Text>
+                    <Text style={[styles.pricePeriod, { color: theme.colors.onSurfaceVariant }]}>
+                      one-time
+                    </Text>
+                  </View>
+                  <Text style={[styles.trialNote, { color: theme.colors.onSurfaceVariant }]}>
+                    Expires automatically after 7 days — nothing to cancel, never auto-renews.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.divider, { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" }]} />
+
+              <Text style={[styles.tierDesc, { color: theme.colors.onSurfaceVariant }]}>
+                A full week of Pro access — perfect for a single golf trip, no subscription required.
               </Text>
+
+              <View style={styles.features}>
+                <View style={styles.featureRow}>
+                  <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                    <MaterialCommunityIcons name="bell-outline" size={14} color={accent} />
+                  </View>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                    <Text style={{ fontWeight: "700" }}>10</Text> active alerts
+                  </Text>
+                </View>
+                <View style={styles.featureRow}>
+                  <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                    <MaterialCommunityIcons name="radar" size={14} color={accent} />
+                  </View>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                    Refreshes every <Text style={{ fontWeight: "700" }}>1 min</Text>
+                  </Text>
+                </View>
+                <View style={styles.featureRow}>
+                  <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                    <MaterialCommunityIcons name="account-group-outline" size={14} color={accent} />
+                  </View>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                    Filter by <Text style={{ fontWeight: "700" }}>group size</Text>
+                  </Text>
+                </View>
+                <View style={styles.featureRow}>
+                  <View style={[styles.featureIconWrap, { backgroundColor: `${accent}14` }]}>
+                    <MaterialCommunityIcons name="refresh-auto" size={14} color={accent} />
+                  </View>
+                  <Text style={[styles.featureText, { color: theme.colors.onSurface }]}>
+                    Set <Text style={{ fontWeight: "700" }}>recurring</Text> alerts
+                  </Text>
+                </View>
+              </View>
+
               <TouchableOpacity
                 onPress={handleBuyWeekendPass}
                 disabled={buyingWeekendPass || !weekendPassProduct}
                 activeOpacity={0.82}
-                style={[
-                  styles.passBtn,
-                  {
-                    borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)",
-                    opacity: buyingWeekendPass || !weekendPassProduct ? 0.6 : 1,
-                  },
-                ]}
+                style={{ marginTop: 20 }}
               >
-                {buyingWeekendPass ? (
-                  <ActivityIndicator animating size="small" color={accent} />
-                ) : (
-                  <>
-                    <Text style={[styles.passBtnText, { color: theme.colors.onSurface }]}>
-                      Get 7 Days · {weekendPassProduct?.priceString || "$6"}
-                    </Text>
-                    <MaterialCommunityIcons name="arrow-right" size={15} color={theme.colors.onSurface} />
-                  </>
-                )}
+                <View
+                  style={[
+                    styles.passBtn,
+                    {
+                      borderColor: accent,
+                      opacity: buyingWeekendPass || !weekendPassProduct ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  {buyingWeekendPass ? (
+                    <ActivityIndicator animating size="small" color={accent} />
+                  ) : (
+                    <>
+                      <Text style={[styles.passBtnText, { color: accent }]}>Get Weekend Pass</Text>
+                      <MaterialCommunityIcons name="arrow-right" size={15} color={accent} />
+                    </>
+                  )}
+                </View>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -805,35 +870,19 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 19,
   },
-  passCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
-  },
   passEyebrow: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.4,
-  },
-  passTitle: {
-    fontSize: 19,
-    fontWeight: "800",
-    letterSpacing: -0.4,
-    marginBottom: 6,
-  },
-  passSub: {
-    fontSize: 13.5,
-    lineHeight: 19,
-    marginBottom: 16,
   },
   passBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
   },
   passBtnText: {
     fontSize: 14.5,

@@ -24,8 +24,9 @@ import { supabase } from "@/lib/supabase";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Skeleton } from "moti/skeleton";
 import { useColorScheme } from "react-native";
-import { deleteAlert, muteAlert } from "@/lib/api";
+import { deleteAlert, muteAlert, pauseAllAlerts } from "@/lib/api";
 import MuteDurationSheet, { MuteDuration, resolveMuteDuration } from "@/components/MuteDurationSheet";
+import MutedHatch from "@/components/MutedHatch";
 import { Alert as AlertType } from "@/types/alert";
 import Toast from "react-native-toast-message";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -113,6 +114,8 @@ export default function MyAlertsScreen() {
   const [alertCount, setAlertCount] = useState(0);
   const [showReorderTip, setShowReorderTip] = useState(false);
   const [muteSheetAlertId, setMuteSheetAlertId] = useState<number | null>(null);
+  const [pauseAllSheetVisible, setPauseAllSheetVisible] = useState(false);
+  const [pausingAll, setPausingAll] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const params = useLocalSearchParams();
@@ -196,7 +199,9 @@ export default function MyAlertsScreen() {
       const userAlerts = await alertsRes.json();
       const ordered = applyOrder(userAlerts);
       setAlerts(ordered);
-      setAlertCount(userAlerts.length);
+      // Quota is about active slots used, not total rows — a deactivated
+      // alert must not keep counting against the limit.
+      setAlertCount(userAlerts.filter((a: AlertType) => a.active).length);
       setHasData(true);
     } catch (err: any) {
       console.log("Quota load failed", err);
@@ -289,6 +294,64 @@ export default function MyAlertsScreen() {
     }
   };
 
+  const handlePauseAll = async (duration: MuteDuration) => {
+    setPauseAllSheetVisible(false);
+    const userId = session?.user?.id;
+    if (!userId) return;
+    if (alerts.filter((a) => a.active).length === 0) {
+      Toast.show({
+        type: "info",
+        text1: "Nothing to pause",
+        text2: "You don't have any active alerts right now.",
+      });
+      return;
+    }
+
+    const mutedUntil = resolveMuteDuration(duration);
+    const prevAlerts = alerts;
+    setAlerts((p) => p.map((a) => (a.active ? { ...a, muted_until: mutedUntil } : a)));
+    try {
+      setPausingAll(true);
+      const result = await pauseAllAlerts(userId, mutedUntil);
+      haptics.success();
+      Toast.show({
+        type: "success",
+        text1: "Alerts paused",
+        text2: `${result.paused_count} alert${result.paused_count === 1 ? "" : "s"} silenced`,
+      });
+    } catch (err: any) {
+      setAlerts(prevAlerts);
+      haptics.error();
+      Toast.show({ type: "error", text1: "Couldn't pause alerts", text2: err.message });
+    } finally {
+      setPausingAll(false);
+    }
+  };
+
+  const handleResumeAll = async () => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    const prevAlerts = alerts;
+    setAlerts((p) => p.map((a) => ({ ...a, muted_until: null })));
+    try {
+      setPausingAll(true);
+      const result = await pauseAllAlerts(userId, null);
+      haptics.select();
+      Toast.show({
+        type: "success",
+        text1: "Alerts resumed",
+        text2: `${result.paused_count} alert${result.paused_count === 1 ? "" : "s"} resumed`,
+      });
+    } catch (err: any) {
+      setAlerts(prevAlerts);
+      haptics.error();
+      Toast.show({ type: "error", text1: "Couldn't resume alerts", text2: err.message });
+    } finally {
+      setPausingAll(false);
+    }
+  };
+
   const toggleExpand = (id: number) => {
     haptics.select();
     setExpandedIds((prev) => {
@@ -312,6 +375,14 @@ export default function MyAlertsScreen() {
   };
 
   const reachedQuota = maxAlerts !== null && alertCount >= (maxAlerts || 0) && hasData;
+  // Distinct from reachedQuota: a Free user can have 0 active alerts (all
+  // deleted) while still being out of lifetime slots, since deleting doesn't
+  // free one up.
+  const reachedLifetimeLimit =
+    tierName === "Free" &&
+    freeLifetimeLimit != null &&
+    lifetimeAlertsCreated != null &&
+    lifetimeAlertsCreated >= freeLifetimeLimit;
 
   const renderItem = ({ item, drag, isActive }: RenderItemParams<AlertType>) => {
     const course = item.courses || {};
@@ -355,6 +426,7 @@ export default function MyAlertsScreen() {
             },
           ]}
         >
+          {isMuted && !isExpired && <MutedHatch isDark={isDark} />}
           {/* ── Tappable body ── */}
           <TouchableOpacity
             onPress={() => !isExpired && item.id && toggleExpand(item.id)}
@@ -373,16 +445,6 @@ export default function MyAlertsScreen() {
                 {course.name || `Course #${item.course_id}`}
               </Text>
               <View style={styles.cardActions}>
-                {isMuted && !isExpired && (
-                  <View style={[styles.mutedPill, {
-                    backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
-                  }]}>
-                    <MaterialCommunityIcons name="bell-off-outline" size={10} color={theme.colors.onSurfaceVariant} />
-                    <Text style={[styles.mutedPillText, { color: theme.colors.onSurfaceVariant }]}>
-                      Muted
-                    </Text>
-                  </View>
-                )}
                 {item.is_recurring && !isExpired && (
                   <MaterialCommunityIcons
                     name="repeat"
@@ -605,13 +667,54 @@ export default function MyAlertsScreen() {
 
   const usagePercent = maxAlerts ? Math.min(alertCount / maxAlerts, 1) : 0;
 
+  const activeAlerts = alerts.filter((a) => a.active);
+  const allActivePaused =
+    activeAlerts.length > 0 &&
+    activeAlerts.every((a) => a.muted_until && dayjs(a.muted_until).isAfter(dayjs()));
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={["top"]}>
 
       {/* ── Header ── */}
-      <View style={styles.header}>
+      <View style={[styles.header, styles.headerRow]}>
         <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>My Alerts</Text>
+        {activeAlerts.length > 0 && (
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={allActivePaused ? handleResumeAll : () => setPauseAllSheetVisible(true)}
+              disabled={pausingAll}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.headerActionBtn}
+            >
+              <MaterialCommunityIcons
+                name={allActivePaused ? "play-circle-outline" : "pause-circle-outline"}
+                size={20}
+                color={theme.colors.onSurfaceVariant}
+                style={{ opacity: 0.7 }}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
+
+      {/* ── All-paused banner ── */}
+      {allActivePaused && (
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.tipWrap}>
+          <View style={[styles.tipCard, { backgroundColor: theme.colors.primaryContainer }]}>
+            <MaterialCommunityIcons name="bell-off-outline" size={15} color={theme.colors.primary} style={{ marginRight: 8 }} />
+            <Text style={[styles.tipText, { color: theme.colors.onPrimaryContainer, flex: 1, fontWeight: "700" }]}>
+              All alerts are paused
+            </Text>
+            <TouchableOpacity
+              onPress={handleResumeAll}
+              disabled={pausingAll}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={{ color: theme.colors.primary, fontWeight: "700", fontSize: 13 }}>Resume</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
 
       {/* ── Reorder tip ── */}
       {showReorderTip && alerts.length > 1 && (
@@ -701,34 +804,39 @@ export default function MyAlertsScreen() {
                 </View>
               )
             )}
-            {reachedQuota && tierName !== "Pro" && (
-              <>
-                <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
-                <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
-                  <Text style={[styles.quotaLimitText, { color: theme.colors.onSurfaceVariant }]}>
-                    Alert limit reached
-                  </Text>
-                  <Text style={[styles.quotaUpgradeLink, { color: theme.colors.primary }]}>Upgrade</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            {tierName === "Free" && freeLifetimeLimit != null && lifetimeAlertsCreated != null && (() => {
-              const used = Math.min(lifetimeAlertsCreated, freeLifetimeLimit);
-              const remaining = freeLifetimeLimit - used;
-              // Neutral until the last slot, then a warm (not alarmist-red) tint —
-              // the same "getting close" nudge pattern as a storage-quota bar.
+            {(() => {
+              // Priority when multiple limits are hit at once: a free user
+              // who is permanently out of lifetime slots sees that message,
+              // not the (less severe) active-quota or near-limit nudge.
+              const isFree =
+                tierName === "Free" && freeLifetimeLimit != null && lifetimeAlertsCreated != null;
               const nearLimitColor = isDark ? "#FBBF24" : "#B45309";
-              const tint = remaining <= 1 ? nearLimitColor : theme.colors.onSurfaceVariant;
+
+              let footerText: string | null = null;
+              let footerColor = theme.colors.onSurfaceVariant;
+
+              if (isFree && reachedLifetimeLimit) {
+                footerText = "All free lifetime alerts used";
+                footerColor = nearLimitColor;
+              } else if (reachedQuota && tierName !== "Pro") {
+                footerText = "Alert limit reached";
+              } else if (isFree) {
+                const used = Math.min(lifetimeAlertsCreated!, freeLifetimeLimit!);
+                const remaining = freeLifetimeLimit! - used;
+                if (remaining <= 1) {
+                  footerText = `${used} of ${freeLifetimeLimit} free lifetime alerts used`;
+                  footerColor = nearLimitColor;
+                }
+              }
+
+              if (!footerText) return null;
+
               return (
                 <>
                   <View style={[styles.quotaFooterDivider, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }]} />
                   <TouchableOpacity onPress={() => router.push("/upgrade")} style={styles.quotaFooterRow} activeOpacity={0.7}>
-                    <Text style={[styles.quotaLimitText, { color: tint }]}>
-                      {remaining <= 0
-                        ? "All free alerts used"
-                        : `${used} of ${freeLifetimeLimit} free alerts used, ever`}
-                    </Text>
-                    <Text style={[styles.quotaUpgradeLink, { color: theme.colors.primary }]}>Upgrade</Text>
+                    <Text style={[styles.quotaLimitText, { color: footerColor }]}>{footerText}</Text>
+                    <Text style={[styles.quotaUpgradeLink, { color: theme.colors.primary }]}>Upgrade for more</Text>
                   </TouchableOpacity>
                 </>
               );
@@ -855,6 +963,14 @@ export default function MyAlertsScreen() {
         onClose={() => setMuteSheetAlertId(null)}
         onSelect={handleSelectMuteDuration}
       />
+
+      <MuteDurationSheet
+        visible={pauseAllSheetVisible}
+        onClose={() => setPauseAllSheetVisible(false)}
+        onSelect={handlePauseAll}
+        title="Pause All Alerts"
+        subtitle="Silence every alert at once. You can resume anytime."
+      />
     </SafeAreaView>
   );
 }
@@ -877,6 +993,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 14,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  headerActionBtn: {
+    padding: 4,
   },
   headerTitle: {
     fontSize: 30,
@@ -1060,19 +1188,6 @@ const styles = StyleSheet.create({
   expiredLabel: {
     fontSize: 11,
     fontWeight: "500",
-    letterSpacing: 0.1,
-  },
-  mutedPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  mutedPillText: {
-    fontSize: 10,
-    fontWeight: "600",
     letterSpacing: 0.1,
   },
   metaRow: {

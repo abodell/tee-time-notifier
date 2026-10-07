@@ -1,5 +1,56 @@
 [
   {
+    "name": "Mid Pines Inn & Golf Club - Mid Pines",
+    "city": "Southern Pines",
+    "state": "North Carolina",
+    "website": "https://www.midpinesinn.com/",
+    "phone": "(800) 323-2114",
+    "provider": "ChronoGolf",
+    "active": true,
+    "configs": {
+      "club_id": "9243",
+      "course_id": "27970",
+      "affiliation_id": "147106",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "mid-pines-inn-golf-club"
+    }
+  },
+  {
+    "name": "Southern Pines Golf Club - Southern Pines",
+    "city": "Southern Pines",
+    "state": "North Carolina",
+    "website": "https://www.southernpinesgolfclub.com/",
+    "phone": "(910) 692-6551",
+    "provider": "ChronoGolf",
+    "active": true,
+    "configs": {
+      "club_id": "9390",
+      "course_id": "10803",
+      "affiliation_id": "146622",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "southern-pines-golf-club"
+    }
+  },
+  {
+    "name": "Pine Needles Lodge & Golf Club - Pine Needles",
+    "city": "Southern Pines",
+    "state": "North Carolina",
+    "website": "https://www.pineneedleslodge.com/",
+    "phone": "(800) 747-7272",
+    "provider": "ChronoGolf",
+    "active": true,
+    "configs": {
+      "club_id": "18381",
+      "course_id": "27969",
+      "affiliation_id": "147105",
+      "nb_holes": "18",
+      "timezone": "America/New_York",
+      "slug": "pine-needles-lodge-golf-club"
+    }
+  },
+  {
     "name": "The Golf Club at Wescott Plantation - Wescott Course #1",
     "city": "Summerville",
     "state": "South Carolina",

@@ -142,8 +142,8 @@ async def update_alert(alert_id: int, alert: dict):
         existing = await (
             supabase.table("alerts")
             .select(
-                "id, user_id, "
-                "user_profiles!alerts_user_id_fkey(membership_tiers!user_profiles_membership_tier_id_fkey(name))"
+                "id, user_id, end_time, is_recurring, "
+                "user_profiles!alerts_user_id_fkey(membership_tier_id, bonus_tier_id, bonus_expires_at, lifetime_alerts_created)"
             )
             .eq("id", alert_id)
             .single()
@@ -152,9 +152,18 @@ async def update_alert(alert_id: int, alert: dict):
         if not existing.data:
             raise HTTPException(status_code=404, detail="Alert not found.")
 
-        tier_name = (
-            (existing.data.get("user_profiles") or {}).get("membership_tiers") or {}
-        ).get("name")
+        # Resolve the effective tier the same way create_alert does, so an
+        # active bonus grant (Weekend Pass, referral) correctly unlocks
+        # player filters / recurring on edit too, not just at creation.
+        owner_profile = existing.data.get("user_profiles") or {}
+        tiers_by_id = await get_all_tiers_map(supabase)
+        effective_tier_id = resolve_effective_tier_id(
+            tiers_by_id,
+            owner_profile.get("membership_tier_id"),
+            owner_profile.get("bonus_tier_id"),
+            owner_profile.get("bonus_expires_at"),
+        )
+        tier_name = (tiers_by_id.get(effective_tier_id) or {}).get("name")
 
         is_recurring = alert.get("is_recurring", False) if tier_name == "Pro" else False
         players = alert.get("players") if tier_name in ("Plus", "Pro") else None
@@ -169,6 +178,42 @@ async def update_alert(alert_id: int, alert: dict):
             "is_recurring": is_recurring,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
+
+        # Editing an expired alert's window back into the future revives it —
+        # it needs to go active again regardless of tier, since the expiry
+        # rollover job (count_lifetime_alerts) had already flipped it off.
+        now = datetime.now(timezone.utc)
+        old_end_time = existing.data.get("end_time")
+        new_end_time = alert.get("end_time")
+        was_expired = (
+            not existing.data.get("is_recurring")
+            and old_end_time
+            and datetime.fromisoformat(old_end_time.replace("Z", "+00:00")) < now
+        )
+        revives_into_future = (
+            was_expired
+            and new_end_time
+            and datetime.fromisoformat(new_end_time.replace("Z", "+00:00")) > now
+        )
+        if revives_into_future:
+            update_payload["active"] = True
+
+        # For a Free-tier user, reviving an expired alert is functionally a
+        # new alert, not an edit — without this check, a Free-tier user at
+        # the lifetime cap could revive an old expired alert indefinitely
+        # and never actually use a new lifetime slot.
+        if tier_name == "Free" and revives_into_future:
+            lifetime_alerts_created = owner_profile.get("lifetime_alerts_created") or 0
+            if lifetime_alerts_created >= settings.FREE_LIFETIME_ALERT_LIMIT:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You've used all your free alerts. Upgrade to create more.",
+                )
+            # Re-enter the same grace-period flow a brand-new alert goes
+            # through, so count_lifetime_alerts() picks this up and
+            # increments lifetime_alerts_created like any other creation.
+            update_payload["created_at"] = now.isoformat()
+            update_payload["counted_toward_lifetime"] = False
 
         result = await (
             supabase.table("alerts")
@@ -522,3 +567,24 @@ async def mute_alert(alert_id: int, payload: dict):
     if not result.data:
         raise HTTPException(status_code=404, detail="Alert not found.")
     return result.data[0]
+
+
+@router.patch("/user/{user_id}/pause-all")
+async def pause_all_alerts(user_id: str, payload: dict):
+    """
+    Mute every active alert this user has at once, or clear the pause by
+    passing muted_until: null. Built for "I booked something outside the app
+    and don't want to hear from any of my alerts until it's over" — a bulk
+    version of the same muted_until column the per-alert mute uses, so it
+    costs nothing extra in the alert engine's query.
+    """
+    muted_until = payload.get("muted_until")
+    supabase = await create_supabase()
+    result = await (
+        supabase.table("alerts")
+        .update({"muted_until": muted_until})
+        .eq("user_id", user_id)
+        .eq("active", True)
+        .execute()
+    )
+    return {"status": "success", "paused_count": len(result.data or [])}
