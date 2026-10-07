@@ -479,7 +479,7 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={[styles.versionLabel, { color: theme.colors.onSurfaceVariant }]}>
-            TeeSignal v1.0.8
+            TeeSignal v1.0.9
           </Text>
         </ScrollView>
       </SafeAreaView>
@@ -926,7 +926,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={[styles.versionLabel, { color: theme.colors.onSurfaceVariant, marginTop: 32 }]}>
-          TeeSignal v1.0.8
+          TeeSignal v1.0.9
         </Text>
       </ScrollView>
     </SafeAreaView>
