@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://abodell.github.io/tee-time-notifier/sitemap.xml
