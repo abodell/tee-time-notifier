@@ -43,6 +43,10 @@ def make_supabase_mock(existing_records=None):
     table_mock.delete = MagicMock(return_value=delete_chain)
 
     mock.table = MagicMock(return_value=table_mock)
+
+    rpc_chain = MagicMock()
+    rpc_chain.execute = AsyncMock(return_value=MagicMock(data=[]))
+    mock.rpc = MagicMock(return_value=rpc_chain)
     return mock
 
 

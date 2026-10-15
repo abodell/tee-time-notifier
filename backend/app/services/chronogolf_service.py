@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
 from app.services import config_cache
+from app.services.availability_sync import prune_stale
 
 _CHRONO_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -223,20 +224,6 @@ async def normalize_and_store(course, raw_data, date_str: str, is_v2: bool = Fal
     start_utc = test_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=local_tz).astimezone(utc_tz)
     end_utc = test_date.replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=local_tz).astimezone(utc_tz)
 
-    # 2. Fetch current availability to perform diffing
-    current_res = await (
-        supabase.table("availability")
-        .select("id, tee_time, holes")
-        .eq("course_id", course["id"])
-        .gte("tee_time", start_utc.isoformat())
-        .lte("tee_time", end_utc.isoformat())
-        .execute()
-    )
-    db_map = {
-        (datetime.fromisoformat(r['tee_time']).astimezone(utc_tz).isoformat(), int(r['holes'])): r['id']
-        for r in current_res.data or []
-    }
-
     scanned_keys = set()
     for item in raw_data:
         try:
@@ -315,10 +302,8 @@ async def normalize_and_store(course, raw_data, date_str: str, is_v2: bool = Fal
         except Exception:
             continue
 
-    # 3. Diff and remove stale
-    ids_to_remove = [db_id for key, db_id in db_map.items() if key not in scanned_keys]
-    if ids_to_remove:
-        await supabase.table("availability").delete().in_("id", ids_to_remove).execute()
+    # 3. Remove stale rows, computed server-side in one round trip.
+    await prune_stale(supabase, course["id"], start_utc, end_utc, scanned_keys)
 
     # 4. Upsert fresh data (deduplicate by (tee_time, holes))
     if tee_times:

@@ -50,6 +50,11 @@ def make_supabase_mock(existing_records=None):
     table_mock.delete = MagicMock(return_value=delete_chain)
 
     mock.table = MagicMock(return_value=table_mock)
+
+    rpc_chain = MagicMock()
+    rpc_chain.execute = AsyncMock(return_value=MagicMock(data=[]))
+    mock.rpc = MagicMock(return_value=rpc_chain)
+
     return mock
 
 
@@ -235,23 +240,25 @@ async def test_missing_price_defaults_to_zero():
 
 async def test_stale_records_deleted_when_not_in_scan():
     """
-    Records in the DB that are NOT in the fresh scan should be deleted.
+    normalize_and_store prunes via the server-side prune_stale_availability
+    RPC — it passes this scan's (course_id, date window, keep-set) so
+    Postgres computes and deletes whatever's stale, rather than reading
+    existing rows back into Python first.
     """
-    existing_dt = datetime(2026, 3, 24, 11, 0, 0, tzinfo=tz.tzutc())  # 6AM CDT
-    existing_records = [{"id": 999, "tee_time": existing_dt.isoformat(), "holes": 18}]
-    supabase = make_supabase_mock(existing_records=existing_records)
+    supabase = make_supabase_mock()
 
     with patch("app.services.foreup_service.create_supabase", AsyncMock(return_value=supabase)):
         from app.services.foreup_service import normalize_and_store
 
-        # Scan returns a DIFFERENT time (7AM CDT = 12:00 UTC)
-        raw = [make_raw_entry("2026-03-24T07:00:00")]
+        raw = [make_raw_entry("2026-03-24T07:00:00")]  # 7AM CDT = 12:00 UTC
         await normalize_and_store(CENTRAL_COURSE, raw, "03-24-2026")
 
-    delete_call = supabase.table().delete().in_.call_args
-    assert delete_call is not None, "Expected stale records to be deleted"
-    deleted_ids = delete_call[0][1]
-    assert 999 in deleted_ids
+    assert supabase.rpc.call_args is not None, "Expected prune_stale_availability RPC to be called"
+    fn_name, params = supabase.rpc.call_args[0]
+    assert fn_name == "prune_stale_availability"
+    assert params["p_course_id"] == CENTRAL_COURSE["id"]
+    keep_times = {(k["tee_time"], k["holes"]) for k in params["p_keep"]}
+    assert ("2026-03-24T12:00:00+00:00", 18) in keep_times
 
 
 # ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import re
 import logging
 from app.db import create_supabase
 from app.services import config_cache
+from app.services.availability_sync import prune_stale
 
 logger = logging.getLogger(__name__)
 
@@ -197,27 +198,16 @@ async def scan_quick18_course(course: Dict, date_str: str):
             times = normalize_quick18(html, course_id, date_str, time_zone)
             scanned_keys = {(t["tee_time"], t["holes"]) for t in times}
 
-            # Diff: fetch existing DB records for this course + date window and remove stale ones
+            # Remove stale rows for this course + date window, computed
+            # server-side in one round trip instead of reading existing rows
+            # back first.
             local_tz = tz.gettz(time_zone) or tz.tzutc()
             utc_tz = tz.tzutc()
             day = datetime.strptime(date_str, "%Y%m%d")
-            window_start = day.replace(hour=0, minute=0, second=0, tzinfo=local_tz).astimezone(utc_tz).isoformat()
-            window_end = day.replace(hour=23, minute=59, second=59, tzinfo=local_tz).astimezone(utc_tz).isoformat()
+            window_start = day.replace(hour=0, minute=0, second=0, tzinfo=local_tz).astimezone(utc_tz)
+            window_end = day.replace(hour=23, minute=59, second=59, tzinfo=local_tz).astimezone(utc_tz)
 
-            db_res = await (
-                supabase.table("availability")
-                .select("id, tee_time, holes")
-                .eq("course_id", course_id)
-                .gte("tee_time", window_start)
-                .lte("tee_time", window_end)
-                .execute()
-            )
-            db_map = {(r["tee_time"], r["holes"]): r["id"] for r in db_res.data or []}
-
-            ids_to_remove = [db_id for key, db_id in db_map.items() if key not in scanned_keys]
-            if ids_to_remove:
-                await supabase.table("availability").delete().in_("id", ids_to_remove).execute()
-                logger.info(f"Removed {len(ids_to_remove)} stale times for Quick18 course {course['name']} on {date_str}")
+            await prune_stale(supabase, course_id, window_start, window_end, scanned_keys)
 
             if times:
                 await supabase.table("availability").upsert(

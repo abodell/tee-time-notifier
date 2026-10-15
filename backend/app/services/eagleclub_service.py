@@ -18,6 +18,7 @@ load_dotenv()
 
 from app.db import create_supabase
 from app.services import config_cache
+from app.services.availability_sync import prune_stale
 
 logger = logging.getLogger(__name__)
 
@@ -202,21 +203,6 @@ async def normalize_and_store(
         hour=23, minute=59, second=59, microsecond=999999
     )
 
-    # Fetch existing availability rows across the full window
-    current_res = await (
-        supabase.table("availability")
-        .select("id, tee_time, holes")
-        .eq("course_id", course["id"])
-        .gte("tee_time", window_start.isoformat())
-        .lte("tee_time", window_end.isoformat())
-        .execute()
-    )
-    db_records = current_res.data or []
-    db_map = {
-        (datetime.fromisoformat(r["tee_time"]).astimezone(utc_tz).isoformat(), int(r["holes"])): r["id"]
-        for r in db_records
-    }
-
     upsert_rows = []
     scanned_keys = set()
 
@@ -281,20 +267,9 @@ async def normalize_and_store(
 
     upsert_list = list(unique_upserts.values())
 
-    # Diff: remove stale rows
-    ids_to_remove = [
-        db_id
-        for (tk, hk), db_id in db_map.items()
-        if (tk, hk) not in scanned_keys
-    ]
-    if ids_to_remove:
-        print(f"[EagleClub] Removing {len(ids_to_remove)} stale tee times for {course['name']}")
-        await (
-            supabase.table("availability")
-            .delete()
-            .in_("id", ids_to_remove)
-            .execute()
-        )
+    # Remove stale rows across the full window, computed server-side in one
+    # round trip.
+    await prune_stale(supabase, course["id"], window_start, window_end, scanned_keys)
 
     if upsert_list:
         await supabase.table("availability").upsert(

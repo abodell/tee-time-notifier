@@ -52,6 +52,10 @@ def make_supabase_mock(existing_records=None):
     table_mock.delete = MagicMock(return_value=delete_chain)
 
     mock.table = MagicMock(return_value=table_mock)
+
+    rpc_chain = MagicMock()
+    rpc_chain.execute = AsyncMock(return_value=MagicMock(data=[]))
+    mock.rpc = MagicMock(return_value=rpc_chain)
     return mock
 
 
@@ -267,22 +271,30 @@ async def test_duplicate_time_and_holes_deduplicates_to_lowest_price():
 # ---------------------------------------------------------------------------
 
 async def test_stale_records_deleted():
-    """DB records not returned by scan are deleted."""
-    # Use a time within the 8-day window but different from what the scan returns
-    stale_dt = datetime.now(timezone.utc) + timedelta(days=1, hours=4)
-    stale_dt = stale_dt.replace(minute=0, second=0, microsecond=0)
-    existing_records = [{"id": 888, "tee_time": stale_dt.isoformat(), "holes": 18}]
-    supabase = make_supabase_mock(existing_records=existing_records)
+    """
+    normalize_and_store prunes via the server-side prune_stale_availability
+    RPC, passing this scan's keep-set (covering the full 7-day window) so
+    Postgres computes the diff rather than reading existing rows back into
+    Python first.
+    """
+    supabase = make_supabase_mock()
 
     with patch("app.services.eagleclub_service.create_supabase", AsyncMock(return_value=supabase)):
         from app.services.eagleclub_service import normalize_and_store
 
-        raw = [make_raw_entry(time="0700")]  # different time → stale record gets deleted
+        raw = [make_raw_entry(time="0700")]
         await normalize_and_store(CENTRAL_COURSE, raw)
 
-    delete_call = supabase.table().delete().in_.call_args
-    assert delete_call is not None
-    assert 888 in delete_call[0][1]
+    assert supabase.rpc.call_args is not None, "Expected prune_stale_availability RPC to be called"
+    fn_name, params = supabase.rpc.call_args[0]
+    assert fn_name == "prune_stale_availability"
+    assert params["p_course_id"] == CENTRAL_COURSE["id"]
+
+    local_tz = tz.gettz(CENTRAL_COURSE["time_zone"])
+    expected_dt = datetime.strptime(f"{raw[0]['Date']}0700", "%Y%m%d%H%M").replace(tzinfo=local_tz)
+    expected_iso = expected_dt.astimezone(timezone.utc).isoformat()
+    keep_times = {(k["tee_time"], k["holes"]) for k in params["p_keep"]}
+    assert (expected_iso, 18) in keep_times
 
 
 # ---------------------------------------------------------------------------

@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     WEEKEND_PASS_PRODUCT_ID: str = "teesignal_weekend_pass"
     WEEKEND_PASS_DAYS: int = 7
 
+    # Use the server-side prune_stale_availability() RPC instead of the old
+    # select-then-diff-in-python-then-delete pattern. Flip to False to
+    # instantly revert to the old behavior without a redeploy.
+    SERVER_SIDE_PRUNE: bool = True
+
     class Config:
         env_file = ".env"
         case_sensitive = True

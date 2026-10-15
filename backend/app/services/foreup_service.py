@@ -10,6 +10,7 @@ from app.config import settings
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
 from app.services import config_cache
+from app.services.availability_sync import prune_stale
 
 # In-memory JWT cache keyed by ForeUp facility course_id (e.g. "19765").
 # Only used for courses that have use_auth=true in their provider_configs.
@@ -201,25 +202,6 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
     start_utc = start_of_day.astimezone(utc_tz)
     end_utc = end_of_day.astimezone(utc_tz)
 
-    # 2. Fetch current availability for this course/date to perform diffing
-    # This identifies what we ALREADY HAVE so we don't clear everything
-    current_res = await (
-        supabase.table("availability")
-        .select("id, tee_time, holes")
-        .eq("course_id", course["id"])
-        .gte("tee_time", start_utc.isoformat())
-        .lte("tee_time", end_utc.isoformat())
-        .execute()
-    )
-    db_records = current_res.data or []
-    
-    # Map existing records by (iso_time, holes) -> id
-    # We use isoformat for stable string comparison
-    db_map = {
-        (datetime.fromisoformat(r['tee_time']).astimezone(utc_tz).isoformat(), int(r['holes'])): r['id']
-        for r in db_records
-    }
-
     scanned_keys = set()
     for item in raw_data:
         dt = None
@@ -279,28 +261,10 @@ async def normalize_and_store(course, raw_data, date_str: str, holes_requested: 
                 )
             )
 
-    # 3. IDENTIFY RECORDS TO DELETE (Present in DB but missing from fresh scan)
-    ids_to_remove = []
-    removed_details = []
-    for (tee_time_key, holes_key), db_id in db_map.items():
-        if (tee_time_key, holes_key) not in scanned_keys:
-            ids_to_remove.append(db_id)
-            removed_details.append(f"{tee_time_key} ({holes_key}-hole)")
-
-    if ids_to_remove:
-        print(f"[ForeUp] Diff result: Removing {len(ids_to_remove)} stale tee times for {course['name']} on {date_str}:")
-        for detail in removed_details:
-            print(f"  - Removed: {detail}")
-            
-        # Batch delete by specific IDs
-        # We use .in_ to delete only the specific missing records
-        await (
-            supabase.table("availability")
-            .delete()
-            .in_("id", ids_to_remove)
-            .execute()
-        )
-
+    # 3. Remove stale rows (present in DB but missing from this fresh scan).
+    # Computed server-side in one round trip instead of reading existing rows
+    # back first.
+    await prune_stale(supabase, course["id"], start_utc, end_utc, scanned_keys)
 
     # 4. UPSERT fresh data (updates existing, adds new)
     if tee_times:

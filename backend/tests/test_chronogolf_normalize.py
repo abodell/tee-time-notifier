@@ -43,6 +43,10 @@ def make_supabase_mock(existing_records=None):
     table_mock.delete = MagicMock(return_value=delete_chain)
 
     mock.table = MagicMock(return_value=table_mock)
+
+    rpc_chain = MagicMock()
+    rpc_chain.execute = AsyncMock(return_value=MagicMock(data=[]))
+    mock.rpc = MagicMock(return_value=rpc_chain)
     return mock
 
 
@@ -227,21 +231,25 @@ async def test_duplicate_slots_deduped_before_upsert():
 # ---------------------------------------------------------------------------
 
 async def test_stale_records_deleted():
-    """DB records not in the current scan are deleted."""
-    old_dt = datetime(2026, 3, 24, 10, 0, 0, tzinfo=tz.tzutc())
-    existing_records = [{"id": 777, "tee_time": old_dt.isoformat(), "holes": 18}]
-    supabase = make_supabase_mock(existing_records=existing_records)
+    """
+    normalize_and_store prunes via the server-side prune_stale_availability
+    RPC, passing this scan's keep-set so Postgres computes the diff rather
+    than reading existing rows back into Python first.
+    """
+    supabase = make_supabase_mock()
 
     with patch("app.services.chronogolf_service.create_supabase", AsyncMock(return_value=supabase)):
         from app.services.chronogolf_service import normalize_and_store
 
-        # Scan has a different time — 7AM CDT = 12:00 UTC
-        raw = [make_raw_entry(start_time="07:00")]
+        raw = [make_raw_entry(start_time="07:00")]  # 7AM CDT = 12:00 UTC
         await normalize_and_store(CENTRAL_COURSE, raw, "2026-03-24")
 
-    delete_call = supabase.table().delete().in_.call_args
-    assert delete_call is not None
-    assert 777 in delete_call[0][1]
+    assert supabase.rpc.call_args is not None, "Expected prune_stale_availability RPC to be called"
+    fn_name, params = supabase.rpc.call_args[0]
+    assert fn_name == "prune_stale_availability"
+    assert params["p_course_id"] == CENTRAL_COURSE["id"]
+    keep_times = {(k["tee_time"], k["holes"]) for k in params["p_keep"]}
+    assert ("2026-03-24T12:00:00+00:00", 18) in keep_times
 
 
 # ---------------------------------------------------------------------------

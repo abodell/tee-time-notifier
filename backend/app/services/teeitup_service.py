@@ -7,6 +7,7 @@ from dateutil import tz
 from app.db import create_supabase
 from app.models.tee_time import TeeTime
 from app.services import config_cache
+from app.services.availability_sync import prune_stale
 
 TEEITUP_API_BASE = "https://phx-api-be-east-1b.kenna.io"
 
@@ -118,20 +119,6 @@ async def normalize_and_store(course, raw_data: list, date_str: str):
     start_utc = start_of_day.astimezone(utc_tz)
     end_utc = end_of_day.astimezone(utc_tz)
 
-    # Fetch existing DB records to diff against
-    current_res = await (
-        supabase.table("availability")
-        .select("id, tee_time, holes")
-        .eq("course_id", course["id"])
-        .gte("tee_time", start_utc.isoformat())
-        .lte("tee_time", end_utc.isoformat())
-        .execute()
-    )
-    db_map = {
-        (datetime.fromisoformat(r["tee_time"]).astimezone(utc_tz).isoformat(), int(r["holes"])): r["id"]
-        for r in current_res.data or []
-    }
-
     scanned_keys = set()
     tee_times: List[TeeTime] = []
 
@@ -186,13 +173,8 @@ async def normalize_and_store(course, raw_data: list, date_str: str):
                     )
                 )
 
-    # Remove stale DB records
-    ids_to_remove = [
-        db_id for (key, db_id) in db_map.items() if key not in scanned_keys
-    ]
-    if ids_to_remove:
-        print(f"[TeeItUp] Removing {len(ids_to_remove)} stale records for {course['name']} on {date_str}")
-        await supabase.table("availability").delete().in_("id", ids_to_remove).execute()
+    # Remove stale records, computed server-side in one round trip.
+    await prune_stale(supabase, course["id"], start_utc, end_utc, scanned_keys)
 
     # Upsert fresh data
     if tee_times:
