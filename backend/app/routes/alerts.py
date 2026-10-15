@@ -142,7 +142,7 @@ async def update_alert(alert_id: int, alert: dict):
         existing = await (
             supabase.table("alerts")
             .select(
-                "id, user_id, end_time, is_recurring, "
+                "id, user_id, date_from, date_to, start_time, end_time, is_recurring, "
                 "user_profiles!alerts_user_id_fkey(membership_tier_id, bonus_tier_id, bonus_expires_at, lifetime_alerts_created)"
             )
             .eq("id", alert_id)
@@ -215,12 +215,30 @@ async def update_alert(alert_id: int, alert: dict):
             update_payload["created_at"] = now.isoformat()
             update_payload["counted_toward_lifetime"] = False
 
+        # The alert's search window changed — old notifications were matches
+        # for the previous date/time range and no longer apply. Without this,
+        # get_user_alerts' unconditional alert_notifications join keeps
+        # showing "found" times for a window the alert no longer searches.
+        window_changed = any(
+            alert.get(field) != existing.data.get(field)
+            for field in ("date_from", "date_to", "start_time", "end_time")
+        )
+
         result = await (
             supabase.table("alerts")
             .update(update_payload)
             .eq("id", alert_id)
             .execute()
         )
+
+        if window_changed:
+            await (
+                supabase.table("alert_notifications")
+                .delete()
+                .eq("alert_id", alert_id)
+                .execute()
+            )
+
         return {"status": "success", "alert": result.data[0] if result.data else None}
 
     except HTTPException:
