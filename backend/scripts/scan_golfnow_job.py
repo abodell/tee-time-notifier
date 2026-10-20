@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from app.db import create_supabase
 from app.services.golfnow_service import _player_rule_to_max
 from app.services import config_cache
+from app.services.availability_sync import prune_stale
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -162,27 +163,6 @@ async def normalize_and_store(
     start_utc = start_of_day.astimezone(utc_tz)
     end_utc = end_of_day.astimezone(utc_tz)
 
-    current_res = await (
-        supabase.table("availability")
-        .select("id, tee_time, holes")
-        .eq("course_id", course["id"])
-        .gte("tee_time", start_utc.isoformat())
-        .lte("tee_time", end_utc.isoformat())
-        .execute()
-    )
-    db_records = current_res.data or []
-
-    def parse_dt(val):
-        """Handle supabase-py returning either a str or a datetime object for timestamp columns."""
-        if isinstance(val, datetime):
-            return val
-        return datetime.fromisoformat(val)
-
-    db_map = {
-        (parse_dt(r["tee_time"]).astimezone(utc_tz).isoformat(), int(r["holes"])): r["id"]
-        for r in db_records
-    }
-
     upsert_rows = []
     scanned_keys = set()
 
@@ -235,23 +215,14 @@ async def normalize_and_store(
                 "spots_available": spots_available,
             })
 
-    ids_to_remove = [
-        db_id
-        for (tk, hk), db_id in db_map.items()
-        if (tk, hk) not in scanned_keys
-    ]
-    if ids_to_remove:
-        await (
-            supabase.table("availability")
-            .delete()
-            .in_("id", ids_to_remove)
-            .execute()
-        )
+    # Remove stale rows, computed server-side in one round trip.
+    await prune_stale(supabase, course["id"], start_utc, end_utc, scanned_keys)
 
     if upsert_rows:
         await supabase.table("availability").upsert(
             upsert_rows,
             on_conflict="course_id, tee_time, holes",
+            returning="minimal",
         ).execute()
         logger.info(f"Sync complete for {course['name']} on {date_str}. Found {len(upsert_rows)} times.")
     else:

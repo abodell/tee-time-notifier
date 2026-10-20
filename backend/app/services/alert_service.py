@@ -6,6 +6,7 @@ from collections import defaultdict
 from app.services.push_service import send_push_notification
 from app.config import settings
 from app.services.membership_service import get_all_tiers_map, resolve_effective_tier_id
+from app.services import scan_cache
 
 
 async def count_lifetime_alerts():
@@ -226,15 +227,14 @@ async def process_single_alert(supabase, alert, now, summaries, rows=None):
             "user_id": user_id
         }
 
-async def run_alert_engine(tier_id: int | None = None):
-    """ Check all alerts vs. availability and queue new notifications. """
-    start_time = datetime.now(timezone.utc)
-    supabase = await create_supabase()
-    summaries = {} # alert_id -> info
-
-    print(f"[AlertEngine] Starting scan for tier={tier_id} at {start_time.isoformat()}...")
-
-    # Step 0: Roll over expired recurring alerts before selecting what's active
+async def _load_active_alerts_for_engine(supabase, start_time):
+    """
+    Roll over expired recurring alerts, then fetch every active alert (all
+    tiers) joined with its course/profile info. Shared via scan_cache since
+    every membership tier currently runs this on the same 60s cadence — this
+    is the one call that actually hits the DB; the other tiers' invocations
+    within the same cycle reuse its result instead of re-querying.
+    """
     await rollover_recurring_alerts(supabase, start_time)
 
     cutoff = (start_time - timedelta(days=1)).isoformat()
@@ -254,7 +254,21 @@ async def run_alert_engine(tier_id: int | None = None):
     )
 
     query_execute = await query.execute()
-    alerts = query_execute.data or []
+    return query_execute.data or []
+
+
+async def run_alert_engine(tier_id: int | None = None):
+    """ Check all alerts vs. availability and queue new notifications. """
+    start_time = datetime.now(timezone.utc)
+    supabase = await create_supabase()
+    summaries = {} # alert_id -> info
+
+    print(f"[AlertEngine] Starting scan for tier={tier_id} at {start_time.isoformat()}...")
+
+    alerts = await scan_cache.get_or_fetch(
+        "active_alerts_for_engine",
+        lambda: _load_active_alerts_for_engine(supabase, start_time),
+    )
 
     if tier_id is not None:
         # A user on a temporary bonus grant (Weekend Pass, referral reward)

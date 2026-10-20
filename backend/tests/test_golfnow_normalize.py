@@ -52,6 +52,11 @@ def make_supabase_mock(existing_records=None):
     table_mock.delete = MagicMock(return_value=delete_chain)
 
     mock.table = MagicMock(return_value=table_mock)
+
+    rpc_chain = MagicMock()
+    rpc_chain.execute = AsyncMock(return_value=MagicMock(data=[]))
+    mock.rpc = MagicMock(return_value=rpc_chain)
+
     return mock
 
 
@@ -275,21 +280,22 @@ async def test_hole_count_defaults_to_18_when_missing():
 # parse_dt: supabase-py returns datetime objects for timestamp columns
 # ---------------------------------------------------------------------------
 
-async def test_existing_db_records_with_datetime_objects():
+async def test_stale_rows_pruned_via_rpc():
     """
-    Regression: supabase-py newer versions return datetime objects (not strings)
-    for timestamp columns, causing fromisoformat to fail in db_map construction.
-    parse_dt() must handle both.
+    normalize_and_store no longer reads existing rows back to diff in Python
+    (removed along with the datetime-vs-string parse_dt() workaround that used
+    to live here) — it prunes via the server-side prune_stale_availability
+    RPC, passing this scan's keep-set.
     """
-    # Simulate supabase returning a datetime object for tee_time
-    existing_dt = datetime(2026, 3, 24, 12, 0, 0, tzinfo=tz.tzutc())
-    existing_records = [{"id": 999, "tee_time": existing_dt, "holes": 18}]
-    supabase = make_supabase_mock(existing_records=existing_records)
+    supabase = make_supabase_mock()
 
-    # New scan returns same tee time — should upsert (not crash)
     entry = make_entry(time_value={"date": "2026-03-24T07:00:00+00:00", "formatted": "7:00", "formattedTimeMeridian": "AM"})
-    # Should not raise
     await normalize_and_store(supabase, CENTRAL_COURSE, [entry], "Mar 24 2026")
+
+    assert supabase.rpc.call_args is not None, "Expected prune_stale_availability RPC to be called"
+    fn_name, params = supabase.rpc.call_args[0]
+    assert fn_name == "prune_stale_availability"
+    assert params["p_course_id"] == CENTRAL_COURSE["id"]
 
 
 # ---------------------------------------------------------------------------

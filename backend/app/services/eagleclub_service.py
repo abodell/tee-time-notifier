@@ -19,6 +19,7 @@ load_dotenv()
 from app.db import create_supabase
 from app.services import config_cache
 from app.services.availability_sync import prune_stale
+from app.services.alert_targets import get_active_alerts_with_courses
 
 logger = logging.getLogger(__name__)
 
@@ -54,21 +55,12 @@ async def get_active_eagleclub_targets() -> Dict[int, Dict]:
     because each API call returns the next 7 days automatically.
     """
     supabase = await create_supabase()
-
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-    alerts_res = await (
-        supabase.table("alerts")
-        .select("courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
-        .eq("active", True)
-        .eq("courses.provider", "EagleClub")
-        .gte("date_to", cutoff)
-        .execute()
-    )
+    alerts = await get_active_alerts_with_courses(supabase)
 
     targets: Dict[int, Dict] = {}
-    for alert in (alerts_res.data or []):
+    for alert in alerts:
         course = alert.get("courses")
-        if course:
+        if course and course.get("provider") == "EagleClub":
             targets[course["id"]] = course
 
     return targets

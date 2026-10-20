@@ -11,6 +11,7 @@ from app.db import create_supabase
 from app.models.tee_time import TeeTime
 from app.services import config_cache
 from app.services.availability_sync import prune_stale
+from app.services.alert_targets import get_active_alerts_with_courses
 
 # In-memory JWT cache keyed by ForeUp facility course_id (e.g. "19765").
 # Only used for courses that have use_auth=true in their provider_configs.
@@ -78,26 +79,15 @@ async def get_active_foreup_targets():
     based on active alerts.
     """
     supabase = await create_supabase()
-    
-    # 1. Get all active, non-expired alerts
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-    alerts_res = await (
-        supabase.table("alerts")
-        .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
-        .eq("active", True)
-        .eq("courses.provider", "ForeUp")
-        .gte("date_to", cutoff)
-        .execute()
-    )
-    
+    alerts = await get_active_alerts_with_courses(supabase)
+
     targets = {} # {(course_id, date_str): course_obj}
-    
-    alerts = alerts_res.data or []
+
     for a in alerts:
         course = a.get("courses")
-        if not course:
+        if not course or course.get("provider") != "ForeUp":
             continue
-            
+
         # Parse date range
         try:
             # Simple handling: assume date_from is enough for now

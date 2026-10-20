@@ -10,6 +10,7 @@ from app.db import create_supabase
 from app.models.tee_time import TeeTime
 from app.services import config_cache
 from app.services.availability_sync import prune_stale
+from app.services.alert_targets import get_active_alerts_with_courses
 
 _CHRONO_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -22,24 +23,13 @@ async def get_active_chronogolf_targets():
     based on active alerts.
     """
     supabase = await create_supabase()
-
-    # 1. Get all active, non-expired alerts for ChronoGolf courses
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-    alerts_res = await (
-        supabase.table("alerts")
-        .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
-        .eq("active", True)
-        .eq("courses.provider", "ChronoGolf")
-        .gte("date_to", cutoff)
-        .execute()
-    )
+    alerts = await get_active_alerts_with_courses(supabase)
 
     targets = {} # {(course_id, date_str): course_obj}
 
-    alerts = alerts_res.data or []
     for a in alerts:
         course = a.get("courses")
-        if not course:
+        if not course or course.get("provider") != "ChronoGolf":
             continue
         try:
             # Parse date

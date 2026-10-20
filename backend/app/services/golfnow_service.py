@@ -22,6 +22,7 @@ load_dotenv()
 
 from app.db import create_supabase
 from app.services import config_cache
+from app.services.availability_sync import prune_stale
 
 logger = logging.getLogger(__name__)
 
@@ -222,21 +223,6 @@ async def normalize_and_store(
     start_utc = start_of_day.astimezone(utc_tz)
     end_utc = end_of_day.astimezone(utc_tz)
 
-    # Fetch existing availability rows for this course/date window
-    current_res = await (
-        supabase.table("availability")
-        .select("id, tee_time, holes")
-        .eq("course_id", course["id"])
-        .gte("tee_time", start_utc.isoformat())
-        .lte("tee_time", end_utc.isoformat())
-        .execute()
-    )
-    db_records = current_res.data or []
-    db_map = {
-        (datetime.fromisoformat(r["tee_time"]).astimezone(utc_tz).isoformat(), int(r["holes"])): r["id"]
-        for r in db_records
-    }
-
     # Build fresh tee-time records
     upsert_rows = []
     scanned_keys = set()
@@ -294,23 +280,8 @@ async def normalize_and_store(
                 "spots_available": spots_available,
             })
 
-    # Diff: remove stale rows no longer returned by the API
-    ids_to_remove = [
-        db_id
-        for (tk, hk), db_id in db_map.items()
-        if (tk, hk) not in scanned_keys
-    ]
-    if ids_to_remove:
-        print(
-            f"[GolfNow] Diff result: Removing {len(ids_to_remove)} stale tee times "
-            f"for {course['name']} on {date_str}"
-        )
-        await (
-            supabase.table("availability")
-            .delete()
-            .in_("id", ids_to_remove)
-            .execute()
-        )
+    # Remove stale rows, computed server-side in one round trip.
+    await prune_stale(supabase, course["id"], start_utc, end_utc, scanned_keys)
 
     # Upsert fresh data
     if upsert_rows:

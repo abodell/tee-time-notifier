@@ -8,6 +8,7 @@ from app.db import create_supabase
 from app.models.tee_time import TeeTime
 from app.services import config_cache
 from app.services.availability_sync import prune_stale
+from app.services.alert_targets import get_active_alerts_with_courses
 
 TEEITUP_API_BASE = "https://phx-api-be-east-1b.kenna.io"
 
@@ -18,22 +19,13 @@ async def get_active_teeitup_targets():
     based on active alerts for TeeItUp courses.
     """
     supabase = await create_supabase()
-
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-    alerts_res = await (
-        supabase.table("alerts")
-        .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
-        .eq("active", True)
-        .eq("courses.provider", "TeeItUp")
-        .gte("date_to", cutoff)
-        .execute()
-    )
+    alerts = await get_active_alerts_with_courses(supabase)
 
     targets = {}  # {(course_id, date_str): course_obj}
 
-    for a in alerts_res.data or []:
+    for a in alerts:
         course = a.get("courses")
-        if not course:
+        if not course or course.get("provider") != "TeeItUp":
             continue
         try:
             start_dt = datetime.fromisoformat(a["date_from"].replace("Z", "+00:00"))

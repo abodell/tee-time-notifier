@@ -9,6 +9,7 @@ import logging
 from app.db import create_supabase
 from app.services import config_cache
 from app.services.availability_sync import prune_stale
+from app.services.alert_targets import get_active_alerts_with_courses
 
 logger = logging.getLogger(__name__)
 
@@ -126,24 +127,13 @@ async def get_active_quick18_targets():
     based on active alerts.
     """
     supabase = await create_supabase()
-    
-    # 1. Get all active, non-expired alerts for Quick18
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-    alerts_res = await (
-        supabase.table("alerts")
-        .select("date_from, date_to, courses!alerts_course_id_fkey!inner(id, name, provider, time_zone)")
-        .eq("active", True)
-        .eq("courses.provider", "Quick18")
-        .gte("date_to", cutoff)
-        .execute()
-    )
-    
+    alerts = await get_active_alerts_with_courses(supabase)
+
     targets = {} # {(course_id, date_str): course_obj}
-    
-    alerts = alerts_res.data or []
+
     for a in alerts:
         course = a.get("courses")
-        if not course:
+        if not course or course.get("provider") != "Quick18":
             continue
         # Parse date range
         try:
