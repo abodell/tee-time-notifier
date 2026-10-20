@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install httpx supabase python-dateutil python-dotenv
+          pip install httpx supabase python-dateutil python-dotenv pydantic-settings
 
       - name: Run GolfNow Scan
         env:
